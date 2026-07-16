@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: makor-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: makor
+      POSTGRES_PASSWORD: makor123
+      POSTGRES_DB: makor_crm
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U makor -d makor_crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - makor-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: makor-pgadmin
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@makor.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+
+    ports:
+      - "5051:80"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+    networks:
+      - makor-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: makor-redis
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - makor-network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  redis_data:
+
+networks:
+  makor-network:
+    driver: bridge
