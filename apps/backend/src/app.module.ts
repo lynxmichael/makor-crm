@@ -6,6 +6,21 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { CustomersModule } from './customers/customers.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { OffersModule } from './offers/offers.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { PaymentsModule } from './payments/payments.module';
+import { DevicesModule } from './devices/devices.module';
+import { WarehousesModule } from './warehouses/warehouses.module';
+import { InterventionsModule } from './interventions/interventions.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { DocumentsModule } from './documents/documents.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AuditModule } from './audit/audit.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -22,6 +37,36 @@ import { PermissionsModule } from './permissions/permissions.module';
     RolesModule,
 
     PermissionsModule,
+
+    CustomersModule,
+
+    SubscriptionsModule,
+
+    OffersModule,
+
+    TicketsModule,
+
+    InvoicesModule,
+
+    PaymentsModule,
+
+    DevicesModule,
+
+    WarehousesModule,
+
+    InterventionsModule,
+
+    CampaignsModule,
+
+    DocumentsModule,
+
+    DashboardModule,
+
+    NotificationsModule,
+
+    AuditModule,
+
+    HealthModule,
   ],
 })
 export class AppModule {}
