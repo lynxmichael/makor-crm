@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { DashboardController } from './dashboard.controller';
 
-@Injectable()
-export class DashboardService {}
+@Module({
+  controllers: [DashboardController],
+})
+export class DashboardModule {}

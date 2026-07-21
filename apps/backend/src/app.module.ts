@@ -10,7 +10,6 @@ import { CustomersModule } from './customers/customers.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { OffersModule } from './offers/offers.module';
 import { TicketsModule } from './tickets/tickets.module';
-import { InvoicesModule } from './invoices/invoices.module';
 import { PaymentsModule } from './payments/payments.module';
 import { DevicesModule } from './devices/devices.module';
 import { WarehousesModule } from './warehouses/warehouses.module';
@@ -21,6 +20,10 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AuditModule } from './audit/audit.module';
 import { HealthModule } from './health/health.module';
+import { CompanyModule } from './company/company.module';
+import { CompaniesModule } from './companies/companies.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -46,8 +49,6 @@ import { HealthModule } from './health/health.module';
 
     TicketsModule,
 
-    InvoicesModule,
-
     PaymentsModule,
 
     DevicesModule,
@@ -67,6 +68,10 @@ import { HealthModule } from './health/health.module';
     AuditModule,
 
     HealthModule,
+    CompanyModule,
+    CompaniesModule,
+    InvoicesModule,
+    ProductsModule,
   ],
 })
 export class AppModule {}
