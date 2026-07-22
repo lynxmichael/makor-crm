@@ -19,13 +19,21 @@ export class OffersService {
         duration: dto.duration,
         isActive: dto.isActive ?? true,
 
+        company: {
+          connect: {
+            id: dto.companyId,
+          },
+        },
+
         product: {
           connect: {
             id: dto.productId,
           },
         },
       },
+
       include: {
+        company: true,
         product: true,
       },
     });

@@ -89,10 +89,10 @@ model User {
 
   refreshToken String?
 
-  roleId    String
-  companyId String?
-
-  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  roleId        String
+  companyId     String?
+  notifications Notification[]
+  company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -171,6 +171,7 @@ model Company {
   offers Offer[]
 
   customers Customer[]
+  campaigns Campaign[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -368,5 +369,68 @@ model Ticket {
 
   @@index([customerId])
   @@index([assignedToId])
+  @@index([status])
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  title   String
+  message String
+
+  type NotificationType @default(INFO)
+
+  isRead Boolean @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+enum CampaignType {
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  FINISHED
+  CANCELLED
+}
+
+model Campaign {
+  id String @id @default(cuid())
+
+  name    String
+  subject String?
+  message String
+
+  type   CampaignType
+  status CampaignStatus @default(DRAFT)
+
+  scheduledAt DateTime?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
   @@index([status])
 }

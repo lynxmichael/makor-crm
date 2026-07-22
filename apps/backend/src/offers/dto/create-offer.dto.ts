@@ -1,10 +1,4 @@
-import {
-  IsBoolean,
-  IsNumber,
-  IsOptional,
-  IsPositive,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateOfferDto {
   @IsString()
@@ -18,7 +12,6 @@ export class CreateOfferDto {
   description?: string;
 
   @IsNumber()
-  @IsPositive()
   price!: number;
 
   @IsOptional()
@@ -31,4 +24,7 @@ export class CreateOfferDto {
 
   @IsString()
   productId!: string;
+
+  @IsString()
+  companyId!: string;
 }

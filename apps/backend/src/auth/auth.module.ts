@@ -26,9 +26,7 @@ import { PrismaModule } from '../prisma/prisma.module';
         secret: config.getOrThrow<string>('JWT_SECRET'),
 
         signOptions: {
-          expiresIn: config.getOrThrow<string>(
-            'JWT_EXPIRES',
-          ) as StringValue,
+          expiresIn: config.getOrThrow<string>('JWT_EXPIRES') as StringValue,
         },
       }),
     }),
@@ -36,14 +34,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 
   controllers: [AuthController],
 
-  providers: [
-    AuthService,
-    JwtStrategy,
-  ],
+  providers: [AuthService, JwtStrategy],
 
-  exports: [
-    AuthService,
-    JwtModule,
-  ],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

@@ -6,7 +6,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get()
-  getStats() {
-    return this.dashboardService.getStats();
+  getDashboard() {
+    return this.dashboardService.getDashboard();
   }
 }
