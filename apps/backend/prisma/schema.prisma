@@ -89,14 +89,19 @@ model User {
 
   refreshToken String?
 
-  roleId        String
-  companyId     String?
-  notifications Notification[]
-  assignedLeads Lead[]
+  roleId           String
+  companyId        String?
+  notifications    Notification[]
+  assignedLeads    Lead[]
   assignedContacts Contact[]
-  auditLogs     AuditLog[]
-  documents     Document[]     @relation("UploadedDocuments")
-  company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  auditLogs        AuditLog[]
+  activities       Activity[]
+  deals            Deal[]
+  quotes           Quote[]
+  contracts        Contract[]
+  paymentsCreated  Payment[]
+  documents        Document[]     @relation("UploadedDocuments")
+  company          Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -141,8 +146,13 @@ model Customer {
   assignedToId  String?
   subscriptions Subscription[]
   invoices      Invoice[]
+  deals         Deal[]
   documents     Document[]
-  contacts Contact[]
+  activities    Activity[]
+  contacts      Contact[]
+  quotes        Quote[]
+  contracts     Contract[]
+  payments      Payment[]
   companyId     String?
 
   company    Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -175,7 +185,7 @@ model Company {
   products Product[]
 
   offers Offer[]
-  leads Lead[]
+  leads  Lead[]
 
   customers Customer[]
   campaigns Campaign[]
@@ -199,6 +209,8 @@ model Product {
   companyId     String
   offers        Offer[]
   subscriptions Subscription[]
+  quoteItems    QuoteItem[]
+  invoiceItems  InvoiceItem[]
   company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -269,42 +281,67 @@ model Subscription {
 
 enum PaymentMethod {
   CASH
+  BANK_TRANSFER
   CARD
   MOBILE_MONEY
-  BANK_TRANSFER
+  WAVE
+  ORANGE_MONEY
+  MTN_MOMO
+  MOOV_MONEY
+  CINETPAY
+  STRIPE
+  PAYPAL
 }
 
 enum PaymentStatus {
   PENDING
-  PAID
+  PROCESSING
+  SUCCESS
   FAILED
   CANCELLED
+  REFUNDED
 }
 
 model Payment {
   id String @id @default(cuid())
 
+  reference String @unique
+
+  transactionId String?
+
   amount Decimal @db.Decimal(12, 2)
+
+  currency String @default("XOF")
 
   method PaymentMethod
 
   status PaymentStatus @default(PENDING)
 
-  reference String? @unique
+  provider String?
+
+  providerResponse Json?
 
   paidAt DateTime?
 
-  subscriptionId String
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
-  // Relation 1-1 avec Invoice
-  invoice Invoice?
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  @@index([subscriptionId])
+  updatedAt      DateTime      @updatedAt
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String?
+
+  @@index([invoiceId])
+  @@index([customerId])
   @@index([status])
+  @@index([method])
 }
 
 enum InvoiceStatus {
@@ -325,8 +362,16 @@ model Invoice {
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
 
-  paymentId String?  @unique
-  payment   Payment? @relation(fields: [paymentId], references: [id])
+  payments   Payment[]
+  contractId String?
+  items      InvoiceItem[]
+
+  contract Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  subtotal Decimal   @db.Decimal(12, 2)
+
+  discount Decimal @default(0) @db.Decimal(12, 2)
+
+  tax Decimal @default(0) @db.Decimal(12, 2)
 
   total Decimal @db.Decimal(12, 2)
 
@@ -508,11 +553,12 @@ model Document {
   @@index([customerId])
   @@index([uploadedById])
 }
+
 model Contact {
   id String @id @default(cuid())
 
   firstName String
-  lastName String
+  lastName  String
 
   email String?
   phone String?
@@ -522,10 +568,10 @@ model Contact {
   isPrimary Boolean @default(false)
 
   customerId String
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   assignedToId String?
-  assignedTo User? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -534,6 +580,7 @@ model Contact {
   @@index([assignedToId])
   @@index([email])
 }
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -561,7 +608,7 @@ model Lead {
   id String @id @default(cuid())
 
   firstName String
-  lastName String
+  lastName  String
 
   company String?
 
@@ -579,9 +626,11 @@ model Lead {
   status LeadStatus @default(NEW)
 
   assignedToId String?
-  assignedTo User? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  deals        Deal[]
+  activities   Activity[]
+  assignedTo   User?      @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
 
-  companyId String?
+  companyId     String?
   companyEntity Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
@@ -591,4 +640,242 @@ model Lead {
   @@index([source])
   @@index([assignedToId])
   @@index([companyId])
+}
+
+enum DealStage {
+  QUALIFICATION
+  NEED_ANALYSIS
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+model Deal {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+
+  amount Decimal @db.Decimal(12, 2)
+
+  probability Int @default(0)
+
+  expectedCloseDate DateTime?
+
+  stage DealStage @default(QUALIFICATION)
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  customerId String?
+  activities Activity[]
+  quotes     Quote[]
+  customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  assignedToId String
+  assignedTo   User   @relation(fields: [assignedToId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage])
+  @@index([leadId])
+  @@index([customerId])
+  @@index([assignedToId])
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  TASK
+  NOTE
+}
+
+enum ActivityStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Activity {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+
+  type ActivityType
+
+  status ActivityStatus @default(PLANNED)
+
+  dueDate DateTime?
+
+  completedAt DateTime?
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  assignedToId String
+  assignedTo   User   @relation(fields: [assignedToId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([leadId])
+  @@index([customerId])
+  @@index([dealId])
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model Quote {
+  id String @id @default(cuid())
+
+  number String @unique
+
+  title String
+
+  notes String?
+
+  subtotal Decimal @db.Decimal(12, 2)
+
+  tax Decimal @db.Decimal(12, 2)
+
+  discount Decimal @db.Decimal(12, 2)
+
+  total Decimal @db.Decimal(12, 2)
+
+  validUntil DateTime?
+
+  status     QuoteStatus @default(DRAFT)
+  contract   Contract?
+  customerId String
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  items QuoteItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([dealId])
+  @@index([status])
+}
+
+model QuoteItem {
+  id String @id @default(cuid())
+
+  description String
+
+  quantity Int
+
+  unitPrice Decimal @db.Decimal(12, 2)
+
+  discount Decimal @default(0) @db.Decimal(12, 2)
+
+  total Decimal @db.Decimal(12, 2)
+
+  quoteId String
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([quoteId])
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+  EXPIRED
+}
+
+model Contract {
+  id String @id @default(cuid())
+
+  number String @unique
+
+  title String
+
+  description String?
+
+  amount Decimal @db.Decimal(12, 2)
+
+  startDate DateTime
+
+  endDate DateTime?
+
+  signedAt DateTime?
+
+  status ContractStatus @default(DRAFT)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  quoteId String? @unique
+
+  quote Quote? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([quoteId])
+  @@index([status])
+}
+
+model InvoiceItem {
+  id String @id @default(cuid())
+
+  description String
+
+  quantity Int
+
+  unitPrice Decimal @db.Decimal(12, 2)
+
+  discount Decimal @default(0) @db.Decimal(12, 2)
+
+  total Decimal @db.Decimal(12, 2)
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([invoiceId])
 }

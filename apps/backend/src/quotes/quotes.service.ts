@@ -1,16 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+
 import { Prisma } from '@prisma/client';
 
-import { CreateInvoiceDto } from './dto/create-invoice.dto';
-import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { CreateQuoteDto } from './dto/create-quote.dto';
+import { UpdateQuoteDto } from './dto/update-quote.dto';
 
 @Injectable()
-export class InvoicesService {
+export class QuotesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateInvoiceDto) {
+  async create(dto: CreateQuoteDto) {
     let subtotal = 0;
     let discount = 0;
 
@@ -42,15 +43,21 @@ export class InvoicesService {
     const tax = subtotal * 0.18;
     const total = subtotal + tax;
 
-    const count = await this.prisma.invoice.count();
+    const count = await this.prisma.quote.count();
 
-    return this.prisma.invoice.create({
+    return this.prisma.quote.create({
       data: {
-        number: `FAC-${String(count + 1).padStart(6, '0')}`,
+        number: `DEV-${String(count + 1).padStart(6, '0')}`,
 
+        title: dto.title,
+        notes: dto.notes,
+
+        subtotal,
+        discount,
+        tax,
         total,
 
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+        validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
 
         status: dto.status,
 
@@ -60,18 +67,16 @@ export class InvoicesService {
           },
         },
 
-        ...(dto.subscriptionId && {
-          subscription: {
-            connect: {
-              id: dto.subscriptionId,
-            },
+        createdBy: {
+          connect: {
+            id: dto.createdById,
           },
-        }),
+        },
 
-        ...(dto.contractId && {
-          contract: {
+        ...(dto.dealId && {
+          deal: {
             connect: {
-              id: dto.contractId,
+              id: dto.dealId,
             },
           },
         }),
@@ -83,9 +88,8 @@ export class InvoicesService {
 
       include: {
         customer: true,
-        subscription: true,
-        contract: true,
-        payment: true,
+        deal: true,
+        createdBy: true,
         items: {
           include: {
             product: true,
@@ -105,14 +109,24 @@ export class InvoicesService {
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.InvoiceWhereInput = {
+    const where: Prisma.QuoteWhereInput = {
       AND: [
         search
           ? {
-              number: {
-                contains: search,
-                mode: 'insensitive',
-              },
+              OR: [
+                {
+                  number: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  title: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+              ],
             }
           : {},
 
@@ -124,15 +138,14 @@ export class InvoicesService {
       ],
     };
 
-    const [invoices, total] = await Promise.all([
-        this.prisma.invoice.findMany({
+    const [quotes, total] = await Promise.all([
+        this.prisma.quote.findMany({
           where,
 
           include: {
             customer: true,
-            subscription: true,
-            contract: true,
-            payment: true,
+            deal: true,
+            createdBy: true,
             items: true,
           },
 
@@ -144,13 +157,13 @@ export class InvoicesService {
           },
         }),
 
-        this.prisma.invoice.count({
+        this.prisma.quote.count({
           where,
         }),
       ]);
 
     return {
-      data: invoices,
+      data: quotes,
 
       meta: {
         total,
@@ -162,16 +175,15 @@ export class InvoicesService {
   }
 
   async findOne(id: string) {
-    const invoice = await this.prisma.invoice.findUnique({
+    const quote = await this.prisma.quote.findUnique({
         where: {
           id,
         },
 
         include: {
           customer: true,
-          subscription: true,
-          contract: true,
-          payment: true,
+          deal: true,
+          createdBy: true,
           items: {
             include: {
               product: true,
@@ -180,37 +192,39 @@ export class InvoicesService {
         },
       });
 
-    if (!invoice) {
-      throw new NotFoundException('Facture introuvable');
+    if (!quote) {
+      throw new NotFoundException('Devis introuvable');
     }
 
-    return invoice;
+    return quote;
   }
 
-  async update(id: string, dto: UpdateInvoiceDto) {
+  async update(id: string, dto: UpdateQuoteDto) {
     await this.findOne(id);
 
-    return this.prisma.invoice.update({
+    return this.prisma.quote.update({
       where: {
         id,
       },
 
       data: {
-        dueDate:
-          dto.dueDate !== undefined
-            ? dto.dueDate
-              ? new Date(dto.dueDate)
-              : null
-            : undefined,
+        title: dto.title,
+        notes: dto.notes,
 
         status: dto.status,
+
+        validUntil:
+          dto.validUntil !== undefined
+            ? dto.validUntil
+              ? new Date(dto.validUntil)
+              : null
+            : undefined,
       },
 
       include: {
         customer: true,
-        subscription: true,
-        contract: true,
-        payment: true,
+        deal: true,
+        createdBy: true,
         items: true,
       },
     });
@@ -219,37 +233,9 @@ export class InvoicesService {
   async remove(id: string) {
     await this.findOne(id);
 
-    return this.prisma.invoice.delete({
+    return this.prisma.quote.delete({
       where: {
         id,
-      },
-    });
-  }
-
-  async markAsPaid(id: string) {
-    await this.findOne(id);
-
-    return this.prisma.invoice.update({
-      where: {
-        id,
-      },
-
-      data: {
-        status: 'PAID',
-      },
-    });
-  }
-
-  async cancel(id: string) {
-    await this.findOne(id);
-
-    return this.prisma.invoice.update({
-      where: {
-        id,
-      },
-
-      data: {
-        status: 'CANCELLED',
       },
     });
   }

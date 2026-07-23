@@ -1,36 +1,40 @@
 import {
+  IsArray,
   IsDateString,
   IsEnum,
-  IsNumber,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
+
+import { Type } from 'class-transformer';
 
 import { InvoiceStatus } from '@prisma/client';
 
+import { CreateInvoiceItemDto } from './create-invoice-item.dto';
+
 export class CreateInvoiceDto {
-  @IsString()
-  number!: string;
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string;
+
+  @IsOptional()
+  @IsEnum(InvoiceStatus)
+  status?: InvoiceStatus;
 
   @IsString()
   customerId!: string;
 
   @IsOptional()
   @IsString()
-  subscriptionId?: string;
+  contractId?: string;
 
   @IsOptional()
   @IsString()
-  paymentId?: string;
+  subscriptionId?: string;
 
-  @IsNumber()
-  total!: number;
-
-  @IsOptional()
-  @IsEnum(InvoiceStatus)
-  status?: InvoiceStatus;
-
-  @IsOptional()
-  @IsDateString()
-  dueDate?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateInvoiceItemDto)
+  items!: CreateInvoiceItemDto[];
 }

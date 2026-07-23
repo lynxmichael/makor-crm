@@ -26,6 +26,11 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { ProductsModule } from './products/products.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { LeadsModule } from './leads/leads.module';
+import { DealsModule } from './deals/deals.module';
+import { ActivitiesModule } from './activities/activities.module';
+import { QuotesModule } from './quotes/quotes.module';
+import { ContractsModule } from './contracts/contracts.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -38,6 +43,7 @@ import { LeadsModule } from './leads/leads.module';
     AuthModule,
 
     UsersModule,
+    MailModule,
 
     RolesModule,
 
@@ -76,6 +82,10 @@ import { LeadsModule } from './leads/leads.module';
     ProductsModule,
     ContactsModule,
     LeadsModule,
+    DealsModule,
+    ActivitiesModule,
+    QuotesModule,
+    ContractsModule,
   ],
 })
 export class AppModule {}
