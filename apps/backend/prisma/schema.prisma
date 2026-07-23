@@ -92,6 +92,8 @@ model User {
   roleId        String
   companyId     String?
   notifications Notification[]
+  assignedLeads Lead[]
+  assignedContacts Contact[]
   auditLogs     AuditLog[]
   documents     Document[]     @relation("UploadedDocuments")
   company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -140,6 +142,7 @@ model Customer {
   subscriptions Subscription[]
   invoices      Invoice[]
   documents     Document[]
+  contacts Contact[]
   companyId     String?
 
   company    Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -172,6 +175,7 @@ model Company {
   products Product[]
 
   offers Offer[]
+  leads Lead[]
 
   customers Customer[]
   campaigns Campaign[]
@@ -503,4 +507,88 @@ model Document {
 
   @@index([customerId])
   @@index([uploadedById])
+}
+model Contact {
+  id String @id @default(cuid())
+
+  firstName String
+  lastName String
+
+  email String?
+  phone String?
+
+  jobTitle String?
+
+  isPrimary Boolean @default(false)
+
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo User? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([assignedToId])
+  @@index([email])
+}
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum LeadSource {
+  WEBSITE
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
+  WHATSAPP
+  EMAIL
+  PHONE
+  REFERRAL
+  EVENT
+  OTHER
+}
+
+model Lead {
+  id String @id @default(cuid())
+
+  firstName String
+  lastName String
+
+  company String?
+
+  email String?
+  phone String?
+
+  jobTitle String?
+
+  value Float?
+
+  notes String?
+
+  source LeadSource @default(OTHER)
+
+  status LeadStatus @default(NEW)
+
+  assignedToId String?
+  assignedTo User? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  companyId String?
+  companyEntity Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([source])
+  @@index([assignedToId])
+  @@index([companyId])
 }

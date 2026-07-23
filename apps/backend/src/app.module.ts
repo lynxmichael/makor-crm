@@ -24,6 +24,8 @@ import { CompanyModule } from './company/company.module';
 import { CompaniesModule } from './companies/companies.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { ProductsModule } from './products/products.module';
+import { ContactsModule } from './contacts/contacts.module';
+import { LeadsModule } from './leads/leads.module';
 
 @Module({
   imports: [
@@ -72,6 +74,8 @@ import { ProductsModule } from './products/products.module';
     CompaniesModule,
     InvoicesModule,
     ProductsModule,
+    ContactsModule,
+    LeadsModule,
   ],
 })
 export class AppModule {}
