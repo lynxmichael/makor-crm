@@ -92,6 +92,8 @@ model User {
   roleId        String
   companyId     String?
   notifications Notification[]
+  auditLogs     AuditLog[]
+  documents     Document[]     @relation("UploadedDocuments")
   company       Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -137,6 +139,7 @@ model Customer {
   assignedToId  String?
   subscriptions Subscription[]
   invoices      Invoice[]
+  documents     Document[]
   companyId     String?
 
   company    Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -433,4 +436,71 @@ model Campaign {
 
   @@index([companyId])
   @@index([status])
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  action AuditAction
+
+  entity String
+
+  entityId String?
+
+  description String?
+
+  ipAddress String?
+
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity])
+  @@index([action])
+}
+
+enum DocumentType {
+  CONTRACT
+  INVOICE
+  QUOTE
+  IMAGE
+  PDF
+  WORD
+  EXCEL
+  OTHER
+}
+
+model Document {
+  id String @id @default(cuid())
+
+  name     String
+  fileName String
+  path     String
+  mimeType String
+  size     Int
+
+  type DocumentType @default(OTHER)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  uploadedById String
+  uploadedBy   User   @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+  @@index([uploadedById])
 }
