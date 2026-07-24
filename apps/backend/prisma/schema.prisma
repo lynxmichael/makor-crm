@@ -100,8 +100,9 @@ model User {
   quotes           Quote[]
   contracts        Contract[]
   paymentsCreated  Payment[]
-  documents        Document[]     @relation("UploadedDocuments")
-  company          Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  stockMovements   StockMovement[]
+  documents        Document[]      @relation("UploadedDocuments")
+  company          Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   role Role @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -211,11 +212,20 @@ model Product {
   subscriptions Subscription[]
   quoteItems    QuoteItem[]
   invoiceItems  InvoiceItem[]
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stock         Int            @default(0)
+
+  minimumStock Int @default(5)
+
+  movements   StockMovement[]
+  warehouseId String?
+
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([warehouseId])
   @@index([companyId])
   @@index([name])
 }
@@ -878,4 +888,62 @@ model InvoiceItem {
   createdAt DateTime @default(now())
 
   @@index([invoiceId])
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUSTMENT
+}
+
+model StockMovement {
+  id String @id @default(cuid())
+
+  type StockMovementType
+
+  quantity Int
+
+  previousStock Int
+
+  newStock Int
+
+  reason String?
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([warehouseId])
+  @@index([type])
+}
+
+model Warehouse {
+  id String @id @default(cuid())
+
+  name String
+
+  description String?
+
+  address String?
+
+  city String?
+
+  country String?
+
+  isActive Boolean @default(true)
+
+  products  Product[]
+  movements StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

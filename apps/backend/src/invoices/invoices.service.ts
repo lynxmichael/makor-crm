@@ -1,256 +1,161 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
+import {
+  InvoiceStatus,
+  Prisma,
+} from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { InvoiceNumberService } from './invoice-number.service';
 
 @Injectable()
 export class InvoicesService {
-  constructor(private readonly prisma: PrismaService) {}
-
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+    private readonly notificationsService: NotificationsService,
+    private readonly auditService: AuditService,
+    private readonly invoiceNumberService: InvoiceNumberService,
+  ) {}
   async create(dto: CreateInvoiceDto) {
-    let subtotal = 0;
-    let discount = 0;
+  const number =
+    await this.invoiceNumberService.generate();
 
-    const items = dto.items.map((item) => {
-      const lineDiscount = item.discount ?? 0;
+  const subtotal = dto.items.reduce(
+    (sum, item) =>
+      sum + item.quantity * item.unitPrice,
+    0,
+  );
 
-      const total = item.quantity * item.unitPrice - lineDiscount;
+  const discount = dto.discount ?? 0;
 
-      subtotal += total;
-      discount += lineDiscount;
+  const tax = dto.tax ?? 0;
 
-      return {
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: lineDiscount,
-        total,
+  const total =
+    subtotal - discount + tax;
 
-        ...(item.productId && {
-          product: {
-            connect: {
-              id: item.productId,
-            },
-          },
-        }),
-      };
-    });
+  return this.prisma.$transaction(
+    async (tx) => {      const invoice =
+        await tx.invoice.create({
+          data: {
+            number,
 
-    const tax = subtotal * 0.18;
-    const total = subtotal + tax;
+            subtotal,
 
-    const count = await this.prisma.invoice.count();
+            discount,
 
-    return this.prisma.invoice.create({
-      data: {
-        number: `FAC-${String(count + 1).padStart(6, '0')}`,
+            tax,
 
-        total,
+            total,
 
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+            status:
+              dto.status ??
+              InvoiceStatus.DRAFT,
 
-        status: dto.status,
+            dueDate: dto.dueDate
+              ? new Date(dto.dueDate)
+              : null,
 
-        customer: {
-          connect: {
-            id: dto.customerId,
-          },
-        },
-
-        ...(dto.subscriptionId && {
-          subscription: {
-            connect: {
-              id: dto.subscriptionId,
-            },
-          },
-        }),
-
-        ...(dto.contractId && {
-          contract: {
-            connect: {
-              id: dto.contractId,
-            },
-          },
-        }),
-
-        items: {
-          create: items,
-        },
-      },
-
-      include: {
-        customer: true,
-        subscription: true,
-        contract: true,
-        payment: true,
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-  }
-
-  async findAll(params: {
-    page: number;
-    limit: number;
-    search?: string;
-    status?: string;
-  }) {
-    const { page, limit, search, status } = params;
-
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.InvoiceWhereInput = {
-      AND: [
-        search
-          ? {
-              number: {
-                contains: search,
-                mode: 'insensitive',
+            customer: {
+              connect: {
+                id: dto.customerId,
               },
-            }
-          : {},
+            },
 
-        status
-          ? {
-              status: status as any,
-            }
-          : {},
-      ],
-    };
+            ...(dto.subscriptionId && {
+              subscription: {
+                connect: {
+                  id: dto.subscriptionId,
+                },
+              },
+            }),
 
-    const [invoices, total] = await Promise.all([
-        this.prisma.invoice.findMany({
-          where,
+            ...(dto.contractId && {
+              contract: {
+                connect: {
+                  id: dto.contractId,
+                },
+              },
+            }),
+          },
+        });
+              await tx.invoiceItem.createMany({
+        data: dto.items.map((item) => ({
+          invoiceId: invoice.id,
+
+          description:
+            item.description,
+
+          quantity: item.quantity,
+
+          unitPrice: item.unitPrice,
+
+          discount:
+            item.discount ?? 0,
+
+          total:
+            item.quantity *
+              item.unitPrice -
+            (item.discount ?? 0),
+
+          productId:
+            item.productId,
+        })),
+      });
+            const createdInvoice =
+        await tx.invoice.findUnique({
+          where: {
+            id: invoice.id,
+          },
 
           include: {
             customer: true,
-            subscription: true,
-            contract: true,
-            payment: true,
             items: true,
+            contract: true,
+            subscription: true,
+            payments: true,
           },
+        });
+              if (
+        createdInvoice?.customer.email
+      ) {
+        await this.mailService.sendInvoice(
+          createdInvoice.customer.email,
+          createdInvoice.number,
+          Number(createdInvoice.total),
+        );
+      }
+            await this.notificationsService.create({
+        title: 'Nouvelle facture',
 
-          skip,
-          take: limit,
+        message:
+          `Facture ${createdInvoice?.number} créée.`,
 
-          orderBy: {
-            createdAt: 'desc',
-          },
-        }),
-
-        this.prisma.invoice.count({
-          where,
-        }),
-      ]);
-
-    return {
-      data: invoices,
-
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async findOne(id: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-        where: {
-          id,
-        },
-
-        include: {
-          customer: true,
-          subscription: true,
-          contract: true,
-          payment: true,
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
+        userId:
+          createdInvoice?.customer.userId,
       });
+            await this.auditService.log({
+        action: 'CREATE',
 
-    if (!invoice) {
-      throw new NotFoundException('Facture introuvable');
-    }
+        entity: 'Invoice',
 
-    return invoice;
-  }
+        entityId:
+          createdInvoice?.id,
 
-  async update(id: string, dto: UpdateInvoiceDto) {
-    await this.findOne(id);
-
-    return this.prisma.invoice.update({
-      where: {
-        id,
-      },
-
-      data: {
-        dueDate:
-          dto.dueDate !== undefined
-            ? dto.dueDate
-              ? new Date(dto.dueDate)
-              : null
-            : undefined,
-
-        status: dto.status,
-      },
-
-      include: {
-        customer: true,
-        subscription: true,
-        contract: true,
-        payment: true,
-        items: true,
-      },
-    });
-  }
-
-  async remove(id: string) {
-    await this.findOne(id);
-
-    return this.prisma.invoice.delete({
-      where: {
-        id,
-      },
-    });
-  }
-
-  async markAsPaid(id: string) {
-    await this.findOne(id);
-
-    return this.prisma.invoice.update({
-      where: {
-        id,
-      },
-
-      data: {
-        status: 'PAID',
-      },
-    });
-  }
-
-  async cancel(id: string) {
-    await this.findOne(id);
-
-    return this.prisma.invoice.update({
-      where: {
-        id,
-      },
-
-      data: {
-        status: 'CANCELLED',
-      },
-    });
-  }
+        description:
+          `Création de la facture ${createdInvoice?.number}`,
+      });
+            return createdInvoice;
+    },
+  );
+}
 }

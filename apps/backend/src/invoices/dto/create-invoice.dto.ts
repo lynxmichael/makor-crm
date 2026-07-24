@@ -2,8 +2,10 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsNumber,
   IsOptional,
-  IsString,
+  IsUUID,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -14,24 +16,34 @@ import { InvoiceStatus } from '@prisma/client';
 import { CreateInvoiceItemDto } from './create-invoice-item.dto';
 
 export class CreateInvoiceDto {
+  @IsUUID()
+  customerId!: string;
+
+  @IsOptional()
+  @IsUUID()
+  subscriptionId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  contractId?: string;
+
   @IsOptional()
   @IsDateString()
   dueDate?: string;
 
   @IsOptional()
   @IsEnum(InvoiceStatus)
-  status?: InvoiceStatus;
-
-  @IsString()
-  customerId!: string;
+  status?: InvoiceStatus = InvoiceStatus.DRAFT;
 
   @IsOptional()
-  @IsString()
-  contractId?: string;
+  @IsNumber()
+  @Min(0)
+  discount?: number = 0;
 
   @IsOptional()
-  @IsString()
-  subscriptionId?: string;
+  @IsNumber()
+  @Min(0)
+  tax?: number = 0;
 
   @IsArray()
   @ValidateNested({ each: true })
