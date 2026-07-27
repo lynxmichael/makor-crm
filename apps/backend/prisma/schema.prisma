@@ -16,44 +16,91 @@ enum CustomerStatus {
 }
 
 model Role {
-  id          String  @id @default(cuid())
-  name        String  @unique
+  id String @id @default(cuid())
+
+  code String @unique
+
+  name String @unique
+
   description String?
+
+  isSystem Boolean @default(false)
+
+  isActive Boolean @default(true)
 
   users User[]
 
   rolePermissions RolePermission[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+
+  @@index([isActive])
+
+  @@index([deletedAt])
+}
 model Permission {
-  id    String @id @default(cuid())
-  code  String @unique
+  id String @id @default(cuid())
+
+  code String @unique
+
   label String
+
+  description String?
+
+  module String
+
+  isSystem Boolean @default(true)
 
   rolePermissions RolePermission[]
 
   createdAt DateTime @default(now())
+
   updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+
+  @@index([module])
+
+  @@index([deletedAt])
 }
 
 model RolePermission {
   id String @id @default(cuid())
 
-  roleId       String
+  roleId String
+
   permissionId String
 
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role Role
+    @relation(
+      fields: [roleId],
+      references: [id],
+      onDelete: Cascade,
+      onUpdate: Cascade
+    )
 
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  permission Permission
+    @relation(
+      fields: [permissionId],
+      references: [id],
+      onDelete: Cascade,
+      onUpdate: Cascade
+    )
 
   createdAt DateTime @default(now())
 
-  @@unique([roleId, permissionId])
-}
+  updatedAt DateTime @updatedAt
 
+  @@unique([roleId, permissionId])
+
+  @@index([roleId])
+
+  @@index([permissionId])
+}
 model Department {
   id String @id @default(cuid())
 
@@ -69,54 +116,162 @@ model Department {
 model User {
   id String @id @default(cuid())
 
+  // ============================
+  // Informations personnelles
+  // ============================
+
   firstName String
   lastName  String
 
-  email String  @unique
+  email String @unique
   phone String? @unique
+
+  avatarUrl String?
+
+  jobTitle String?
+
+  // ============================
+  // Authentification
+  // ============================
 
   password String
 
-  avatar   String?
-  jobTitle String?
+  refreshToken String?
+
+  tokenVersion Int @default(1)
 
   isActive Boolean @default(true)
 
-  failedLoginAttempts Int       @default(0)
-  lockedUntil         DateTime?
+  emailVerified Boolean @default(false)
 
-  lastLogin DateTime?
+  emailVerifiedAt DateTime?
 
-  refreshToken String?
+  emailVerificationToken String?
 
-  roleId           String
-  companyId        String?
-  notifications    Notification[]
-  assignedLeads    Lead[]
-  assignedContacts Contact[]
-  auditLogs        AuditLog[]
-  activities       Activity[]
-  deals            Deal[]
-  quotes           Quote[]
-  contracts        Contract[]
-  paymentsCreated  Payment[]
-  stockMovements   StockMovement[]
-  documents        Document[]      @relation("UploadedDocuments")
-  company          Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  emailVerificationExpires DateTime?
 
-  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  // ============================
+  // Sécurité
+  // ============================
+
+  failedLoginAttempts Int @default(0)
+
+  lockedUntil DateTime?
+
+  passwordChangedAt DateTime?
+
+  passwordResetToken String?
+
+  passwordResetExpires DateTime?
+
+  twoFactorEnabled Boolean @default(false)
+
+  twoFactorSecret String?
+
+  // ============================
+  // Connexions
+  // ============================
+
+  lastLoginAt DateTime?
+
+  lastLoginIp String?
+
+  lastLoginUserAgent String?
+
+  lastActivityAt DateTime?
+
+  // ============================
+  // Organisation
+  // ============================
+
+  roleId String
+
+  role Role
+    @relation(
+      fields: [roleId],
+      references: [id],
+      onDelete: Restrict,
+      onUpdate: Cascade
+    )
+
+  companyId String?
+
+  company Company?
+    @relation(
+      fields: [companyId],
+      references: [id],
+      onDelete: SetNull
+    )
 
   departmentId String?
 
-  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  department Department?
+    @relation(
+      fields: [departmentId],
+      references: [id],
+      onDelete: SetNull,
+      onUpdate: Cascade
+    )
+
+  // ============================
+  // Relations CRM
+  // ============================
 
   assignedCustomers Customer[]
-  assignedTickets   Ticket[]   @relation("AssignedTickets")
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+
+  assignedContacts Contact[]
+
+  assignedLeads Lead[]
+
+  deals Deal[]
+
+  quotes Quote[]
+
+  contracts Contract[]
+
+  activities Activity[]
+
+  assignedTickets Ticket[]
+    @relation("AssignedTickets")
+
+  createdPayments Payment[]
+
+  stockMovements StockMovement[]
+
+  documents Document[]
+    @relation("UploadedDocuments")
+
+  notifications Notification[]
+
+  auditLogs AuditLog[]
+
+  // ============================
+  // Dates
+  // ============================
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+
+  // ============================
+  // Index
+  // ============================
+
+  @@index([email])
 
   @@index([roleId])
+
+  @@index([companyId])
+
   @@index([departmentId])
+
+  @@index([isActive])
+
+  @@index([lastLoginAt])
+
+  @@index([deletedAt])
 }
 
 model Customer {
@@ -925,25 +1080,30 @@ model StockMovement {
   @@index([warehouseId])
   @@index([type])
 }
-
 model Warehouse {
   id String @id @default(cuid())
 
   name String
 
+  code String @unique
+
   description String?
 
   address String?
 
-  city String?
+  manager String?
 
-  country String?
+  phone String?
+
+  email String?
 
   isActive Boolean @default(true)
 
-  products  Product[]
-  movements StockMovement[]
+  stocks Stock[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([isActive])
 }

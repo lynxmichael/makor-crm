@@ -1,12 +1,6 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
-import {
-  InvoiceStatus,
-  Prisma,
-} from '@prisma/client';
+import { InvoiceStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -26,6 +20,17 @@ export class InvoicesService {
     private readonly auditService: AuditService,
     private readonly invoiceNumberService: InvoiceNumberService,
   ) {}
+  const customer = await this.prisma.customer.findUnique({
+  where: {
+    id: dto.customerId,
+  },
+});
+
+if (!customer) {
+  throw new NotFoundException(
+    'Client introuvable.',
+  );
+}
   async create(dto: CreateInvoiceDto) {
   const number =
     await this.invoiceNumberService.generate();
@@ -46,24 +51,10 @@ export class InvoicesService {
   return this.prisma.$transaction(
     async (tx) => {      const invoice =
         await tx.invoice.create({
-          data: {
-            number,
+          data: { number, subtotal, discount, tax, total, 
+            status: dto.status ??  InvoiceStatus.DRAFT,
 
-            subtotal,
-
-            discount,
-
-            tax,
-
-            total,
-
-            status:
-              dto.status ??
-              InvoiceStatus.DRAFT,
-
-            dueDate: dto.dueDate
-              ? new Date(dto.dueDate)
-              : null,
+            dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
 
             customer: {
               connect: {
@@ -92,27 +83,20 @@ export class InvoicesService {
         data: dto.items.map((item) => ({
           invoiceId: invoice.id,
 
-          description:
-            item.description,
+          description: item.description,
 
           quantity: item.quantity,
 
           unitPrice: item.unitPrice,
 
-          discount:
-            item.discount ?? 0,
+          discount: item.discount ?? 0,
 
-          total:
-            item.quantity *
-              item.unitPrice -
-            (item.discount ?? 0),
+          total: item.quantity * item.unitPrice - (item.discount ?? 0),
 
-          productId:
-            item.productId,
+          productId: item.productId,
         })),
       });
-            const createdInvoice =
-        await tx.invoice.findUnique({
+            const createdInvoice = await tx.invoice.findUnique({
           where: {
             id: invoice.id,
           },
@@ -125,9 +109,7 @@ export class InvoicesService {
             payments: true,
           },
         });
-              if (
-        createdInvoice?.customer.email
-      ) {
+              if (createdInvoice?.customer.email) {
         await this.mailService.sendInvoice(
           createdInvoice.customer.email,
           createdInvoice.number,
@@ -140,8 +122,7 @@ export class InvoicesService {
         message:
           `Facture ${createdInvoice?.number} créée.`,
 
-        userId:
-          createdInvoice?.customer.userId,
+        userId: createdInvoice?.customer.userId,
       });
             await this.auditService.log({
         action: 'CREATE',

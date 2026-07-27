@@ -171,4 +171,24 @@ async dashboard() {
     inactiveWarehouses,
   };
 }
+
+async restore(id: string) {
+  await this.findOne(id);
+
+  return this.prisma.warehouse.update({
+    where: {
+      id,
+    },
+    data: {
+      isActive: true,
+    },
+  });
+}
+async findByCode(code: string) {
+  return this.prisma.warehouse.findUnique({
+    where: {
+      code,
+    },
+  });
+}
 }

@@ -4,15 +4,9 @@ import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class MailService {
-  constructor(
-    private readonly mailer: MailerService,
-  ) {}
+  constructor(private readonly mailer: MailerService) {}
 
-  async sendMail(
-    to: string,
-    subject: string,
-    html: string,
-  ) {
+  async sendMail(to: string, subject: string, html: string) {
     return this.mailer.sendMail({
       to,
       subject,
@@ -20,11 +14,7 @@ export class MailService {
     });
   }
 
-  async sendInvoice(
-    email: string,
-    invoiceNumber: string,
-    total: number,
-  ) {
+  async sendInvoice(email: string, invoiceNumber: string, total: number) {
     return this.mailer.sendMail({
       to: email,
 
@@ -42,10 +32,7 @@ export class MailService {
     });
   }
 
-  async sendQuote(
-    email: string,
-    quoteNumber: string,
-  ) {
+  async sendQuote(email: string, quoteNumber: string) {
     return this.mailer.sendMail({
       to: email,
 
@@ -58,11 +45,7 @@ export class MailService {
       `,
     });
   }
-
-  async sendContract(
-    email: string,
-    contractNumber: string,
-  ) {
+  sendContract(email: string, contractNumber: string) {
     return this.mailer.sendMail({
       to: email,
 
@@ -76,10 +59,7 @@ export class MailService {
     });
   }
 
-  async sendResetPassword(
-    email: string,
-    link: string,
-  ) {
+  async sendResetPassword(email: string, link: string) {
     return this.mailer.sendMail({
       to: email,
 
