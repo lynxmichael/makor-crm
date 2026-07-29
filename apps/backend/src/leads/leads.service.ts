@@ -20,6 +20,8 @@ export class LeadsService {
         email: dto.email,
         phone: dto.phone,
         jobTitle: dto.jobTitle,
+        sector: dto.sector,
+        decisionMaker: dto.decisionMaker,
         value: dto.value,
         notes: dto.notes,
 
@@ -27,26 +29,11 @@ export class LeadsService {
         status: dto.status,
 
         ...(dto.assignedToId && {
-          assignedTo: {
-            connect: {
-              id: dto.assignedToId,
-            },
-          },
-        }),
-
-        ...(dto.companyId && {
-          companyEntity: {
-            connect: {
-              id: dto.companyId,
-            },
-          },
+          assignedTo: { connect: { id: dto.assignedToId } },
         }),
       },
 
-      include: {
-        assignedTo: true,
-        companyEntity: true,
-      },
+      include: { assignedTo: true },
     });
   }
 
@@ -57,9 +44,8 @@ export class LeadsService {
     status?: string;
     source?: string;
     assignedToId?: string;
-    companyId?: string;
   }) {
-    const { page, limit, search, status, source, assignedToId, companyId } = params;
+    const { page, limit, search, status, source, assignedToId } = params;
 
     const skip = (page - 1) * limit;
 
@@ -68,109 +54,46 @@ export class LeadsService {
         search
           ? {
               OR: [
-                {
-                  firstName: {
-                    contains: search,
-                    mode: 'insensitive',
-                  },
-                },
-                {
-                  lastName: {
-                    contains: search,
-                    mode: 'insensitive',
-                  },
-                },
-                {
-                  email: {
-                    contains: search,
-                    mode: 'insensitive',
-                  },
-                },
-                {
-                  phone: {
-                    contains: search,
-                    mode: 'insensitive',
-                  },
-                },
-                {
-                  company: {
-                    contains: search,
-                    mode: 'insensitive',
-                  },
-                },
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { phone: { contains: search, mode: 'insensitive' } },
+                { company: { contains: search, mode: 'insensitive' } },
               ],
             }
           : {},
 
-        status
-          ? {
-              status: status as any,
-            }
-          : {},
-
-        source
-          ? {
-              source: source as any,
-            }
-          : {},
-
-        assignedToId
-          ? {
-              assignedToId,
-            }
-          : {},
-
-        companyId
-          ? {
-              companyId,
-            }
-          : {},
+        status ? { status: status as any } : {},
+        source ? { source: source as any } : {},
+        assignedToId ? { assignedToId } : {},
       ],
     };
 
     const [leads, total] = await Promise.all([
       this.prisma.lead.findMany({
         where,
-
-        include: {
-          assignedTo: true,
-          companyEntity: true,
-        },
-
+        include: { assignedTo: true },
         skip,
         take: limit,
-
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: { createdAt: 'desc' },
       }),
 
-      this.prisma.lead.count({
-        where,
-      }),
+      this.prisma.lead.count({ where }),
     ]);
 
     return {
       data: leads,
-
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
   async findOne(id: string) {
     const lead = await this.prisma.lead.findUnique({
-      where: {
-        id,
-      },
-
+      where: { id },
       include: {
         assignedTo: true,
-        companyEntity: true,
+        deals: { include: { stage: true } },
+        activities: { orderBy: { dueDate: 'asc' } },
       },
     });
 
@@ -185,9 +108,7 @@ export class LeadsService {
     await this.findOne(id);
 
     return this.prisma.lead.update({
-      where: {
-        id,
-      },
+      where: { id },
 
       data: {
         firstName: dto.firstName,
@@ -196,42 +117,25 @@ export class LeadsService {
         email: dto.email,
         phone: dto.phone,
         jobTitle: dto.jobTitle,
+        sector: dto.sector,
+        decisionMaker: dto.decisionMaker,
         value: dto.value,
         notes: dto.notes,
         status: dto.status,
         source: dto.source,
 
         ...(dto.assignedToId && {
-          assignedTo: {
-            connect: {
-              id: dto.assignedToId,
-            },
-          },
-        }),
-
-        ...(dto.companyId && {
-          companyEntity: {
-            connect: {
-              id: dto.companyId,
-            },
-          },
+          assignedTo: { connect: { id: dto.assignedToId } },
         }),
       },
 
-      include: {
-        assignedTo: true,
-        companyEntity: true,
-      },
+      include: { assignedTo: true },
     });
   }
 
   async remove(id: string) {
     await this.findOne(id);
 
-    return this.prisma.lead.delete({
-      where: {
-        id,
-      },
-    });
+    return this.prisma.lead.delete({ where: { id } });
   }
 }

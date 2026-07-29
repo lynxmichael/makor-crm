@@ -12,7 +12,7 @@ export class DocumentsService {
   upload(file: Express.Multer.File, dto: CreateDocumentDto) {
     return this.prisma.document.create({
       data: {
-        name: file.originalname,
+        name: dto.name ?? file.originalname,
         fileName: file.filename,
 
         path: file.path,
@@ -24,11 +24,15 @@ export class DocumentsService {
         type: dto.type,
 
         customer: dto.customerId
-          ? {
-              connect: {
-                id: dto.customerId,
-              },
-            }
+          ? { connect: { id: dto.customerId } }
+          : undefined,
+
+        deal: dto.dealId ? { connect: { id: dto.dealId } } : undefined,
+
+        quote: dto.quoteId ? { connect: { id: dto.quoteId } } : undefined,
+
+        contract: dto.contractId
+          ? { connect: { id: dto.contractId } }
           : undefined,
 
         uploadedBy: {
@@ -40,15 +44,33 @@ export class DocumentsService {
 
       include: {
         customer: true,
+        deal: true,
+        quote: true,
+        contract: true,
         uploadedBy: true,
       },
     });
   }
 
-  findAll() {
+  findAll(params?: {
+    customerId?: string;
+    dealId?: string;
+    quoteId?: string;
+    contractId?: string;
+  }) {
     return this.prisma.document.findMany({
+      where: {
+        customerId: params?.customerId,
+        dealId: params?.dealId,
+        quoteId: params?.quoteId,
+        contractId: params?.contractId,
+      },
+
       include: {
         customer: true,
+        deal: true,
+        quote: true,
+        contract: true,
         uploadedBy: true,
       },
 
@@ -67,6 +89,9 @@ export class DocumentsService {
 
         include: {
           customer: true,
+          deal: true,
+          quote: true,
+          contract: true,
           uploadedBy: true,
         },
       });
@@ -92,16 +117,23 @@ export class DocumentsService {
         type: dto.type,
 
         customer: dto.customerId
-          ? {
-              connect: {
-                id: dto.customerId,
-              },
-            }
+          ? { connect: { id: dto.customerId } }
+          : undefined,
+
+        deal: dto.dealId ? { connect: { id: dto.dealId } } : undefined,
+
+        quote: dto.quoteId ? { connect: { id: dto.quoteId } } : undefined,
+
+        contract: dto.contractId
+          ? { connect: { id: dto.contractId } }
           : undefined,
       },
 
       include: {
         customer: true,
+        deal: true,
+        quote: true,
+        contract: true,
         uploadedBy: true,
       },
     });

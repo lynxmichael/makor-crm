@@ -78,6 +78,14 @@ export class ActivitiesController {
     return this.activitiesService.update(id, dto);
   }
 
+  @Post(':id/send-report')
+  @ApiOperation({
+    summary: 'Envoyer le compte rendu du rendez-vous par email au client',
+  })
+  sendReport(@Param('id') id: string) {
+    return this.activitiesService.sendReport(id);
+  }
+
   @Delete(':id')
   @ApiOperation({
     summary: 'Supprimer une activité',

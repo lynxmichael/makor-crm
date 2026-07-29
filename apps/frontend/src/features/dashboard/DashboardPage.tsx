@@ -37,7 +37,7 @@ function stageCount(stage: Opportunity["stage"]) {
 
 export function DashboardPage() {
   const totalPipelineValue = mockOpportunities
-    .filter((o) => o.stage !== "vente")
+    .filter((o) => o.stage !== "go_live")
     .reduce((sum, o) => sum + o.value, 0);
 
   return (

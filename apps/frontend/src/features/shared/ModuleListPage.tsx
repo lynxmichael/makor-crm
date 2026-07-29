@@ -12,11 +12,17 @@ const badgeTones: Record<string, "neutral" | "signal" | "amber" | "alert" | "wir
   "Actif": "signal",
   "Payée": "signal",
   "Résolu": "signal",
+  "Converti": "signal",
   "Envoyé": "wire",
   "Nouveau": "wire",
+  "RDV programmé": "wire",
+  "RDV réalisé": "wire",
   "En attente": "amber",
   "Ouvert": "amber",
+  "Présentation faite": "amber",
+  "Offre envoyée": "amber",
   "En retard": "alert",
+  "Perdu": "alert",
 };
 
 interface ModuleListPageProps {

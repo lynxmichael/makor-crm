@@ -1,12 +1,4 @@
-import {
-  IsInt,
-  IsNumber,
-  IsOptional,
-  IsPositive,
-  IsString,
-  IsUUID,
-  Min,
-} from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateInvoiceItemDto {
   @IsString()
@@ -17,15 +9,13 @@ export class CreateInvoiceItemDto {
   quantity!: number;
 
   @IsNumber()
-  @IsPositive()
   unitPrice!: number;
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  discount?: number = 0;
+  discount?: number;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   productId?: string;
 }

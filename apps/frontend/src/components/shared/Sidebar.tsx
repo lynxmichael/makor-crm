@@ -1,4 +1,6 @@
 import { NavLink } from "react-router-dom";
+import { motion } from "framer-motion";
+import makorLogo from "@/assets/makor-logo.png";
 import {
   LayoutDashboard,
   Building2,
@@ -74,13 +76,10 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-ink text-white/90">
       <div className="flex items-center gap-2.5 px-5 py-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-wire font-display text-sm font-bold text-white">
-          M
-        </div>
-        <div>
-          <p className="font-display text-sm font-semibold leading-none tracking-wide text-white">MAKOR CRM</p>
-          <p className="mt-1 text-[11px] leading-none text-white/45">Group Telecom</p>
-        </div>
+        <img src={makorLogo} alt="Makor Telecoms" className="h-7 w-auto select-none" draggable={false} />
+        <span className="rounded-md border border-white/15 px-1.5 py-0.5 font-mono-tabular text-[10px] font-semibold uppercase tracking-widest text-white/50">
+          CRM
+        </span>
       </div>
 
       <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-6">
@@ -97,13 +96,24 @@ export function Sidebar() {
                   end={to === "/"}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      isActive ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                      "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      isActive ? "text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
                     )
                   }
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {label}
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.span
+                          layoutId="sidebar-active-pill"
+                          className="absolute inset-0 rounded-lg bg-white/10"
+                          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                        />
+                      )}
+                      <Icon className="relative z-10 h-4 w-4 shrink-0" />
+                      <span className="relative z-10">{label}</span>
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>

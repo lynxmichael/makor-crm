@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { SignalMeter } from "@/components/ui/SignalMeter";
 import { EntityFormModal, type FieldDef } from "@/components/shared/EntityFormModal";
+import { OpportunityQualificationModal } from "@/components/shared/OpportunityQualificationModal";
 import { mockOpportunities, pipelineStageLabels, sectors, countries } from "@/data/mock";
 import { cn, formatCFA } from "@/lib/utils";
 import type { ModuleRow, Opportunity, PipelineStage } from "@/types";
@@ -41,6 +42,7 @@ export function PipelinePage() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<PipelineStage | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
 
   const byStage = useMemo(() => {
     const map = new Map<PipelineStage, Opportunity[]>();
@@ -75,14 +77,18 @@ export function PipelinePage() {
       country: String(values.country ?? ""),
       value: Number(values.value ?? 0),
       probability: Math.min(100, Math.max(0, Number(values.probability ?? 20))),
-      stage: "prospect",
+      stage: "prospection",
       owner: String(values.owner ?? ""),
       updatedAt: new Date().toISOString().slice(0, 10),
     };
     setOpportunities((prev) => [created, ...prev]);
   }
 
-  const totalValue = opportunities.filter((o) => o.stage !== "vente").reduce((s, o) => s + o.value, 0);
+  function handleQualificationSave(id: string, patch: Partial<Opportunity>) {
+    setOpportunities((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  }
+
+  const totalValue = opportunities.filter((o) => o.stage !== "go_live").reduce((s, o) => s + o.value, 0);
 
   return (
     <div className="flex h-full flex-col space-y-4">
@@ -90,7 +96,8 @@ export function PipelinePage() {
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink">Pipeline commercial</h1>
           <p className="mt-1 text-sm text-slate">
-            Prospect → RDV → Proposition → Bon de commande → Contrat → Vente · {formatCFA(totalValue)} en cours
+            Prospection → Business case → Bon de commande → Négociation → Closing → Go live · {formatCFA(totalValue)} en
+            cours
           </p>
         </div>
         <Button onClick={() => setModalOpen(true)}>
@@ -135,6 +142,7 @@ export function PipelinePage() {
                     key={opp.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, opp.id)}
+                    onClick={() => setSelectedOpp(opp)}
                     className={cn(
                       "group cursor-grab space-y-2 p-3 active:cursor-grabbing",
                       draggingId === opp.id && "opacity-40"
@@ -144,7 +152,10 @@ export function PipelinePage() {
                       <p className="text-sm font-medium leading-snug text-ink">{opp.clientName}</p>
                       <button
                         type="button"
-                        onClick={() => handleDelete(opp.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(opp.id);
+                        }}
                         aria-label="Retirer l'opportunité"
                         className="rounded-full p-1 text-slate opacity-0 transition-opacity hover:bg-alert/10 hover:text-alert group-hover:opacity-100"
                       >
@@ -177,8 +188,14 @@ export function PipelinePage() {
         onClose={() => setModalOpen(false)}
         onSubmit={handleCreate}
         title="Nouvelle opportunité"
-        description="Elle apparaît à l'étape Prospect."
+        description="Elle apparaît à l'étape Prospection."
         fields={opportunityFields}
+      />
+
+      <OpportunityQualificationModal
+        opportunity={selectedOpp}
+        onClose={() => setSelectedOpp(null)}
+        onSave={handleQualificationSave}
       />
     </div>
   );

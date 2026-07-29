@@ -11,10 +11,13 @@ import { PaymentStatus, InvoiceStatus } from '@prisma/client';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 
+import { AuditService } from '../audit/audit.service';
+
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(dto: CreatePaymentDto) {
@@ -114,7 +117,7 @@ export class PaymentsService {
       );
     }
 
-    return this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
         const updatedPayment =
           await tx.payment.update({
@@ -160,6 +163,15 @@ export class PaymentsService {
         return updatedPayment;
       },
     );
+
+    await this.auditService.create({
+      action: 'UPDATE',
+      entity: 'Payment',
+      entityId: id,
+      description: `Encaissement ${payment.reference} validé (${payment.amount} XOF)`,
+    });
+
+    return result;
   }
 
   async refund(id: string) {

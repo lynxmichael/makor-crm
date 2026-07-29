@@ -4,6 +4,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuditModule } from '../audit/audit.module';
+import { SettingsModule } from '../settings/settings.module';
 
 import { InvoicesController } from './invoices.controller';
 import { InvoicesService } from './invoices.service';
@@ -11,7 +12,13 @@ import { InvoiceNumberService } from './invoice-number.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 
 @Module({
-  imports: [PrismaModule, MailModule, NotificationsModule, AuditModule],
+  imports: [
+    PrismaModule,
+    MailModule,
+    NotificationsModule,
+    AuditModule,
+    SettingsModule,
+  ],
 
   controllers: [InvoicesController],
 

@@ -2,20 +2,24 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { StringValue } from 'ms';
+import type { StringValue } from 'ms';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { MailModule } from '../mail/mail.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
     UsersModule,
+    MailModule,
+    AuditModule,
     PassportModule,
 
     JwtModule.registerAsync({
@@ -26,7 +30,10 @@ import { PrismaModule } from '../prisma/prisma.module';
         secret: config.getOrThrow<string>('JWT_SECRET'),
 
         signOptions: {
-          expiresIn: config.getOrThrow<string>('JWT_EXPIRES') as StringValue,
+          // Valeur par défaut : chaque émission de jeton dans AuthService
+          // fournit de toute façon sa propre durée de validité.
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ??
+            '15m') as StringValue,
         },
       }),
     }),
@@ -34,7 +41,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 
   controllers: [AuthController],
 
- providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
+  providers: [AuthService, JwtStrategy],
 
   exports: [AuthService, JwtModule],
 })

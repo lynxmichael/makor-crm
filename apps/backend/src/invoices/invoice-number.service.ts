@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
+/**
+ * Génère des numéros de facture séquentiels et uniques (format INV-000001).
+ * S'appuie sur le dernier numéro connu plutôt que sur un COUNT() pour
+ * rester correct même après suppression d'anciennes factures.
+ */
 @Injectable()
 export class InvoiceNumberService {
   constructor(

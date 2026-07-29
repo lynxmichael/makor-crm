@@ -1,13 +1,12 @@
 import {
   IsDateString,
-  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
 } from 'class-validator';
 
-import { ContractStatus } from '@prisma/client';
-
+/** Création manuelle d'un contrat (cas exceptionnel — le cas nominal du
+ * CDC §4.9 passe par `POST /contracts/from-purchase-order/:purchaseOrderId`). */
 export class CreateContractDto {
   @IsString()
   title!: string;
@@ -26,17 +25,6 @@ export class CreateContractDto {
   @IsDateString()
   endDate?: string;
 
-  @IsOptional()
-  @IsEnum(ContractStatus)
-  status?: ContractStatus;
-
   @IsString()
   customerId!: string;
-
-  @IsOptional()
-  @IsString()
-  quoteId?: string;
-
-  @IsString()
-  createdById!: string;
 }

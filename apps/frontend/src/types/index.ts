@@ -1,10 +1,10 @@
 export type PipelineStage =
-  | "prospect"
-  | "rdv"
-  | "proposition"
+  | "prospection"
+  | "business_case"
   | "bon_commande"
-  | "contrat"
-  | "vente";
+  | "negociation"
+  | "closing"
+  | "go_live";
 
 export type Product =
   | "SMS Marketing"
@@ -34,6 +34,27 @@ export interface Client {
   marginYtd: number;
 }
 
+export type ProspectStatus = "Nouveau" | "Contacté" | "RDV programmé" | "Qualifié" | "Converti" | "Sans suite";
+
+export interface Prospect {
+  id: string;
+  /** Nom de l'entreprise */
+  name: string;
+  /** Secteur d'activité */
+  sector: string;
+  status: ProspectStatus;
+  /** Canal de contact privilégié (appel, e-mail, WhatsApp, LinkedIn…) */
+  contactChannel: string;
+  /** Personne contact */
+  contactName: string;
+  /** Position du contact chez le prospect */
+  contactPosition: string;
+  /** Téléphone ou e-mail du contact */
+  contactInfo: string;
+  /** Commercial assigné */
+  owner: string;
+}
+
 export interface Opportunity {
   id: string;
   clientName: string;
@@ -45,6 +66,20 @@ export interface Opportunity {
   stage: PipelineStage;
   owner: string;
   updatedAt: string;
+  /** Réponses de la grille de qualification (clé de section + clé de champ, ex. "prospection.decideur"). */
+  qualification?: Record<string, string>;
+  /** Check-list de mise en service (section Go Live). */
+  goLiveChecklist?: Record<string, boolean>;
+  /** Règlements encaissés sur cette opportunité. */
+  payments?: Payment[];
+}
+
+export interface Payment {
+  id: string;
+  amount: number;
+  date: string;
+  channel: string;
+  comment?: string;
 }
 
 export interface Campaign {

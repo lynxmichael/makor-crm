@@ -39,6 +39,16 @@ export class CreateLeadDto {
   @IsString()
   jobTitle?: string;
 
+  @ApiProperty({ required: false, description: "Secteur d'activité du prospect" })
+  @IsOptional()
+  @IsString()
+  sector?: string;
+
+  @ApiProperty({ required: false, description: 'Décideur identifié chez le prospect' })
+  @IsOptional()
+  @IsString()
+  decisionMaker?: string;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsNumber()
@@ -49,18 +59,12 @@ export class CreateLeadDto {
   @IsString()
   notes?: string;
 
-  @ApiProperty({
-    enum: LeadSource,
-    required: false,
-  })
+  @ApiProperty({ enum: LeadSource, required: false })
   @IsOptional()
   @IsEnum(LeadSource)
   source?: LeadSource;
 
-  @ApiProperty({
-    enum: LeadStatus,
-    required: false,
-  })
+  @ApiProperty({ enum: LeadStatus, required: false })
   @IsOptional()
   @IsEnum(LeadStatus)
   status?: LeadStatus;
@@ -69,9 +73,4 @@ export class CreateLeadDto {
   @IsOptional()
   @IsString()
   assignedToId?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  companyId?: string;
 }

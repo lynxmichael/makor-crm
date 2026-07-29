@@ -1,6 +1,5 @@
 import { ModuleListPage } from "./ModuleListPage";
-import { mockClients, countries } from "@/data/mock";
-import { csvExportAction } from "@/lib/utils";
+import { mockClients, countries, sectors } from "@/data/mock";
 import type { ModuleColumn, ModuleRow } from "@/types";
 import type { FieldDef } from "@/components/shared/EntityFormModal";
 
@@ -25,31 +24,41 @@ function page(config: {
   };
 }
 
+const contactChannels = ["Appel téléphonique", "Email", "WhatsApp", "LinkedIn", "Recommandation", "Autre"];
+const prospectStatuses = ["Nouveau", "Ouvert", "Converti", "Perdu"];
+
 export const ProspectsPage = page({
   title: "Prospects",
-  description: "Qualification, secteur d'activité, décideur et source d'acquisition",
+  description: "Base de contacts de prospection — secteur, décideur et canal d'acquisition",
   actionLabel: "Nouveau prospect",
   statusKey: "statut",
-  defaultStatus: "Ouvert",
+  defaultStatus: "Nouveau",
   columns: [
-    { key: "nom", label: "Prospect" },
+    { key: "nom", label: "Entreprise" },
     { key: "secteur", label: "Secteur" },
-    { key: "decideur", label: "Décideur" },
-    { key: "source", label: "Source" },
+    { key: "contactPersonne", label: "Personne contact" },
+    { key: "position", label: "Position" },
+    { key: "canal", label: "Canal de contact" },
+    { key: "coordonnees", label: "Contacts" },
     { key: "commercial", label: "Commercial" },
     { key: "statut", label: "Statut" },
   ],
   fields: [
-    { key: "nom", label: "Nom du prospect", placeholder: "Ex. Sunu Assurances" },
-    { key: "secteur", label: "Secteur d'activité", type: "select", options: ["Banque & Finance", "Assurance", "Grande distribution", "Santé", "Éducation", "Transport & Logistique", "Énergie"] },
-    { key: "decideur", label: "Décideur", placeholder: "Ex. M. Diagne, DG" },
-    { key: "source", label: "Source", type: "select", options: ["Salon", "Site web", "Recommandation", "Réseaux sociaux", "Autre"] },
+    { key: "nom", label: "Nom de l'entreprise", placeholder: "Ex. Sunu Assurances" },
+    { key: "secteur", label: "Secteur d'activité", type: "select", options: sectors },
+    { key: "contactPersonne", label: "Personne contact", placeholder: "Ex. M. Diagne" },
+    { key: "position", label: "Position", placeholder: "Ex. Directeur Général" },
+    { key: "canal", label: "Canal de contact", type: "select", options: contactChannels },
+    { key: "coordonnees", label: "Contacts (téléphone / e-mail)", placeholder: "Ex. +221 77 512 90 21" },
     { key: "commercial", label: "Commercial assigné", type: "select", options: team },
+    { key: "statut", label: "Statut", type: "select", options: prospectStatuses },
   ],
   initialRows: [
-    { nom: "Sunu Assurances", secteur: "Assurance", decideur: "M. Diagne, DG", source: "Salon Telecom Expo", commercial: "Moussa Traoré", statut: "Ouvert" },
-    { nom: "Bank of Africa CI", secteur: "Banque & Finance", decideur: "Mme Coulibaly, DSI", source: "Recommandation", commercial: "Aïcha Koné", statut: "Ouvert" },
-    { nom: "Groupe Bernabé", secteur: "Grande distribution", decideur: "M. Bernard, DG", source: "Site web", commercial: "Sarah Bamba", statut: "Ouvert" },
+    { nom: "Sunu Assurances", secteur: "Assurance", contactPersonne: "M. Diagne", position: "Directeur Général", canal: "Recommandation", coordonnees: "m.diagne@sunu-assurances.sn", commercial: "Moussa Traoré", statut: "Ouvert" },
+    { nom: "Bank of Africa CI", secteur: "Banque & Finance", contactPersonne: "Mme Coulibaly", position: "DSI", canal: "LinkedIn", coordonnees: "a.coulibaly@boaci.ci", commercial: "Aïcha Koné", statut: "Ouvert" },
+    { nom: "Groupe Bernabé", secteur: "Grande distribution", contactPersonne: "M. Bernard", position: "Directeur Général", canal: "Appel téléphonique", coordonnees: "+225 07 22 45 61 09", commercial: "Sarah Bamba", statut: "Nouveau" },
+    { nom: "Clinique Farah", secteur: "Santé", contactPersonne: "Dr Aminata Touré", position: "Directrice médicale", canal: "Email", coordonnees: "a.toure@clinique-farah.sn", commercial: "Sarah Bamba", statut: "Converti" },
+    { nom: "Lycée Blaise Diagne", secteur: "Éducation", contactPersonne: "M. Faye", position: "Intendant", canal: "Autre", coordonnees: "intendance@lbd.sn", commercial: "Moussa Traoré", statut: "Perdu" },
   ],
 });
 
@@ -79,29 +88,42 @@ export const QuotesPage = page({
   ],
 });
 
+const paymentModes = ["Virement bancaire", "Mobile Money", "Chèque", "Espèces"];
+
 export const PurchaseOrdersPage = page({
   title: "Bons de commande",
-  description: "Génération PDF, envoi par e-mail et suivi de signature",
+  description: "Suivi des offres émises — génération, envoi et signature",
   actionLabel: "Générer un BC",
   statusKey: "statut",
   defaultStatus: "Envoyé",
   refPrefix: "BC-2607",
   columns: [
-    { key: "ref", label: "Référence", mono: true },
-    { key: "client", label: "Client" },
-    { key: "valeur", label: "Valeur FCFA", align: "right", mono: true },
-    { key: "date", label: "Date d'envoi" },
+    { key: "ref", label: "Numéro BC", mono: true },
+    { key: "date", label: "Date" },
+    { key: "produit", label: "Produit" },
+    { key: "idProduit", label: "ID produit", mono: true },
+    { key: "client", label: "Client / Prospect" },
+    { key: "secteur", label: "Secteur d'activité" },
+    { key: "valeur", label: "Valeur BC (HT)", align: "right", mono: true },
+    { key: "modeReglement", label: "Mode de règlmt proposé" },
     { key: "statut", label: "Statut" },
+    { key: "commercial", label: "Commercial" },
   ],
   fields: [
-    { key: "client", label: "Client", type: "select", options: clientNames },
-    { key: "valeur", label: "Valeur (FCFA)", placeholder: "Ex. 8 000 000" },
-    { key: "date", label: "Date d'envoi", type: "date" },
+    { key: "date", label: "Date", type: "date" },
+    { key: "produit", label: "Produit", type: "select", options: products },
+    { key: "idProduit", label: "ID produit", placeholder: "Ex. PRD-API-002" },
+    { key: "client", label: "Client / Prospect", type: "select", options: clientNames },
+    { key: "secteur", label: "Secteur d'activité", type: "select", options: sectors },
+    { key: "valeur", label: "Valeur BC HT (FCFA)", placeholder: "Ex. 8 000 000" },
+    { key: "modeReglement", label: "Mode de règlement proposé", type: "select", options: paymentModes },
+    { key: "commercial", label: "Commercial", type: "select", options: team },
   ],
   initialRows: [
-    { ref: "BC-2607-041", client: "SGCI", valeur: "12 300 000", date: "09 juil. 2026", statut: "Signé" },
-    { ref: "BC-2607-040", client: "Sonatel", valeur: "9 600 000", date: "08 juil. 2026", statut: "Envoyé" },
-    { ref: "BC-2607-039", client: "Ecobank CI", valeur: "15 000 000", date: "05 juil. 2026", statut: "Signé" },
+    { ref: "BC-2607-041", date: "09 juil. 2026", produit: "API SMS", idProduit: "PRD-API-002", client: "SGCI", secteur: "Banque & Finance", valeur: "12 300 000", modeReglement: "Virement bancaire", statut: "Signé", commercial: "Sarah Bamba" },
+    { ref: "BC-2607-040", date: "08 juil. 2026", produit: "Voice", idProduit: "PRD-VOX-005", client: "Sonatel", secteur: "Énergie", valeur: "9 600 000", modeReglement: "Virement bancaire", statut: "Envoyé", commercial: "Moussa Traoré" },
+    { ref: "BC-2607-039", date: "05 juil. 2026", produit: "API SMS", idProduit: "PRD-API-002", client: "Ecobank CI", secteur: "Banque & Finance", valeur: "15 000 000", modeReglement: "Virement bancaire", statut: "Signé", commercial: "Aïcha Koné" },
+    { ref: "BC-2607-038", date: "02 juil. 2026", produit: "SMS Marketing", idProduit: "PRD-SMS-001", client: "Carrefour Sénégal", secteur: "Grande distribution", valeur: "6 100 000", modeReglement: "Mobile Money", statut: "Signé", commercial: "Moussa Traoré" },
   ],
 });
 
@@ -159,26 +181,36 @@ export const InvoicingPage = page({
 
 export const PaymentsPage = page({
   title: "Encaissements",
-  description: "Règlements reçus et rapprochement avec les factures",
-  actionLabel: "Enregistrer un encaissement",
+  description: "Suivi des règlements et rapprochement avec les bons de commande",
+  actionLabel: "Enregistrer un règlement",
   columns: [
-    { key: "date", label: "Date" },
-    { key: "client", label: "Client" },
-    { key: "mode", label: "Mode" },
-    { key: "montant", label: "Montant", align: "right", mono: true },
-    { key: "facture", label: "Facture liée", mono: true },
+    { key: "client", label: "Client / Prospect" },
+    { key: "secteur", label: "Secteur d'activité" },
+    { key: "produit", label: "Produit" },
+    { key: "numeroBC", label: "Numéro BC", mono: true },
+    { key: "valeurBC", label: "Valeur BC", align: "right", mono: true },
+    { key: "commercial", label: "Commercial" },
+    { key: "montant", label: "Montant réglé", align: "right", mono: true },
+    { key: "date", label: "Date de règlement" },
+    { key: "canal", label: "Canal de règlement" },
+    { key: "commentaires", label: "Commentaires" },
   ],
   fields: [
-    { key: "date", label: "Date", type: "date" },
-    { key: "client", label: "Client", type: "select", options: clientNames },
-    { key: "mode", label: "Mode de paiement", type: "select", options: ["Virement", "Mobile Money", "Chèque", "Espèces"] },
-    { key: "montant", label: "Montant", placeholder: "Ex. 3 000 000 FCFA" },
-    { key: "facture", label: "Facture liée", placeholder: "Ex. FAC-2607-231" },
+    { key: "client", label: "Client / Prospect", type: "select", options: clientNames },
+    { key: "secteur", label: "Secteur d'activité", type: "select", options: sectors },
+    { key: "produit", label: "Produit", type: "select", options: products },
+    { key: "numeroBC", label: "Numéro BC", placeholder: "Ex. BC-2607-041" },
+    { key: "valeurBC", label: "Valeur BC (FCFA)", placeholder: "Ex. 12 300 000" },
+    { key: "commercial", label: "Commercial", type: "select", options: team },
+    { key: "montant", label: "Montant réglé (FCFA)", placeholder: "Ex. 3 000 000" },
+    { key: "date", label: "Date de règlement", type: "date" },
+    { key: "canal", label: "Canal de règlement", type: "select", options: paymentModes },
+    { key: "commentaires", label: "Commentaires", placeholder: "Optionnel" },
   ],
   initialRows: [
-    { date: "17 juil. 2026", client: "CIE", mode: "Virement", montant: "21 400 000 FCFA", facture: "FAC-2607-231" },
-    { date: "12 juil. 2026", client: "Ecobank CI", mode: "Mobile Money", montant: "15 000 000 FCFA", facture: "FAC-2607-224" },
-    { date: "02 juil. 2026", client: "NSIA Assurances", mode: "Chèque", montant: "4 800 000 FCFA", facture: "FAC-2607-219" },
+    { client: "SGCI", secteur: "Banque & Finance", produit: "API SMS", numeroBC: "BC-2607-041", valeurBC: "12 300 000", commercial: "Sarah Bamba", montant: "12 300 000", date: "17 juil. 2026", canal: "Virement bancaire", commentaires: "Paiement intégral à la commande" },
+    { client: "Ecobank CI", secteur: "Banque & Finance", produit: "API SMS", numeroBC: "BC-2607-039", valeurBC: "15 000 000", commercial: "Aïcha Koné", montant: "5 000 000", date: "06 juil. 2026", canal: "Virement bancaire", commentaires: "Acompte 1/3 à la signature" },
+    { client: "Carrefour Sénégal", secteur: "Grande distribution", produit: "SMS Marketing", numeroBC: "BC-2607-038", valeurBC: "6 100 000", commercial: "Moussa Traoré", montant: "6 100 000", date: "30 juin 2026", canal: "Mobile Money", commentaires: "Paiement intégral" },
   ],
 });
 
@@ -254,27 +286,6 @@ export const DocumentsPage = page({
     { nom: "BC-2607-041.pdf", type: "Bon de commande", entite: "SGCI", date: "09 juil. 2026" },
     { nom: "KYC-piece-identite.pdf", type: "Pièce KYC", entite: "Prosuma", date: "02 juil. 2026" },
   ],
-});
-
-const reportsColumns: ModuleColumn[] = [
-  { key: "rapport", label: "Rapport" },
-  { key: "perimetre", label: "Périmètre" },
-  { key: "genere", label: "Généré le" },
-  { key: "format", label: "Format" },
-];
-const reportsRows: ModuleRow[] = [
-  { rapport: "Volumes & marges — juin 2026", perimetre: "Tous produits · Tous pays", genere: "01 juil. 2026", format: "Excel" },
-  { rapport: "Qualité du pipeline — S2 juin", perimetre: "Par produit, par pays", genere: "01 juil. 2026", format: "PDF" },
-  { rapport: "Ventes par commercial — juin 2026", perimetre: "Équipe commerciale", genere: "01 juil. 2026", format: "CSV" },
-];
-
-export const ReportsPage = page({
-  title: "Rapports",
-  description: "Volumes, chiffre d'affaires et marges — le bouton exporte la vue actuelle en CSV",
-  actionLabel: "Exporter (CSV)",
-  columns: reportsColumns,
-  initialRows: reportsRows,
-  onAction: csvExportAction("rapports-makor-crm.csv"),
 });
 
 export const AuditPage = page({

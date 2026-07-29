@@ -31,17 +31,13 @@ export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
   @Post()
-  @ApiOperation({
-    summary: 'Créer un prospect',
-  })
+  @ApiOperation({ summary: 'Créer un prospect' })
   create(@Body() dto: CreateLeadDto) {
     return this.leadsService.create(dto);
   }
 
   @Get()
-  @ApiOperation({
-    summary: 'Liste des prospects',
-  })
+  @ApiOperation({ summary: 'Liste des prospects' })
   findAll(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
@@ -49,7 +45,6 @@ export class LeadsController {
     @Query('status') status?: string,
     @Query('source') source?: string,
     @Query('assignedToId') assignedToId?: string,
-    @Query('companyId') companyId?: string,
   ) {
     return this.leadsService.findAll({
       page: Number(page),
@@ -58,30 +53,23 @@ export class LeadsController {
       status,
       source,
       assignedToId,
-      companyId,
     });
   }
 
   @Get(':id')
-  @ApiOperation({
-    summary: 'Détails d’un prospect',
-  })
+  @ApiOperation({ summary: 'Détails d’un prospect' })
   findOne(@Param('id') id: string) {
     return this.leadsService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOperation({
-    summary: 'Modifier un prospect',
-  })
+  @ApiOperation({ summary: 'Modifier un prospect' })
   update(@Param('id') id: string, @Body() dto: UpdateLeadDto) {
     return this.leadsService.update(id, dto);
   }
 
   @Delete(':id')
-  @ApiOperation({
-    summary: 'Supprimer un prospect',
-  })
+  @ApiOperation({ summary: 'Supprimer un prospect' })
   remove(@Param('id') id: string) {
     return this.leadsService.remove(id);
   }

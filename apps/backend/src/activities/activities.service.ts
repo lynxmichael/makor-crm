@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -7,15 +11,21 @@ import { Prisma } from '@prisma/client';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 
+import { MailService } from '../mail/mail.service';
+
 @Injectable()
 export class ActivitiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   create(dto: CreateActivityDto) {
     return this.prisma.activity.create({
       data: {
         title: dto.title,
         description: dto.description,
+        location: dto.location,
 
         type: dto.type,
         status: dto.status,
@@ -216,6 +226,7 @@ export class ActivitiesService {
       data: {
         title: dto.title,
         description: dto.description,
+        location: dto.location,
         type: dto.type,
         status: dto.status,
 
@@ -277,6 +288,53 @@ export class ActivitiesService {
       where: {
         id,
       },
+    });
+  }
+
+  /**
+   * Envoie automatiquement le compte rendu du rendez-vous par email au
+   * client (CDC §4.12). Le destinataire est déduit du client lié à
+   * l'activité (email principal ou contact principal).
+   */
+  async sendReport(id: string) {
+    const activity = await this.prisma.activity.findUnique({
+      where: { id },
+      include: {
+        customer: { include: { contacts: true } },
+        lead: true,
+      },
+    });
+
+    if (!activity) {
+      throw new NotFoundException('Activité introuvable');
+    }
+
+    const email =
+      activity.customer?.email ??
+      activity.customer?.contacts.find((c) => c.isPrimary)?.email ??
+      activity.lead?.email;
+
+    if (!email) {
+      throw new BadRequestException(
+        'Aucune adresse email associée à ce rendez-vous.',
+      );
+    }
+
+    if (!activity.description) {
+      throw new BadRequestException(
+        'Aucun compte rendu saisi pour ce rendez-vous.',
+      );
+    }
+
+    await this.mailService.sendActivityReport(
+      email,
+      activity.title,
+      activity.description,
+    );
+
+    return this.prisma.activity.update({
+      where: { id },
+      data: { reportSentAt: new Date() },
     });
   }
 }

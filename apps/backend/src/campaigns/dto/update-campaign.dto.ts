@@ -1,4 +1,6 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { PartialType, OmitType } from '@nestjs/swagger';
 import { CreateCampaignDto } from './create-campaign.dto';
 
-export class UpdateCampaignDto extends PartialType(CreateCampaignDto) {}
+export class UpdateCampaignDto extends PartialType(
+  OmitType(CreateCampaignDto, ['destinations', 'targetCustomerIds'] as const),
+) {}

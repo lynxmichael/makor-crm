@@ -1,98 +1,133 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CRM MAKOR Group Telecom — Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API backend du CRM interne de MAKOR Group Telecom : gestion des
+clients/prospects, pipeline commercial personnalisé, devis / bons de
+commande / contrats / factures / encaissements, campagnes SMS/WhatsApp,
+Sender ID, reporting, et administration (utilisateurs, rôles,
+permissions, paramètres système).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Construit avec [NestJS](https://nestjs.com), [Prisma](https://prisma.io)
+(PostgreSQL), [BullMQ](https://docs.bullmq.io) (Redis) et Socket.IO.
 
-## Description
+## Stack technique
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Domaine | Choix |
+| --- | --- |
+| Framework | NestJS 11 (TypeScript) |
+| Base de données | PostgreSQL, via Prisma ORM |
+| File d'attente asynchrone | Redis + BullMQ (envoi de campagnes, exports) |
+| Temps réel | Socket.IO (statut de campagne, notifications live) |
+| Authentification | JWT (access + refresh token en base), 2FA TOTP |
+| Emails | Nodemailer via `@nestjs-modules/mailer` |
+| PDF | PDFKit (devis, BC, contrats, factures, rapports) |
+| Excel / CSV | ExcelJS + writer CSV maison |
+| Documentation API | Swagger (`/docs`) |
 
-## Project setup
+## Démarrage
 
-```bash
-$ npm install
-```
+### 1. Prérequis
 
-## Compile and run the project
+- Node.js 20+
+- Docker (Postgres + Redis + pgAdmin fournis par le `docker-compose.yml`
+  à la racine du dépôt, au-dessus de ce dossier `backend/`)
 
-```bash
-# development
-$ npm run start
+### 2. Infrastructure (Postgres, Redis, pgAdmin)
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+Depuis la racine du dépôt (pas depuis `backend/`) :
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker compose up -d
 ```
 
-## Deployment
+Expose Postgres sur le port hôte `5433` (utilisateur `makor`, base
+`makor_crm`), Redis sur `6379`, et pgAdmin sur `http://localhost:5051`
+(admin@makor.com). `.env.example` est déjà aligné sur ces valeurs.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 3. Installation
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
+cp .env.example .env
+# Ajuster .env si vos ports/identifiants Docker diffèrent de docker-compose.yml
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+`npm install` régénère automatiquement le client Prisma (`postinstall`).
 
-## Resources
+### 4. Base de données
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+npx prisma migrate dev --name init   # crée les tables à partir du schéma
+npm run seed                          # rôles, permissions, pipeline,
+                                       # référentiels, comptes de démo
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Voir `prisma/migrations/README.md` pour le contexte de cette étape.
 
-## Support
+### 5. Lancer le serveur
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+npm run start:dev     # développement, rechargement à chaud
+npm run start:prod    # production (après npm run build)
+```
 
-## Stay in touch
+L'API est servie sous le préfixe `/api/v1`. Documentation interactive :
+`http://localhost:3000/docs`. Sonde de supervision : `GET /api/v1/health`
+(vérifie la base de données et Redis).
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Comptes de démonstration (après `npm run seed`)
 
-## License
+| Rôle | Email | Mot de passe |
+| --- | --- | --- |
+| Super Admin | admin@makor.ci | valeur de `SEED_DEFAULT_PASSWORD` (`.env`) |
+| Admin ventes | ventes@makor.ci | idem |
+| Superviseur | superviseur@makor.ci | idem |
+| Commercial | commercial@makor.ci | idem |
+| Manager | manager@makor.ci | idem |
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+À changer immédiatement en dehors d'un environnement de démonstration.
+
+## Organisation des modules (`src/`)
+
+- **Sécurité & administration** : `auth`, `users`, `roles`,
+  `permissions`, `role-permissions`, `departments`, `settings`, `audit`
+- **Commercial** : `customers`, `contacts`, `leads`, `pipeline-stages`,
+  `deals`, `activities`, `products`
+- **Cycle de vente** : `quotes` (devis), `purchase-orders` (bons de
+  commande), `contracts`, `invoices`, `payments`, `recharges`
+  (rechargements / solde prépayé)
+- **Marketing & communication** : `campaigns` (SMS/WhatsApp/email),
+  `sender-id`, `notifications`, `documents` (GED)
+- **Pilotage** : `dashboard`, `objectives`, `reporting` (exports
+  CSV/Excel/PDF), `search` (recherche globale)
+- **Infrastructure transverse** : `common` (PDF, passerelle SMS/WhatsApp
+  abstraite), `queue` (Redis/BullMQ), `realtime` (Socket.IO), `mail`,
+  `prisma`, `health`
+
+## Brancher un vrai prestataire SMS / WhatsApp
+
+Toute la logique métier (campagnes, notifications) passe par
+l'interface `SmsWhatsappGateway` (`src/common/gateway/`). Par défaut,
+`MockGatewayAdapter` simule l'envoi. Pour brancher un prestataire réel :
+
+1. Créer une classe implémentant `SmsWhatsappGateway`.
+2. La fournir au jeton `SMS_WHATSAPP_GATEWAY` dans `common.module.ts`
+   (remplacer `useClass: MockGatewayAdapter`).
+
+Aucun autre fichier n'a besoin d'être modifié.
+
+## Tests
+
+```bash
+npm run test        # unitaires
+npm run test:e2e     # end-to-end (nécessite une base et un Redis de test)
+npm run test:cov     # couverture
+```
+
+## Scripts utiles
+
+| Script | Effet |
+| --- | --- |
+| `npm run build` | Compile en `dist/` |
+| `npm run lint` | ESLint (correction automatique) |
+| `npm run format` | Prettier |
+| `npm run seed` | Charge les données de référence |

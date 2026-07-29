@@ -1,6 +1,5 @@
 import {
   IsDateString,
-  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -11,63 +10,46 @@ import {
 
 import { ApiProperty } from '@nestjs/swagger';
 
-import { DealStage } from '@prisma/client';
-
 export class CreateDealDto {
-  @ApiProperty({
-    example: 'Migration ERP vers le Cloud',
-  })
+  @ApiProperty({ example: 'Campagne SMS Marketing Q3' })
   @IsString()
   title!: string;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty({
-    example: 2500000,
-  })
+  @ApiProperty({ example: 2500000 })
   @IsNumber()
   amount!: number;
 
-  @ApiProperty({
-    example: 60,
-    required: false,
-  })
+  @ApiProperty({ example: 60, required: false })
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(100)
   probability?: number;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsDateString()
   expectedCloseDate?: string;
 
   @ApiProperty({
-    enum: DealStage,
     required: false,
+    description: 'Étape de pipeline — par défaut la première étape configurée',
   })
   @IsOptional()
-  @IsEnum(DealStage)
-  stage?: DealStage;
+  @IsString()
+  stageId?: string;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   leadId?: string;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   customerId?: string;

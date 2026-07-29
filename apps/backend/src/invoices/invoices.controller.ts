@@ -3,18 +3,23 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+
+import type { Response } from 'express';
 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 import { InvoicesService } from './invoices.service';
+import { InvoicePdfService } from './invoice-pdf.service';
 
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
@@ -24,7 +29,10 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 @Controller('invoices')
 @UseGuards(JwtAuthGuard)
 export class InvoicesController {
-  constructor(private readonly invoicesService: InvoicesService) {}
+  constructor(
+    private readonly invoicesService: InvoicesService,
+    private readonly invoicePdfService: InvoicePdfService,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -43,12 +51,14 @@ export class InvoicesController {
     @Query('limit') limit = 10,
     @Query('search') search?: string,
     @Query('status') status?: string,
+    @Query('customerId') customerId?: string,
   ) {
     return this.invoicesService.findAll({
       page: Number(page),
       limit: Number(limit),
       search,
       status,
+      customerId,
     });
   }
 
@@ -58,6 +68,21 @@ export class InvoicesController {
   })
   findOne(@Param('id') id: string) {
     return this.invoicesService.findOne(id);
+  }
+
+  @Get(':id/pdf')
+  @ApiOperation({ summary: 'Télécharger la facture au format PDF' })
+  @Header('Content-Type', 'application/pdf')
+  async downloadPdf(@Param('id') id: string, @Res() res: Response) {
+    const invoice = await this.invoicesService.findOne(id);
+    const buffer = await this.invoicePdfService.generate(id);
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${invoice.number}.pdf"`,
+    );
+
+    res.send(buffer);
   }
 
   @Patch(':id')

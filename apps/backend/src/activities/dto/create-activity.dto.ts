@@ -1,11 +1,16 @@
-import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
 
 import { ActivityStatus, ActivityType } from '@prisma/client';
 
 export class CreateActivityDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'Démonstration API SMS' })
   @IsString()
   title!: string;
 
@@ -14,44 +19,36 @@ export class CreateActivityDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({
-    enum: ActivityType,
-  })
+  @ApiProperty({ required: false, description: 'Lieu du rendez-vous' })
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @ApiProperty({ enum: ActivityType })
   @IsEnum(ActivityType)
   type!: ActivityType;
 
-  @ApiProperty({
-    enum: ActivityStatus,
-    required: false,
-  })
+  @ApiProperty({ enum: ActivityStatus, required: false })
   @IsOptional()
   @IsEnum(ActivityStatus)
   status?: ActivityStatus;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsDateString()
   dueDate?: string;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   leadId?: string;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   customerId?: string;
 
-  @ApiProperty({
-    required: false,
-  })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   dealId?: string;

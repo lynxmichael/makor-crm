@@ -15,13 +15,6 @@ export class CreateProductDto {
   price!: number;
 
   @IsOptional()
-  @IsNumber()
-  duration?: number;
-
-  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-  @IsString()
-  companyId!: string;
 }

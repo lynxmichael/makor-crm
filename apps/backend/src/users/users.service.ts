@@ -13,6 +13,22 @@ import { Prisma, User } from '@prisma/client';
 
 import * as argon2 from 'argon2';
 
+/** Inclusion standard : rôle + permissions du rôle, nécessaires aux guards
+ * RBAC (RolesGuard, PermissionsGuard). */
+const USER_WITH_ROLE = {
+  role: {
+    include: {
+      rolePermissions: {
+        include: {
+          permission: true,
+        },
+      },
+    },
+  },
+
+  department: true,
+} satisfies Prisma.UserInclude;
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -61,21 +77,9 @@ export class UsersService {
             },
           },
         }),
-
-        ...(dto.companyId && {
-          company: {
-            connect: {
-              id: dto.companyId,
-            },
-          },
-        }),
       },
 
-      include: {
-        role: true,
-        department: true,
-        company: true,
-      },
+      include: USER_WITH_ROLE,
     });
   }
 
@@ -139,20 +143,7 @@ export class UsersService {
       this.prisma.user.findMany({
         where,
 
-        include: {
-          role: {
-            include: {
-              rolePermissions: {
-                include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-
-          department: true,
-          company: true,
-        },
+        include: USER_WITH_ROLE,
 
         skip,
         take: limit,
@@ -185,20 +176,7 @@ export class UsersService {
         email,
       },
 
-      include: {
-        role: {
-          include: {
-            rolePermissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
-
-        department: true,
-        company: true,
-      },
+      include: USER_WITH_ROLE,
     });
   }
 
@@ -208,20 +186,7 @@ export class UsersService {
         id,
       },
 
-      include: {
-        role: {
-          include: {
-            rolePermissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
-
-        department: true,
-        company: true,
-      },
+      include: USER_WITH_ROLE,
     });
 
     if (!user) {
@@ -264,14 +229,6 @@ export class UsersService {
       };
     }
 
-    if (dto.companyId) {
-      data.company = {
-        connect: {
-          id: dto.companyId,
-        },
-      };
-    }
-
     return this.prisma.user.update({
       where: {
         id,
@@ -279,14 +236,11 @@ export class UsersService {
 
       data,
 
-      include: {
-        role: true,
-        department: true,
-        company: true,
-      },
+      include: USER_WITH_ROLE,
     });
   }
 
+  /** Désactivation logique (CDC §3 : "désactivation des comptes"). */
   async remove(id: string) {
     await this.findById(id);
 
@@ -301,29 +255,13 @@ export class UsersService {
     });
   }
 
-  async updateRefreshToken(id: string, refreshToken: string | null) {
-    return this.prisma.user.update({
-      where: {
-        id,
-      },
-
-      data: {
-        refreshToken,
-      },
-    });
-  }
-
   async findActive() {
     return this.prisma.user.findMany({
       where: {
         isActive: true,
       },
 
-      include: {
-        role: true,
-        department: true,
-        company: true,
-      },
+      include: USER_WITH_ROLE,
 
       orderBy: {
         createdAt: 'desc',
@@ -353,5 +291,130 @@ export class UsersService {
       active,
       inactive,
     };
+  }
+
+  // ---------------------------------------------------------------------
+  // Sécurité du compte : verrouillage après échecs, historique de
+  // connexion (CDC §2.4, §3, §8.2)
+  // ---------------------------------------------------------------------
+
+  async registerFailedLogin(userId: string, maxAttempts = 5, lockMinutes = 15) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginAttempts: { increment: 1 } },
+    });
+
+    if (user.failedLoginAttempts >= maxAttempts) {
+      const lockedUntil = new Date(Date.now() + lockMinutes * 60_000);
+
+      return this.prisma.user.update({
+        where: { id: userId },
+        data: { lockedUntil },
+      });
+    }
+
+    return user;
+  }
+
+  async resetFailedLogins(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginAttempts: 0, lockedUntil: null, lastLogin: new Date() },
+    });
+  }
+
+  async updatePassword(userId: string, hashedPassword: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Double authentification — TOTP (CDC §2.4, §8.2)
+  // ---------------------------------------------------------------------
+
+  async setTwoFactorSecret(userId: string, secret: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorSecret: secret },
+    });
+  }
+
+  async enableTwoFactor(userId: string, recoveryCodes: string[]) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: true,
+        twoFactorRecoveryCodes: recoveryCodes,
+      },
+    });
+  }
+
+  async disableTwoFactor(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorRecoveryCodes: [],
+      },
+    });
+  }
+
+  async consumeRecoveryCode(userId: string, code: string): Promise<boolean> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+
+    if (!user.twoFactorRecoveryCodes.includes(code)) {
+      return false;
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorRecoveryCodes: user.twoFactorRecoveryCodes.filter(
+          (c) => c !== code,
+        ),
+      },
+    });
+
+    return true;
+  }
+
+  // ---------------------------------------------------------------------
+  // Sessions — refresh tokens multi-appareils (CDC §2.1, §2.4)
+  // ---------------------------------------------------------------------
+
+  async createRefreshToken(data: {
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    userAgent?: string;
+    ipAddress?: string;
+  }) {
+    return this.prisma.refreshToken.create({ data });
+  }
+
+  async findRefreshTokenByHash(tokenHash: string) {
+    return this.prisma.refreshToken.findFirst({
+      where: { tokenHash, revokedAt: null },
+      include: { user: { include: USER_WITH_ROLE } },
+    });
+  }
+
+  async revokeRefreshToken(id: string) {
+    return this.prisma.refreshToken.update({
+      where: { id },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async revokeAllUserRefreshTokens(userId: string) {
+    return this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 }
