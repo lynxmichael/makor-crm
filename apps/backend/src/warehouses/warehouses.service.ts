@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
+import { QueryWarehouseDto } from './dto/query-warehouse.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()

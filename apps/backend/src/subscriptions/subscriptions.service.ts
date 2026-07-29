@@ -10,41 +10,26 @@ export class SubscriptionsService {
   constructor(private readonly prisma: PrismaService) {}
 
    create(dto: CreateSubscriptionDto) {
-    return this.prisma.subscription.create({
-      data: {
-        startDate: new Date(dto.startDate), endDate: dto.endDate ? new Date(dto.endDate) : null,
-          status: dto.status,
-           customer: {
-          connect: {
-            id: dto.customerId,
-          },
-        },
+   return this.prisma.subscription.create({
+  data: {
+    startDate: new Date(dto.startDate),
+    endDate: dto.endDate ? new Date(dto.endDate) : null,
+    amount: dto.amount,
+    status: dto.status,
 
-        offer: {
-          connect: {
-            id: dto.offerId,
-          },
-        },
+    customer: {
+      connect: {
+        id: dto.customerId,
       },
+    },
 
-      include: {
-        customer: true,
-        offer: true,
+    offer: {
+      connect: {
+        id: dto.offerId,
       },
-    });
-  }
-
-findAll() {
-    return this.prisma.subscription.findMany({
-      include: {
-        customer: true,
-        offer: true,
-      },
-
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    },
+  },
+});
   }
 
   async findOne(id: string) {

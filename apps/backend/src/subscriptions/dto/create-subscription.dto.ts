@@ -1,5 +1,4 @@
-import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
-
+import { IsNumber, IsString, IsOptional, IsEnum } from 'class-validator';
 import { SubscriptionStatus } from '@prisma/client';
 
 export class CreateSubscriptionDto {
@@ -9,12 +8,15 @@ export class CreateSubscriptionDto {
   @IsString()
   offerId!: string;
 
-  @IsDateString()
+  @IsString()
   startDate!: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
   endDate?: string;
+
+  @IsNumber()
+  amount!: number;
 
   @IsOptional()
   @IsEnum(SubscriptionStatus)

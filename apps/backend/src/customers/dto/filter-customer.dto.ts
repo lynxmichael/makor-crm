@@ -1,18 +1,19 @@
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { CustomerStatus } from '@prisma/client';
 
 export class FilterCustomerDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page?: number = 1;
+  page: number = 1;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  limit?: number = 10;
+  limit: number = 10;
 
   @IsOptional()
   @IsString()
@@ -23,6 +24,6 @@ export class FilterCustomerDto {
   country?: string;
 
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(CustomerStatus)
+  status?: CustomerStatus;
 }

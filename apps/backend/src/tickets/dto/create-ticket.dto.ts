@@ -4,10 +4,15 @@ import { TicketPriority, TicketStatus } from '@prisma/client';
 
 export class CreateTicketDto {
   @IsString()
-  title!: string;
+  subject!: string;
 
+  @IsOptional()
   @IsString()
-  description!: string;
+  reference?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 
   @IsString()
   customerId!: string;

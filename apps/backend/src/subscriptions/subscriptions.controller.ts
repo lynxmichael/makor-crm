@@ -22,11 +22,6 @@ export class SubscriptionsController {
     return this.subscriptionsService.create(dto);
   }
 
-  @Get()
-  findAll() {
-    return this.subscriptionsService.findAll();
-  }
-
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.subscriptionsService.findOne(id);

@@ -1,6 +1,11 @@
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
-
 import { Transform } from 'class-transformer';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class QueryWarehouseDto {
   @IsOptional()
@@ -20,6 +25,10 @@ export class QueryWarehouseDto {
   search?: string;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
-  isActive?: boolean = true;
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    return value === 'true';
+  })
+  @IsBoolean()
+  isActive?: boolean;
 }

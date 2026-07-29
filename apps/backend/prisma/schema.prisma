@@ -1,8 +1,3 @@
-// ============================================================================
-// CRM MAKOR Group Telecom — Schéma de données
-// Aligné sur le Cahier des Charges v3 (juillet 2026)
-// ============================================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,13 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================================
-// 1. ORGANISATION — Paramètres système, utilisateurs, rôles, permissions
-// ============================================================================
-
-/// Paramètres globaux de l'organisation (MAKOR Group Telecom).
-/// Enregistrement unique (singleton) — remplace l'ancien modèle "Company"
-/// multi-tenant qui n'a pas lieu d'être : le CRM sert une seule organisation.
 model OrganizationSettings {
   id String @id @default(cuid())
 
@@ -28,14 +16,12 @@ model OrganizationSettings {
   phone       String?
   logoUrl     String?
 
-  /// Taux de TVA par défaut, stocké en fraction (0.18 = 18%)
   vatRate         Decimal @default(0.18) @db.Decimal(5, 4)
   defaultCurrency String  @default("XOF")
 
   updatedAt DateTime @updatedAt
 }
 
-/// Secteurs d'activité — référentiel géré par le Super Admin (CDC §4.5)
 model Sector {
   id   String @id @default(cuid())
   name String @unique
@@ -44,24 +30,21 @@ model Sector {
   createdAt DateTime @default(now())
 }
 
-/// Pays couverts par l'activité commerciale — référentiel (CDC §4.5)
 model Country {
   id   String @id @default(cuid())
   name String @unique
-  code String @unique // ISO 3166-1 alpha-2, ex. "CI", "BF", "SN"
+  code String @unique
 
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 }
 
-/// Devises supportées (CDC §12 : FCFA de référence, multi-devises)
 model Currency {
-  id     String @id @default(cuid())
-  code   String @unique // ISO 4217, ex. "XOF", "EUR", "USD"
+  id     String  @id @default(cuid())
+  code   String  @unique // ISO 4217, ex. "XOF", "EUR", "USD"
   name   String
   isBase Boolean @default(false)
 
-  /// Taux de conversion vers la devise de base (XOF)
   exchangeRate Decimal @default(1) @db.Decimal(18, 6)
 
   isActive  Boolean  @default(true)
@@ -80,7 +63,6 @@ model Role {
   updatedAt DateTime @updatedAt
 }
 
-/// Regroupement fonctionnel : "clients", "campagnes", "facturation", etc.
 model Permission {
   id     String @id @default(cuid())
   code   String @unique
@@ -107,8 +89,6 @@ model RolePermission {
   @@unique([roleId, permissionId])
 }
 
-/// Équipe / pôle interne — permet au Superviseur de piloter "son équipe"
-/// (CDC §1.3 "supervision de l'équipe commerciale")
 model Department {
   id          String  @id @default(cuid())
   name        String  @unique
@@ -140,45 +120,46 @@ model User {
   lockedUntil         DateTime?
   lastLogin           DateTime?
 
-  // --- Double authentification (2FA — CDC §2.4, §8.2) ---
-  twoFactorEnabled      Boolean  @default(false)
-  twoFactorSecret       String?
+  twoFactorEnabled       Boolean  @default(false)
+  twoFactorSecret        String?
   twoFactorRecoveryCodes String[] @default([])
 
+  companyId String?
+
+  company      Company?    @relation(fields: [companyId], references: [id])
   roleId       String
   role         Role        @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  refreshTokens        RefreshToken[]
-  notifications        Notification[]
+  refreshTokens         RefreshToken[]
+  notifications         Notification[]
   assignedLeads         Lead[]
   assignedContacts      Contact[]
   auditLogs             AuditLog[]
   activities            Activity[]
   deals                 Deal[]
   quotes                Quote[]
-  purchaseOrdersCreated  PurchaseOrder[]
-  contracts              Contract[]
+  purchaseOrdersCreated PurchaseOrder[]
+  contracts             Contract[]
   paymentsCreated       Payment[]
-  documents             Document[]        @relation("UploadedDocuments")
+  documents             Document[]         @relation("UploadedDocuments")
   assignedCustomers     Customer[]
-  senderIdRequests      SenderIdRequest[] @relation("SenderIdRequestedBy")
+  senderIdRequests      SenderIdRequest[]  @relation("SenderIdRequestedBy")
   recharges             Recharge[]
-  campaignsCreated      Campaign[]        @relation("CampaignCreatedBy")
-  objectivesAssigned    Objective[]       @relation("ObjectiveOwner")
-  objectivesCreated     Objective[]       @relation("ObjectiveCreatedBy")
+  campaignsCreated      Campaign[]         @relation("CampaignCreatedBy")
+  objectivesAssigned    Objective[]        @relation("ObjectiveOwner")
+  objectivesCreated     Objective[]        @relation("ObjectiveCreatedBy")
   dealStageChanges      DealStageHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tickets   Ticket[]
 
   @@index([roleId])
   @@index([departmentId])
 }
 
-/// Session de rafraîchissement JWT — un enregistrement par appareil connecté,
-/// ce qui permet la révocation ciblée et la déconnexion multi-appareils.
 model RefreshToken {
   id String @id @default(cuid())
 
@@ -197,18 +178,12 @@ model RefreshToken {
   @@index([userId])
 }
 
-// ============================================================================
-// 2. CLIENTS, PROSPECTS, CONTACTS, OPPORTUNITÉS
-// ============================================================================
-
 enum CustomerStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
 }
 
-/// Client = entreprise avec fiche 360° (CDC §4.2). Un client provient
-/// toujours de la conversion d'une Opportunité (Deal) gagnée.
 model Customer {
   id String @id @default(cuid())
 
@@ -224,31 +199,34 @@ model Customer {
   phone   String? @unique
   website String?
 
-  status CustomerStatus @default(ACTIVE)
-  notes  String?
+  status    CustomerStatus @default(ACTIVE)
+  notes     String?
+  companyId String?
 
-  /// Solde prépayé (FCFA) — alimenté par les rechargements, consommé par
-  /// l'envoi de campagnes. Cf. reporting "Soldes prépayés".
+  company Company? @relation(fields: [companyId], references: [id])
+
   walletBalance Decimal @default(0) @db.Decimal(14, 2)
 
   assignedToId String?
   assignedTo   User?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  contacts       Contact[]
-  deals          Deal[]
-  documents      Document[]
-  activities     Activity[]
-  quotes         Quote[]
-  purchaseOrders PurchaseOrder[]
-  contracts      Contract[]
-  invoices       Invoice[]
-  payments       Payment[]
-  campaigns      Campaign[]
-  recharges      Recharge[]
+  contacts         Contact[]
+  deals            Deal[]
+  documents        Document[]
+  activities       Activity[]
+  quotes           Quote[]
+  purchaseOrders   PurchaseOrder[]
+  contracts        Contract[]
+  invoices         Invoice[]
+  payments         Payment[]
+  campaigns        Campaign[]
+  recharges        Recharge[]
   senderIdRequests SenderIdRequest[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+  tickets       Ticket[]
 
   @@index([companyName])
   @@index([country])
@@ -304,7 +282,6 @@ enum LeadSource {
   OTHER
 }
 
-/// Prospect non encore qualifié en opportunité (CDC §4.3)
 model Lead {
   id String @id @default(cuid())
 
@@ -318,7 +295,6 @@ model Lead {
   jobTitle String?
   sector   String?
 
-  /// Décideur identifié chez le prospect (CDC §4.3)
   decisionMaker String?
 
   value Float?
@@ -341,32 +317,26 @@ model Lead {
   @@index([assignedToId])
 }
 
-/// Étape de pipeline configurable (CDC §4.6 : "pipeline personnalisé",
-/// "création de pipeline personnalisé par le superadmin"). Remplace
-/// l'ancien enum figé qui ne correspondait pas aux étapes du CDC.
 model PipelineStage {
-  id   String @id @default(cuid())
-  name String @unique
-  order Int   @unique
+  id    String @id @default(cuid())
+  name  String @unique
+  order Int    @unique
 
   isClosedWon  Boolean @default(false)
   isClosedLost Boolean @default(false)
 
-  /// Si vrai, un deal ne peut entrer dans cette étape que s'il possède un
-  /// bon de commande signé (glisser-déposer "conditionné", CDC §4.6).
   requiresSignedOrder Boolean @default(false)
 
   color String @default("#6366f1")
 
-  deals             Deal[]
-  fromStageHistory  DealStageHistory[] @relation("FromStage")
-  toStageHistory    DealStageHistory[] @relation("ToStage")
+  deals            Deal[]
+  fromStageHistory DealStageHistory[] @relation("FromStage")
+  toStageHistory   DealStageHistory[] @relation("ToStage")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-/// Opportunité commerciale (CDC §4.4)
 model Deal {
   id String @id @default(cuid())
 
@@ -378,8 +348,9 @@ model Deal {
 
   expectedCloseDate DateTime?
 
-  stageId String
-  stage   PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  stageId   String
+  documents Document[]
+  stage     PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
 
   leadId String?
   lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
@@ -390,9 +361,9 @@ model Deal {
   assignedToId String
   assignedTo   User   @relation(fields: [assignedToId], references: [id])
 
-  activities    Activity[]
-  quotes        Quote[]
-  stageHistory  DealStageHistory[]
+  activities   Activity[]
+  quotes       Quote[]
+  stageHistory DealStageHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -403,7 +374,6 @@ model Deal {
   @@index([assignedToId])
 }
 
-/// Traçabilité des changements d'étape (CDC §4.6 "historique")
 model DealStageHistory {
   id String @id @default(cuid())
 
@@ -441,7 +411,6 @@ enum ActivityStatus {
   CANCELLED
 }
 
-/// Rendez-vous / activité commerciale — agenda (CDC §4.12)
 model Activity {
   id String @id @default(cuid())
 
@@ -455,7 +424,6 @@ model Activity {
   dueDate     DateTime?
   completedAt DateTime?
 
-  /// Compte rendu envoyé automatiquement par email au client (CDC §4.12)
   reportSentAt DateTime?
 
   leadId String?
@@ -481,12 +449,6 @@ model Activity {
   @@index([dealId])
 }
 
-// ============================================================================
-// 3. CATALOGUE PRODUITS
-// ============================================================================
-
-/// Produit du catalogue MAKOR (CDC §4.5 : SMS Marketing, OTP, API SMS,
-/// WhatsApp, Voice, Sender ID)
 model Product {
   id String @id @default(cuid())
 
@@ -494,17 +456,17 @@ model Product {
   code        String  @unique
   description String?
 
-  /// Prix catalogue par défaut (peut être affiné par ProductPricing)
   price Float
 
   isActive Boolean @default(true)
 
-  quoteItems     QuoteItem[]
-  invoiceItems   InvoiceItem[]
+  quoteItems         QuoteItem[]
+  invoiceItems       InvoiceItem[]
   purchaseOrderItems PurchaseOrderItem[]
-  pricingGrid    ProductPricing[]
-  campaigns      Campaign[]
-  recharges      Recharge[]
+  pricingGrid        ProductPricing[]
+  campaigns          Campaign[]
+  recharges          Recharge[]
+  offers             Offer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -512,8 +474,6 @@ model Product {
   @@index([name])
 }
 
-/// Grille tarifaire par pays / secteur (CDC §4.5 : "tarif et marge par
-/// produit, pays et secteur d'activité")
 model ProductPricing {
   id String @id @default(cuid())
 
@@ -532,10 +492,6 @@ model ProductPricing {
   @@unique([productId, country, sector])
 }
 
-// ============================================================================
-// 4. DEVIS, BONS DE COMMANDE, CONTRATS
-// ============================================================================
-
 enum QuoteStatus {
   DRAFT
   SENT
@@ -544,11 +500,10 @@ enum QuoteStatus {
   EXPIRED
 }
 
-/// Devis (CDC §4.8)
 model Quote {
   id String @id @default(cuid())
 
-  number String @unique
+  number String  @unique
   title  String
   notes  String?
 
@@ -564,7 +519,8 @@ model Quote {
   purchaseOrder PurchaseOrder?
 
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  documents  Document[]
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   dealId String?
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
@@ -609,8 +565,6 @@ enum PurchaseOrderStatus {
   CANCELLED
 }
 
-/// Bon de commande — engagement d'achat formalisé (CDC §4.8, §6).
-/// Étape intermédiaire obligatoire entre le Devis accepté et le Contrat.
 model PurchaseOrder {
   id String @id @default(cuid())
 
@@ -622,15 +576,13 @@ model PurchaseOrder {
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  amount        Decimal              @db.Decimal(14, 2)
+  amount        Decimal             @db.Decimal(14, 2)
   paymentMethod String?
-  status        PurchaseOrderStatus  @default(DRAFT)
+  status        PurchaseOrderStatus @default(DRAFT)
 
   sentAt   DateTime?
   signedAt DateTime?
 
-  /// Chemin du scan signé (V1 : email + PDF, cf. CDC §5 — la signature
-  /// électronique complète est repoussée en V2)
   signedDocumentPath String?
 
   createdById String
@@ -671,7 +623,6 @@ enum ContractStatus {
   EXPIRED
 }
 
-/// Contrat formalisé (CDC §4.9)
 model Contract {
   id String @id @default(cuid())
 
@@ -684,6 +635,7 @@ model Contract {
   startDate DateTime
   endDate   DateTime?
   signedAt  DateTime?
+  documents Document[]
 
   status ContractStatus @default(DRAFT)
 
@@ -704,10 +656,6 @@ model Contract {
   @@index([customerId])
   @@index([status])
 }
-
-// ============================================================================
-// 5. FACTURATION & ENCAISSEMENTS
-// ============================================================================
 
 enum InvoiceStatus {
   DRAFT
@@ -790,8 +738,6 @@ enum PaymentStatus {
   REFUNDED
 }
 
-/// Encaissement (CDC §4.10 : "enregistrement des règlements reçus et
-/// rapprochement avec les factures")
 model Payment {
   id String @id @default(cuid())
 
@@ -827,8 +773,6 @@ model Payment {
   @@index([method])
 }
 
-/// Rechargement / crédit prépayé client (cf. reporting "Réchargements",
-/// "Soldes prépayés")
 model Recharge {
   id String @id @default(cuid())
 
@@ -849,10 +793,6 @@ model Recharge {
   @@index([customerId])
   @@index([date])
 }
-
-// ============================================================================
-// 6. SENDER ID (CDC §4.11)
-// ============================================================================
 
 enum SenderIdStatus {
   PENDING
@@ -883,10 +823,6 @@ model SenderIdRequest {
   @@index([customerId])
   @@index([status])
 }
-
-// ============================================================================
-// 7. CAMPAGNES (CDC §2.2, §4.7)
-// ============================================================================
 
 enum CampaignType {
   EMAIL
@@ -927,7 +863,6 @@ model Campaign {
   startedAt   DateTime?
   finishedAt  DateTime?
 
-  /// Alerte déclenchée en cas d'anomalie (pic d'échecs, volume anormal...)
   anomalyDetectedAt DateTime?
   anomalyReason     String?
 
@@ -951,19 +886,16 @@ enum CampaignRecipientStatus {
   REJECTED
 }
 
-/// Destinataire individuel d'une campagne — permet le calcul du taux de
-/// délivrabilité et le suivi des rejets (CDC §2.2, §9)
 model CampaignRecipient {
   id String @id @default(cuid())
 
   campaignId String
   campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  destination String // numéro ou email du destinataire
+  destination String
 
   status CampaignRecipientStatus @default(PENDING)
 
-  /// Code erreur remonté par la passerelle (cf. reporting "Rejets SMS")
   errorCode String?
 
   cost Decimal? @db.Decimal(14, 4)
@@ -971,7 +903,6 @@ model CampaignRecipient {
   sentAt      DateTime?
   deliveredAt DateTime?
 
-  /// Référence du message côté passerelle (utile pour le webhook de statut)
   providerMessageId String?
 
   createdAt DateTime @default(now())
@@ -980,10 +911,6 @@ model CampaignRecipient {
   @@index([status])
   @@index([providerMessageId])
 }
-
-// ============================================================================
-// 8. GED — DOCUMENTS (CDC §4.13)
-// ============================================================================
 
 enum DocumentType {
   CONTRACT
@@ -1032,10 +959,6 @@ model Document {
   @@index([contractId])
 }
 
-// ============================================================================
-// 9. OBJECTIFS COMMERCIAUX (CDC §4.1, §9)
-// ============================================================================
-
 model Objective {
   id String @id @default(cuid())
 
@@ -1057,10 +980,6 @@ model Objective {
   @@index([userId])
   @@index([periodStart, periodEnd])
 }
-
-// ============================================================================
-// 10. NOTIFICATIONS (CDC §4.14) & AUDIT (CDC §4.16)
-// ============================================================================
 
 enum NotificationType {
   INFO
@@ -1085,7 +1004,7 @@ model Notification {
   type    NotificationType    @default(INFO)
   channel NotificationChannel @default(IN_APP)
 
-  isRead Boolean @default(false)
+  isRead Boolean   @default(false)
   sentAt DateTime?
 
   userId String
@@ -1128,4 +1047,156 @@ model AuditLog {
   @@index([userId])
   @@index([entity])
   @@index([action])
+}
+
+model Company {
+  id String @id @default(cuid())
+
+  name String @unique
+  code String @unique
+
+  email   String?
+  phone   String?
+  website String?
+
+  address String?
+  city    String?
+  country String?
+
+  taxNumber String?
+  users     User[]
+  customers Customer[]
+  offers    Offer[]
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OfferStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  DISABLED
+}
+
+model Offer {
+  id String @id @default(cuid())
+
+  name String
+  code String @unique
+
+  description String?
+
+  price Decimal @db.Decimal(14, 2)
+
+  duration Int?
+
+  status OfferStatus @default(DRAFT)
+
+  isActive Boolean @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([productId])
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+  CANCELLED
+}
+
+model Subscription {
+  id String @id @default(cuid())
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  offerId String
+  offer   Offer  @relation(fields: [offerId], references: [id], onDelete: Restrict)
+
+  startDate DateTime
+  endDate   DateTime?
+
+  amount Decimal @db.Decimal(14, 2)
+
+  status SubscriptionStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([offerId])
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Ticket {
+  id String @id @default(cuid())
+
+  reference String @unique
+
+  subject     String
+  description String?
+
+  priority TicketPriority @default(MEDIUM)
+
+  status TicketStatus @default(OPEN)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+model Warehouse {
+  id String @id @default(cuid())
+
+  code String @unique
+  name String
+
+  address String?
+  city    String?
+  country String?
+
+  manager String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

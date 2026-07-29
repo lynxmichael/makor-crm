@@ -1,6 +1,9 @@
-import { IsBoolean, IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class CreateCompanyDto {
+  @IsString()
+  code!: string;
+
   @IsString()
   name!: string;
 
@@ -14,13 +17,13 @@ export class CreateCompanyDto {
 
   @IsOptional()
   @IsString()
-  country?: string;
+  website?: string;
 
   @IsOptional()
   @IsString()
-  currency?: string;
+  address?: string;
 
   @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
+  @IsString()
+  city?: string;
 }

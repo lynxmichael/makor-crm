@@ -83,30 +83,39 @@ export class ProductsService {
 
   // --- Grille tarifaire (pays / secteur) — CDC §4.5 ---
 
-  async addPricing(productId: string, dto: CreateProductPricingDto) {
-    await this.findOne(productId);
+ async addPricing(productId: string, dto: CreateProductPricingDto) {
+  await this.findOne(productId);
 
-    return this.prisma.productPricing.upsert({
+  const existing = await this.prisma.productPricing.findFirst({
+    where: {
+      productId,
+      country: dto.country,
+      sector: dto.sector,
+    },
+  });
+
+  if (existing) {
+    return this.prisma.productPricing.update({
       where: {
-        productId_country_sector: {
-          productId,
-          country: dto.country ?? null,
-          sector: dto.sector ?? null,
-        },
+        id: existing.id,
       },
-      create: {
-        productId,
-        country: dto.country,
-        sector: dto.sector,
-        unitPrice: dto.unitPrice,
-        unitCost: dto.unitCost,
-      },
-      update: {
+      data: {
         unitPrice: dto.unitPrice,
         unitCost: dto.unitCost,
       },
     });
   }
+
+  return this.prisma.productPricing.create({
+    data: {
+      productId,
+      country: dto.country,
+      sector: dto.sector,
+      unitPrice: dto.unitPrice,
+      unitCost: dto.unitCost,
+    },
+  });
+}
 
   async updatePricing(pricingId: string, dto: UpdateProductPricingDto) {
     const pricing = await this.prisma.productPricing.findUnique({

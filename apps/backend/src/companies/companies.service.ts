@@ -1,6 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -13,7 +16,18 @@ export class CompaniesService {
 
   async create(dto: CreateCompanyDto) {
     return this.prisma.company.create({
-      data: dto,
+      data: {
+        code: dto.code,
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone,
+        address: dto.address,
+      },
+
+      include: {
+        users: true,
+        customers: true,
+      },
     });
   }
 
@@ -23,6 +37,7 @@ export class CompaniesService {
         users: true,
         customers: true,
       },
+
       orderBy: {
         createdAt: 'desc',
       },
@@ -31,7 +46,10 @@ export class CompaniesService {
 
   async findOne(id: string) {
     const company = await this.prisma.company.findUnique({
-      where: { id },
+      where: {
+        id,
+      },
+
       include: {
         users: true,
         customers: true,
@@ -39,18 +57,33 @@ export class CompaniesService {
     });
 
     if (!company) {
-      throw new NotFoundException('Entreprise introuvable');
+      throw new NotFoundException(
+        'Entreprise introuvable',
+      );
     }
 
     return company;
   }
 
-  async update(id: string, dto: UpdateCompanyDto) {
+  async update(
+    id: string,
+    dto: UpdateCompanyDto,
+  ) {
     await this.findOne(id);
 
     return this.prisma.company.update({
-      where: { id },
-      data: dto,
+      where: {
+        id,
+      },
+
+      data: {
+        ...dto,
+      },
+
+      include: {
+        users: true,
+        customers: true,
+      },
     });
   }
 
@@ -58,7 +91,9 @@ export class CompaniesService {
     await this.findOne(id);
 
     return this.prisma.company.delete({
-      where: { id },
+      where: {
+        id,
+      },
     });
   }
 }

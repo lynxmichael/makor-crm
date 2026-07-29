@@ -1,17 +1,5 @@
-import {
-  IsEmail,
-  IsOptional,
-  IsString,
-  IsEnum,
-} from 'class-validator';
-
-export enum CustomerStatusDto {
-  PROSPECT = 'PROSPECT',
-  QUALIFIED = 'QUALIFIED',
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  LOST = 'LOST',
-}
+import { CustomerStatus } from '@prisma/client';
+import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateCustomerDto {
   @IsString()
@@ -50,8 +38,8 @@ export class CreateCustomerDto {
   website?: string;
 
   @IsOptional()
-  @IsEnum(CustomerStatusDto)
-  status?: CustomerStatusDto;
+  @IsEnum(CustomerStatus)
+  status?: CustomerStatus;
 
   @IsOptional()
   @IsString()

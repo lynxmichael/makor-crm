@@ -1,14 +1,9 @@
 import { InvoiceStatus } from '@prisma/client';
-
 export const INVOICE_STATUS = {
   DRAFT: InvoiceStatus.DRAFT,
   SENT: InvoiceStatus.SENT,
-  VIEWED: InvoiceStatus.VIEWED,
-  PARTIALLY_PAID: InvoiceStatus.PARTIALLY_PAID,
   PAID: InvoiceStatus.PAID,
-  OVERDUE: InvoiceStatus.OVERDUE,
   CANCELLED: InvoiceStatus.CANCELLED,
-  REFUNDED: InvoiceStatus.REFUNDED,
 };
 
 export const AUDIT_ACTIONS = {
