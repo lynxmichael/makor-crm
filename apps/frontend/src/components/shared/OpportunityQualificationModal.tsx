@@ -45,6 +45,10 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
 
   if (!opportunity) return null;
 
+  // Rétrécissement stable : le compilateur ne propage pas celui du paramètre
+  // dans les fonctions déclarées ci-dessous, qui sont des closures.
+  const opp = opportunity;
+
   function updateField(sectionStage: string, key: string, value: string) {
     setQualification((prev) => ({ ...prev, [`${sectionStage}.${key}`]: value }));
   }
@@ -56,7 +60,7 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
   function handleAddPayment() {
     if (!paymentDraft.amount || !paymentDraft.date) return;
     const payment: Payment = {
-      id: `pay-${opportunity.id}-${Date.now()}`,
+      id: `pay-${opp.id}-${Date.now()}`,
       amount: Number(paymentDraft.amount),
       date: paymentDraft.date,
       channel: paymentDraft.channel,
@@ -68,7 +72,7 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
   }
 
   function handleSave() {
-    onSave(opportunity.id, { qualification, goLiveChecklist: checklist, payments });
+    onSave(opp.id, { qualification, goLiveChecklist: checklist, payments });
     onClose();
   }
 

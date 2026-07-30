@@ -76,7 +76,7 @@ export function DashboardPage() {
                   <YAxis tick={{ fontSize: 11, fill: "#5b6472" }} axisLine={false} tickLine={false} width={32} />
                   <Tooltip
                     contentStyle={{ borderRadius: 8, borderColor: "#e3e5e1", fontSize: 12 }}
-                    formatter={(value: number) => [`${value}k`, "Volume"]}
+                    formatter={(value) => [`${value}k`, "Volume"]}
                   />
                   <Area type="monotone" dataKey="volume" stroke="#0e7c86" strokeWidth={2} fill="url(#volumeFill)" />
                 </AreaChart>
