@@ -4,6 +4,73 @@ Une section par séance, la plus récente en haut. À compléter en fin de chaqu
 
 ---
 
+## 30 juillet 2026 — Le dépôt distant avait quatre commits d'avance
+
+### Fait
+
+**Point de départ : un `git push`.** Il a échoué sur l'authentification (GCM avait un identifiant
+périmé ; purgé via `git credential reject`, l'accès est rétabli). Le `git fetch` qui a suivi a tout
+changé : **`origin/main` avait 4 commits que l'arbre local n'avait pas.**
+
+**Divergence caractérisée.** Base commune `96f8927` (23/07 16:57). 3 commits en local, 4 sur le
+distant, dont `d1c1555` « correction finale de backend » **poussé à 17h24 le 29/07, neuf minutes avant
+le commit d'audit**. Les deux historiques s'entrelacent dans le temps : ce n'est pas un retard, ce sont
+deux développements parallèles. **53 fichiers divergent réellement** (le gros du backend est identique).
+
+**L'audit du 29/07 portait donc sur un arbre qui n'est pas la ligne principale.** Conséquences actées
+en **D12** : D1 est **suspendu** (les modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse`
+existent sur `origin/main`, avec migration dédiée et un module `inventory/` en plus — 19 migrations
+contre 16), et les « trois erreurs fausses » corrigées la veille dans `apps/backend/CLAUDE.md` **ne
+sont pas fausses** : les trois fichiers existent sur le distant. Les deux fichiers sont corrigés.
+
+**La faille de sécurité, elle, est confirmée sur les deux branches** — vérifié sur `origin/main` :
+seul `ThrottlerGuard` en `APP_GUARD`, pas de `public.decorator.ts`, aucun `UseGuards` sur les cinq
+contrôleurs. Le chantier de fermeture reste la priorité et ne dépend pas de la réconciliation.
+
+**Documentation livrée sans toucher au code.** Branche `docs/audit-et-arbitrages` construite depuis
+`origin/main`, les deux commits de doc reportés par `cherry-pick` (2 conflits résolus : `DESIGN.md` et
+`apps/frontend/CLAUDE.md`, supprimés côté distant, la version documentaire est retenue).
+**Diff vs `origin/main` : uniquement des `.md`.** `origin/main` n'est pas réécrit, les 4 commits
+distants sont préservés — aucun `--force`.
+
+**`apps/backend/README.md` restauré** depuis la ligne principale : sa suppression n'avait jamais été
+arbitrée et c'est 133 lignes de contenu réel.
+
+**Builds constatés :** backend impossible à compiler (`node_modules` absent, `'nest' n'est pas
+reconnu`) ; frontend échoue sur `tsconfig.app.json:3` — `error TS5101` sur `baseUrl`, à l'identique de
+ce qui était documenté, et **identique sur les deux branches** (le fichier ne diverge pas).
+
+**Un verrou `.git/index.lock` périmé** (0 octet, ~1 h, aucun processus git) laissé par le push en
+échec, supprimé.
+
+### En suspens
+
+1. **Réconciliation du code local ↔ `origin/main` : non faite, et c'est le point bloquant.** Elle
+   suppose de trancher le sort des modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse` et du
+   module `inventory/` — inventaire et ticketing ne figurent pas au CDC. Tant qu'elle n'est pas faite,
+   l'arbre local et la ligne principale sont deux versions concurrentes du backend.
+2. **Nouvel audit à mener sur la ligne principale.** Tous les décomptes d'`AUDIT.md` (lignes, entités,
+   modules, migrations) portent sur l'arbre divergent et ne peuvent plus être cités comme référence.
+3. **`AUDIT.md` §9 et `DESIGN.md` §7 toujours pas alignés** sur les arbitrages — inchangé depuis la
+   veille, et désormais second par rapport au point 2.
+4. **Point 5 de la séance du 29/07 : corrigé, voir plus bas.** Il reste à décider si les README
+   déplacés à la racine doivent aussi être rétablis dans `apps/*/`.
+5. Reste inchangé : **D2** (retrait de `Recharges`), **D11** (prestataire SMS), **D4** (pipelines par
+   commercial), **D6** (validation de la configuration au démarrage).
+
+### Prochain chantier
+
+**Inchangé sur le fond, mais à exécuter sur la ligne principale :** fermer les cinq contrôleurs
+ouverts (`APP_GUARD` global + `@Public()`). C'est le seul chantier qui ne dépend ni de la
+réconciliation ni du nouvel audit, et la faille est confirmée des deux côtés.
+
+Le plan validé le 30/07 prévoyait l'ordre **3 → 2 → 1** (`npm install`, puis suppression des dossiers
+orphelins, puis le guard) pour que le correctif de sécurité soit validé par un build réel. **Le
+chantier 2 disparaît avec la suspension de D1.** L'ordre devient : `npm install` sur la ligne
+principale → build de référence → guard global.
+
+---
+
 ## 29 juillet 2026 — Audit complet et arbitrages
 
 ### Fait
@@ -31,7 +98,13 @@ Une section par séance, la plus récente en haut. À compléter en fin de chaqu
 2. **Le build backend n'a jamais été exécuté** — `node_modules` est absent et son installation n'a pas été autorisée. La cause racine de la rupture de compilation (les 8 dossiers orphelins) est établie **par analyse statique uniquement**. C'est le chantier 3 du plan d'action qui lèvera cette réserve.
 3. **D2 — retrait de `Recharges` :** documenté, rien supprimé. Touche 12 fichiers, dont `campaigns.service.ts:422-433` où le solde prépayé est câblé dans l'envoi de campagne. Exige une migration Prisma destructive et un arbitrage sur les données existantes.
 4. **D11 — prestataire SMS/WhatsApp non arrêté.** DEXCHANGE SMS, Orange Côte d'Ivoire, 360dialog à l'étude. C'est la seule dépendance externe du projet et la plus longue à contractualiser : à lancer en parallèle, sans coder d'hypothèse sur l'API.
-5. **Trois fichiers suivis par git sont supprimés du disque** sans avoir été commités : `apps/backend/README.md`, `apps/frontend/DESIGN.md`, `apps/frontend/README.md`. Suppressions antérieures à cette séance, à arbitrer.
+5. ~~**Trois fichiers suivis par git sont supprimés du disque** sans avoir été commités :
+   `apps/backend/README.md`, `apps/frontend/DESIGN.md`, `apps/frontend/README.md`.~~
+   **Corrigé le 30/07 — cet énoncé était faux.** Ces suppressions étaient **commitées** dans
+   `15e1351` et l'arbre était propre. Il ne s'agissait pas d'un défaut d'hygiène git. Sur le fond :
+   `apps/frontend/DESIGN.md` et `apps/frontend/README.md` sont des **renommages** vers la racine
+   (contenu préservé à 100 %) ; seul `apps/backend/README.md` était une vraie suppression, et il a été
+   **restauré** sur la branche `docs/audit-et-arbitrages`.
 6. **D4 — pipelines par commercial :** suppose une évolution du schéma Prisma. `PipelineStage` est aujourd'hui une table globale sans propriétaire ; il faut un rattachement à un utilisateur, un champ `canonicalStage` obligatoire, la migration et la reprise des `DealStageHistory`.
 7. **D6 — validation de configuration :** « clé d'API validée au démarrage » suppose de créer ce mécanisme. `ConfigModule.forRoot()` n'a aujourd'hui **aucun** `validationSchema` : aucune variable d'environnement n'est vérifiée.
 

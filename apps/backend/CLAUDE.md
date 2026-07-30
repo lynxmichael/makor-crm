@@ -40,9 +40,20 @@ npx prisma migrate dev # applique et crée une migration
 
 `node_modules` est absent : **aucun build n'a été exécuté lors de l'audit du 29/07/2026.** Ce qui suit relève de l'analyse statique.
 
-### Cause racine unique attendue : les 8 dossiers orphelins
+### ⚠️ Ce diagnostic décrit un arbre divergent, pas la ligne principale (voir D12)
 
-`nest build` type-check **tout `src/`**, sans tenir compte de `app.module.ts`. Ces 8 dossiers ne sont montés nulle part mais sont compilés, et référencent des modèles Prisma inexistants :
+**Tout ce qui suit dans cette section a été établi sur un arbre local qui n'est pas `origin/main`.**
+Sur la ligne principale, les modèles Prisma prétendus absents **existent** — `Company`, `Offer`,
+`Subscription`, `Ticket`, `Warehouse` — avec leur migration
+`20260729152741_add_company_offer_subscription_ticket_warehouse`, et un module `src/inventory/`
+supplémentaire. **19 migrations contre 16 en local.**
+
+**D1 est suspendu : ne supprimer aucun de ces 8 dossiers.** Le tableau ci-dessous est conservé comme
+trace du raisonnement du 29/07, à re-vérifier sur la ligne principale avant toute action.
+
+### Cause racine attendue sur l'arbre local du 29/07 : les 8 dossiers orphelins
+
+`nest build` type-check **tout `src/`**, sans tenir compte de `app.module.ts`. Sur l'arbre local, ces 8 dossiers ne sont montés nulle part mais sont compilés, et référencent des modèles Prisma inexistants :
 
 | Dossier | Référence fautive |
 | --- | --- |
@@ -54,15 +65,24 @@ npx prisma migrate dev # applique et crée une migration
 
 Les `UpdateXDto` dérivés par `PartialType()` de DTO dont l'import d'enum échoue deviennent vides — d'où une cascade d'erreurs « Property does not exist ». **Symptômes, pas défauts.**
 
-**Correctif (décision D1) : supprimer les 8 dossiers, 972 lignes.** Puis `npm install && npx prisma generate && npm run build` pour confirmer.
+~~**Correctif (décision D1) : supprimer les 8 dossiers, 972 lignes.**~~ **Annulé — D1 suspendu par D12.**
+Lancer `npm install && npx prisma generate && npm run build` **sur la ligne principale** pour obtenir
+le vrai état de compilation, avant tout diagnostic.
 
-### ⚠️ Trois « erreurs » précédemment documentées ici étaient fausses
+### Ces trois fichiers existent bel et bien — correction du 30/07
 
-Une version antérieure de ce fichier décrivait trois défauts qui **n'existent pas dans le code actuel** — ne pas les rechercher :
+Le 29/07, cette section affirmait que trois défauts documentés ici « n'existent pas dans le code
+actuel ». **C'était une conclusion tirée de l'arbre local divergent.** Les trois existent sur
+`origin/main` :
 
-- `src/invoices/services/invoice-pdf.service.ts` — ce chemin n'existe pas. Le fichier réel est `src/invoices/invoice-pdf.service.ts`, sa méthode `generate()` est déjà `async` et retourne `Promise<Buffer>`.
-- `src/invoices/services/invoice-email.service.ts` — **n'existe nulle part.** L'envoi passe par `src/mail/mail.service.ts:30-53`.
-- `QueryWarehouseDto` — **zéro occurrence** dans tout `src/`.
+- `src/invoices/services/invoice-pdf.service.ts` — **existe sur la ligne principale.** L'arbre local
+  a un `src/invoices/invoice-pdf.service.ts` à plat : les deux structures coexistent dans le dépôt et
+  la réconciliation devra choisir.
+- `src/invoices/services/invoice-email.service.ts` — **existe sur la ligne principale.** L'arbre local
+  ne l'a pas et fait passer l'envoi par `src/mail/mail.service.ts:30-53`.
+- `QueryWarehouseDto` — **existe** : `src/warehouses/dto/query-warehouse.dto.ts` sur `origin/main`.
+
+**À retenir :** ne pas conclure à l'inexistence d'un fichier sans avoir vérifié la branche distante.
 
 ---
 

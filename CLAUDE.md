@@ -86,6 +86,7 @@ Arbitrages rendus par le porteur du projet. **Ils priment sur le CDC en cas de c
 ### Périmètre
 
 - **D1 — Suppression des 8 dossiers orphelins** du backend : `companies`, `company`, `offers`, `subscriptions`, `tickets`, `warehouses`, `devices`, `interventions`. 972 lignes, jamais montées, seule cause de la rupture de compilation.
+  > ⚠️ **D1 est SUSPENDU par D12 (30/07/2026) — sa prémisse est fausse sur la ligne principale. Ne rien supprimer.**
 - **D2 — Le module `Recharges` sort du périmètre V1.** Contrairement aux 8 dossiers morts, il est monté et fonctionnel : son retrait exige une migration Prisma destructive et touche l'envoi de campagne. **Chantier distinct — ne rien supprimer sans arbitrage sur les données.** Impact détaillé dans `apps/backend/CLAUDE.md`.
 - **D3 — Messagerie interne repoussée en V2.** En V1, seul l'envoi de document par email depuis une fiche, déjà couvert par `MailService`. Annule et remplace les exigences REQ-4.1-42 à 45 du CDC.
 
@@ -123,6 +124,47 @@ Arbitrages rendus par le porteur du projet. **Ils priment sur le CDC en cas de c
 ### Passerelle SMS/WhatsApp
 
 - **D11 — Prestataire non arrêté**, décision commerciale en cours. Pistes : **DEXCHANGE SMS** et connexion directe **Orange Côte d'Ivoire** pour le SMS, **360dialog** pour WhatsApp. L'adaptateur mock reste en place. **Ne faire aucune hypothèse sur l'API d'un prestataire tant que le choix n'est pas confirmé.**
+
+---
+
+## Décisions actées — 30 juillet 2026
+
+### D12 — L'audit du 29/07 a été mené sur un arbre divergent. D1 est suspendu.
+
+`git fetch` du 30/07 a révélé que `origin/main` avait **4 commits** que l'arbre local n'avait pas
+(`b04fc84` 24/07, `372888a` 27/07, `e80837c` 29/07 09:22, `d1c1555` 29/07 17:24), pour une base
+commune remontant à `96f8927` du 23/07. L'audit a donc décrit un arbre qui **n'est pas la ligne
+principale du projet**. Divergence réelle : 53 fichiers.
+
+**Ce que cela invalide :**
+
+- **D1 est suspendu.** Sa justification — « ces dossiers référencent des modèles Prisma inexistants,
+  donc ils sont morts » — est **vraie en local et fausse sur `origin/main`**, où le schéma contient
+  `model Company` (l.1052), `Offer` (1084), `Subscription` (1123), `Ticket` (1160), `Warehouse` (1186),
+  avec une migration dédiée `20260729152741_add_company_offer_subscription_ticket_warehouse` et un
+  module `src/inventory/` absent de l'arbre local. **19 migrations sur la ligne principale contre 16
+  en local.** Ce n'est pas du code mort : c'est une extension inventaire/ticketing en cours.
+  **Ne rien supprimer.** Un nouvel audit sur la ligne principale doit précéder tout arbitrage.
+- **Les « trois erreurs fausses » signalées dans `apps/backend/CLAUDE.md` ne sont pas fausses.**
+  `invoices/services/invoice-email.service.ts`, `invoices/services/invoice-pdf.service.ts` et
+  `warehouses/dto/query-warehouse.dto.ts` (`QueryWarehouseDto`) **existent sur `origin/main`**. La
+  version antérieure du fichier décrivait la ligne principale ; c'est la correction du 29/07 qui
+  décrivait un arbre divergent.
+- Tout décompte de lignes, d'entités et de fichiers dans `AUDIT.md` est à reprendre sur la ligne
+  principale avant d'être cité comme référence.
+
+**Ce qui reste valide, vérifié sur `origin/main` :** la faille de sécurité est identique sur les deux
+branches — seul `ThrottlerGuard` en `APP_GUARD`, pas de `public.decorator.ts`, et **aucun `UseGuards`**
+sur les cinq contrôleurs `audit`/`roles`/`permissions`/`role-permissions`/`departments`. Le chantier
+de fermeture de ces contrôleurs reste la priorité et **ne dépend pas de la réconciliation.**
+`tsconfig.app.json` étant identique des deux côtés, le build frontend est cassé sur les deux aussi.
+
+**Méthode retenue :** la documentation est livrée sur la branche `docs/audit-et-arbitrages`, construite
+**depuis `origin/main`** et ne contenant que des `.md`. `origin/main` n'est pas réécrit — les 4 commits
+distants sont préservés. La réconciliation du code est un chantier distinct, qui suppose de trancher
+le sort des modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse`.
+
+**Règle qui en découle :** commencer toute séance par un `git fetch`, avant de lire l'état du dépôt.
 
 ---
 
