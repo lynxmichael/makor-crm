@@ -4,6 +4,97 @@ Une section par séance, la plus récente en haut. À compléter en fin de chaqu
 
 ---
 
+## 31 juillet 2026 — Répartition du travail, palette validée, maquette versionnée
+
+### Fait
+
+**Point d'ouverture de séance, `git fetch` d'abord** (règle D12) : rien de nouveau sur le distant,
+`origin/main` toujours sur `d1c1555`.
+
+**Trois corrections factuelles.**
+
+1. **19 migrations, pas 21.** `ls prisma/migrations` renvoie 21 entrées, dont `README.md` et
+   `migration_lock.toml`. Et ces 19 sont **identiques à `origin/main`** —
+   `git diff origin/main -- apps/backend/prisma/migrations` est vide.
+2. **`src/inventory/` n'est pas monté.** Le dossier existe, mais **`app.module.ts` ne contient aucune
+   occurrence d'`Inventory`**. C'est du **code mort au même titre que les 8 dossiers de D1**, pas une
+   extension inventaire/ticketing en cours. La conclusion de D12 ne bouge pas — **ne rien supprimer**
+   tant que le sort des modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse` n'est pas
+   tranché — mais l'argument « développement actif » tombe.
+3. **La réconciliation code local ↔ `origin/main` est de fait faite.** `kouassi/frontend-build` descend
+   de `d1c1555` avec `docs/audit-et-arbitrages` mergé par-dessus : le backend présent **est** celui de
+   la ligne principale. Ce n'est plus un point bloquant. Corrigé dans l'entrée du 30/07 ci-dessous.
+
+**Trois décisions consignées dans `CLAUDE.md`** — D13 (répartition du travail avec lynxmichael),
+D14 (palette et typographie validées par le DG), D15 (la maquette devient la spécification du frontend).
+Voir la section « Décisions actées — 31 juillet 2026 ».
+
+**`DESIGN.md` aligné.** §7 n'est plus une question ouverte : l'option B est retenue (D10), le titre et
+la conclusion sont réécrits, et la mise en œuvre est signalée comme suspendue par D14. §2 et §3 portent
+un bandeau **périmé** renvoyant à D14 — pour que personne n'applique de bonne foi une palette teal que
+personne n'a validée. Constat au passage : les **dix** composants shadcn décrits en §7 ont été supprimés
+au chantier 5 ; appliquer l'option B revient désormais à réintroduire shadcn sur des jetons propres,
+plus simple que la refonte décrite à l'origine.
+
+**`design/makor-crm-maquette.html` versionnée** (218 Ko), jusqu'ici non suivie par git.
+
+### En suspens
+
+1. **Réécrire `DESIGN.md` §2/§3 et `apps/frontend/src/index.css`** depuis le second bloc `:root` de la
+   maquette. **C'est le prochain chantier de ce poste.** Il faudra trancher au passage : conserver les
+   noms de jetons (`wire`, `pulse`, `paper`…) en changeant leurs valeurs, ou renommer — **26 fichiers
+   les consomment** (`slate` 70×, `ink` 48×, `line` 32×, `wire` 25×, `paper` 22×, `alert` 15×).
+2. **Le chantier 6 (pont de variables shadcn) est suspendu** jusque-là — poser le pont sur des jetons
+   qu'on abandonne serait à refaire.
+3. **`AUDIT.md` reste à reprendre :** §9 pose toujours les dix questions comme ouvertes alors que D1 à
+   D15 y répondent en partie, et tous ses décomptes portent sur l'arbre divergent du 29/07.
+4. **`apps/backend/CLAUDE.md` porte des affirmations corrigées depuis** (les « trois erreurs fausses »
+   de D12, et la qualification de `src/inventory/`). **D13 m'interdit d'y toucher** — à signaler à
+   lynxmichael.
+5. Inchangé : **D2** (retrait de `Recharges`), **D11** (prestataire SMS), **D4** (pipelines par
+   commercial), **D6** (validation de la configuration au démarrage).
+
+### Prochain chantier
+
+**Réécriture des jetons de design** — `DESIGN.md` §2/§3 puis `src/index.css`, depuis la maquette
+validée. Il débloque le chantier 6, qui débloque toute la vague 2 côté frontend.
+
+Côté backend, la fermeture des cinq contrôleurs reste la priorité absolue du projet, **mais elle est
+passée chez lynxmichael (D13)**.
+
+---
+
+## 30 juillet 2026 (suite) — Build frontend débloqué, maquette produite et validée
+
+### Fait
+
+**Chantiers 4 et 5 d'`AUDIT.md` §8 exécutés.** Le build frontend ne tenait qu'à `baseUrl` dans
+`tsconfig.app.json`, refusé par TypeScript 6 (TS5101) : retiré, et **`strict: true` déclaré
+explicitement** dans la foulée — le coût était nul, le code ne contenait aucun `any`. Puis **2117 lignes
+de code mort supprimées sur 21 fichiers** : les dix composants shadcn non stylés (`sidebar.tsx` à lui
+seul en pesait 723), `App.css`, `use-mobile.ts`, et la moitié de `mock.ts`. Cinq primitives maison
+renommées au passage en `PascalCase` pour uniformiser (`badge.tsx` → `Badge.tsx`, etc.).
+Commits `4a707bf` et `9afca0d`.
+
+**`npm run build` du frontend est vert** — 2775 modules, 4,4 s. Seule réserve, un avertissement de
+taille : le bundle fait 830 Ko (250 Ko gzippé), au-dessus du seuil de 500 Ko. À traiter par découpage
+en imports dynamiques quand le routage par rôle sera en place, pas avant.
+
+**Maquette HTML complète produite, puis validée par le directeur général et les équipes commerciales.**
+15 modules à navigation conditionnée par rôle (`data-roles` sur chaque entrée), écran de connexion avec
+2FA, cinq tableaux de bord par rôle, vue détail client, graphiques SVG sans aucune dépendance, parcours
+de bout en bout et visite guidée. Elle tranche l'identité visuelle — marine et orange — et elle est
+cohérente avec les arbitrages déjà rendus : « Messagerie » y est badgée **V2**, conforme à D3.
+
+**Accord de répartition du travail avec lynxmichael** : backend chez lui, frontend ici. Consigné en D13
+le 31/07.
+
+### En suspens
+
+Repris et complété dans l'entrée du 31/07 ci-dessus.
+
+---
+
 ## 30 juillet 2026 — Le dépôt distant avait quatre commits d'avance
 
 ### Fait
@@ -45,10 +136,16 @@ ce qui était documenté, et **identique sur les deux branches** (le fichier ne 
 
 ### En suspens
 
-1. **Réconciliation du code local ↔ `origin/main` : non faite, et c'est le point bloquant.** Elle
-   suppose de trancher le sort des modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse` et du
-   module `inventory/` — inventaire et ticketing ne figurent pas au CDC. Tant qu'elle n'est pas faite,
-   l'arbre local et la ligne principale sont deux versions concurrentes du backend.
+1. ~~**Réconciliation du code local ↔ `origin/main` : non faite, et c'est le point bloquant.**~~
+   **Corrigé le 31/07 — elle est de fait faite, et n'a jamais été bloquante longtemps.** La branche
+   `kouassi/frontend-build` descend de `d1c1555` avec `docs/audit-et-arbitrages` mergé par-dessus : le
+   backend de l'arbre de travail **est** celui de la ligne principale (19 migrations identiques,
+   `git diff origin/main` vide sur `prisma/migrations`). Il n'y a plus deux versions concurrentes.
+   **Ce qui reste ouvert est un arbitrage fonctionnel, pas une opération git :** que fait-on des modèles
+   `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse` et du dossier `inventory/`, qui ne figurent pas
+   au CDC ? Précision du 31/07 : `inventory/` **n'est pas monté dans `app.module.ts`** — il dort, il ne
+   gêne rien, et rien ne presse. Arbitrage à rendre avec lynxmichael, dont c'est désormais le périmètre
+   (D13).
 2. **Nouvel audit à mener sur la ligne principale.** Tous les décomptes d'`AUDIT.md` (lignes, entités,
    modules, migrations) portent sur l'arbre divergent et ne peuvent plus être cités comme référence.
 3. **`AUDIT.md` §9 et `DESIGN.md` §7 toujours pas alignés** sur les arbitrages — inchangé depuis la
@@ -59,6 +156,13 @@ ce qui était documenté, et **identique sur les deux branches** (le fichier ne 
    commercial), **D6** (validation de la configuration au démarrage).
 
 ### Prochain chantier
+
+> **Corrigé le 31/07 — ce chantier n'est plus tenu par ce poste.** L'accord de répartition avec
+> lynxmichael, consigné en **D13**, place tout `apps/backend/` chez lui : la fermeture des cinq
+> contrôleurs, le `npm install` et le build backend de référence lui reviennent. **La priorité du projet
+> ne change pas** — la faille reste la première chose à traiter, et le chantier 8 (socle frontend) en
+> dépend toujours, puisqu'un menu conditionné par rôle ne vaut rien si l'API ne l'est pas.
+> Le prochain chantier de ce poste est frontend : voir l'entrée du 31/07.
 
 **Inchangé sur le fond, mais à exécuter sur la ligne principale :** fermer les cinq contrôleurs
 ouverts (`APP_GUARD` global + `@Public()`). C'est le seul chantier qui ne dépend ni de la

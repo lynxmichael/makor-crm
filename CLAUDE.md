@@ -18,7 +18,8 @@ CRM interne de **MAKOR Group Telecom** (Afrique de l'Ouest), destiné à piloter
 | Fichier                   | Rôle                                                                            |
 | ------------------------- | ------------------------------------------------------------------------------- |
 | `CDC-CRM-MAKOR-v3.md`     | **Cahier des charges — source de vérité fonctionnelle.** Ne jamais le modifier. |
-| `DESIGN.md`               | Charte d'identité visuelle. Fait autorité sur toute question d'apparence.       |
+| `design/makor-crm-maquette.html` | **Maquette HTML validée par le DG et les commerciaux le 30/07/2026. Spécification écran par écran du frontend (D15).** Fait autorité sur l'apparence — palette, typographie, densité, parcours. |
+| `DESIGN.md`               | Charte d'identité visuelle. **§2 et §3 périmés depuis D14** — la maquette prime sur eux.  |
 | `AUDIT.md`                | État des lieux au 29/07/2026 : matrice de cohérence, couverture, plan d'action  |
 | `SUIVI.md`                | Journal de bord des séances. À compléter à chaque fin de séance.                |
 | `apps/frontend/CLAUDE.md` | Conventions et état du frontend                                                 |
@@ -31,9 +32,11 @@ CRM interne de **MAKOR Group Telecom** (Afrique de l'Ouest), destiné à piloter
 ```
 makor-crm/
 ├── CLAUDE.md · CDC-CRM-MAKOR-v3.md · DESIGN.md · AUDIT.md · SUIVI.md
+├── design/
+│   └── makor-crm-maquette.html   Maquette validée — spécification du frontend (D15)
 └── apps/
-    ├── frontend/             React 19 + Vite + Tailwind v4 + shadcn/ui
-    └── backend/              NestJS + Prisma + PostgreSQL
+    ├── frontend/             React 19 + Vite + Tailwind v4 + shadcn/ui   → poste Kouassi (D13)
+    └── backend/              NestJS + Prisma + PostgreSQL                → poste lynxmichael (D13)
 ```
 
 ## Rôles utilisateurs
@@ -70,10 +73,12 @@ Détail des attributs en **section 6 du CDC**. **Les 15 sont modélisées dans `
 
 Le backend couvre le cahier des charges : 35 modèles Prisma, 32 modules montés, JWT + 2FA TOTP, BullMQ, Socket.IO, Swagger, 16 migrations. Le frontend est une **maquette** : aucun appel API, aucune authentification, aucune notion de rôle, 11 pages sur 16 générées par une fabrique de placeholders.
 
-Deux ruptures ouvertes, détaillées dans `AUDIT.md` §4 et §5 :
+Une rupture ouverte, détaillée dans `AUDIT.md` §4 :
 
-1. **Cinq contrôleurs backend montés sans authentification** — `audit`, `roles`, `permissions`, `role-permissions`, `departments`. Le journal d'audit est public et effaçable. À traiter en priorité absolue.
-2. **Le build frontend échoue** — `tsconfig.app.json:3`, TypeScript 6 refuse `baseUrl`.
+1. **Cinq contrôleurs backend montés sans authentification** — `audit`, `roles`, `permissions`, `role-permissions`, `departments`. Le journal d'audit est public et effaçable. Priorité absolue, **et depuis D13 c'est un chantier du poste backend**.
+2. ~~**Le build frontend échoue** — `tsconfig.app.json:3`, TypeScript 6 refuse `baseUrl`.~~
+   **Résolu le 30/07** (chantiers 4 et 5 d'`AUDIT.md` §8) : `baseUrl` retiré, `strict: true` déclaré
+   explicitement, 2117 lignes de code mort supprimées. `npm run build` du frontend est vert.
 
 Le plan d'action priorisé est en **§8 de `AUDIT.md`** (29 chantiers, trois vagues). S'y référer avant d'ouvrir un chantier.
 
@@ -165,6 +170,97 @@ distants sont préservés. La réconciliation du code est un chantier distinct, 
 le sort des modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse`.
 
 **Règle qui en découle :** commencer toute séance par un `git fetch`, avant de lire l'état du dépôt.
+
+> **Précision du 31/07 — `src/inventory/` n'est pas une extension active.** Vérifié sur la ligne
+> principale : le dossier existe, mais **`app.module.ts` ne contient aucune occurrence d'`Inventory`**.
+> Il n'est pas monté. C'est du **code mort au même titre que les 8 dossiers de D1**, pas un chantier en
+> cours. Ce qui ne change rien à la conclusion de D12 — **ne rien supprimer** tant que le sort
+> fonctionnel des modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse` n'est pas tranché — mais
+> retire l'argument « développement en cours » de la balance.
+>
+> **Décompte corrigé : 19 migrations, pas 21.** Le dossier `prisma/migrations/` contient 21 entrées,
+> dont `README.md` et `migration_lock.toml`. Les 19 migrations sont **identiques à `origin/main`**
+> (`git diff origin/main -- apps/backend/prisma/migrations` est vide). Le « 19 contre 16 » de D12 reste
+> donc exact.
+
+---
+
+## Décisions actées — 31 juillet 2026
+
+### D13 — Répartition du travail entre deux postes
+
+Accord du 30/07 avec **lynxmichael**, propriétaire du dépôt.
+
+| Périmètre | Poste |
+| --- | --- |
+| `apps/backend/` — y compris `apps/backend/CLAUDE.md` et `prisma/` | **lynxmichael** |
+| `apps/frontend/`, `design/` | **Kouassi** |
+| Documentation racine (`CLAUDE.md`, `AUDIT.md`, `SUIVI.md`, `DESIGN.md`) | partagée |
+
+**Personne ne modifie le dossier de l'autre.** Un défaut constaté hors de son périmètre se **signale**,
+il ne se corrige pas.
+
+**Conséquence directe sur le plan d'action (`AUDIT.md` §8) :** les chantiers **1** (fermer les cinq
+contrôleurs ouverts), **3** (`npm install` + build backend de référence) et **7** (`@Roles()` sur les
+24 contrôleurs) passent chez lynxmichael. Le chantier 1 reste la priorité absolue du projet — il n'est
+simplement plus tenu par ce poste. Le chantier 8 (socle frontend) en dépend toujours : le frontend ne
+peut pas conditionner ses menus par rôle si l'API ne le fait pas.
+
+**Méthode de collaboration :**
+
+- Branches préfixées **`kouassi/`** pour ce poste.
+- **Pull request systématique.** Jamais de push direct sur `main`.
+- **`git fetch` en début de séance**, avant toute lecture de l'état du dépôt (règle déjà posée par D12).
+
+### D14 — Palette et typographie validées par la direction
+
+Le **directeur général et les équipes commerciales ont validé le 30/07** l'identité visuelle portée par
+la maquette `design/makor-crm-maquette.html`.
+
+| | Retenu (D14) | Remplacé |
+| --- | --- | --- |
+| Fond de barre latérale | `#001B2E`, dégradé vers `#00304F` | — |
+| Couleur d'action | **orange `#F39304`** (`--primary-dark:#D97D00`, `--primary-soft:#FFF4E2`) | teal `#0e7c86` / corail `#ff6b4a` |
+| Fond d'application | `#F4F6FB`, surfaces `#FFFFFF`, bordures `#E8EBF4` | `#f5f6f4` / `#e3e5e1` |
+| Rayons | `--radius:16px`, `--radius-sm:11px` | — |
+| Typographie | **Manrope** (titres) + **Inter** (UI et texte) | Space Grotesk + IBM Plex Sans/Mono |
+
+**La palette teal/corail de `DESIGN.md` n'a jamais été validée par personne.** Elle est abandonnée.
+
+**Décision étendue à la typographie** : la maquette est validée dans son ensemble, il n'y aurait aucun
+sens à en retenir les couleurs et à en écarter les polices.
+
+**Source de vérité : le second bloc `:root` de la maquette.** Le fichier en contient deux ; le premier
+est écrasé par le second (il déclare notamment `--sidebar:#00263F`, remplacé par `#001B2E`). Ne jamais
+relever une valeur dans le premier bloc.
+
+**Conséquences :**
+
+- `DESIGN.md` **§2 et §3 sont périmés** — ils restent lisibles pour mémoire, marqués comme tels.
+- **`DESIGN.md` §2/§3 et `apps/frontend/src/index.css` sont à réécrire** depuis la maquette. C'est un
+  **chantier distinct, non réalisé le 31/07** : 26 fichiers du frontend consomment les jetons actuels
+  (`slate` 70×, `ink` 48×, `line` 32×, `wire` 25×), la réécriture doit trancher au passage si l'on
+  conserve les noms de jetons en changeant leurs valeurs ou si l'on renomme.
+- **Le chantier 6 d'`AUDIT.md` §8 (pont de variables CSS shadcn) est SUSPENDU** jusqu'à cette
+  réécriture : le pont doit être posé sur les jetons définitifs, pas sur ceux qu'on abandonne.
+
+### D15 — La maquette HTML est la spécification du frontend
+
+`design/makor-crm-maquette.html` **fait référence écran par écran** pour l'implémentation React. Elle
+contient :
+
+- **15 modules** en barre latérale, chacun portant ses rôles autorisés en `data-roles` — la navigation
+  conditionnée par rôle exigée par le CDC §7 y est déjà résolue, module par module ;
+- l'**écran de connexion avec 2FA** ;
+- les **cinq tableaux de bord par rôle** du CDC §4.1 ;
+- une **vue détail client**, des graphiques **SVG sans aucune dépendance**, un parcours de bout en bout
+  et une visite guidée.
+
+Elle est **cohérente avec les décisions déjà actées** : « Messagerie » y est badgée **V2**, conforme à D3.
+
+En cas d'écart entre la maquette et `DESIGN.md`, **la maquette l'emporte** — elle est validée, pas lui.
+En cas d'écart entre la maquette et le CDC sur une **règle métier**, le CDC l'emporte : la maquette fait
+autorité sur la forme, pas sur le fond.
 
 ---
 

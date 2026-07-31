@@ -20,6 +20,13 @@ Le langage visuel emprunte au vocabulaire du signal : un flux qui passe ou qui n
 
 ## 2. Jetons de couleur
 
+> ⚠️ **SECTION PÉRIMÉE — voir D14 dans `CLAUDE.md`.**
+> La palette ci-dessous (teal `#0e7c86`, corail `#ff6b4a`) **n'a jamais été validée par personne**. Le
+> directeur général et les équipes commerciales ont validé le 30/07/2026 une identité **marine
+> `#001B2E`/`#00304F` et orange `#F39304`**, portée par `design/makor-crm-maquette.html`.
+> **N'appliquez aucun jeton de cette section à du code neuf.** Elle est conservée pour mémoire, le temps
+> que §2 et `src/index.css` soient réécrits depuis la maquette — chantier ouvert, non fait.
+
 Déclarés dans `src/index.css` sous `@theme`. **Ce sont les seules couleurs autorisées.**
 
 | Jeton      | Valeur    | Rôle                                                                                                                               |
@@ -70,6 +77,14 @@ Sans ce pont, les composants shadcn restent sans style. **C'est la décision str
 ---
 
 ## 3. Typographie
+
+> ⚠️ **CHOIX DES FAMILLES PÉRIMÉ — voir D14 dans `CLAUDE.md`.**
+> La maquette validée le 30/07 utilise **Manrope** (titres) et **Inter** (UI et texte), pas Space
+> Grotesk + IBM Plex. Les familles du tableau ci-dessous sont donc à remplacer lors de la réécriture
+> de §2/§3 et de `src/index.css`.
+> **Ce qui reste valide dans cette section :** l'échelle de tailles, les rôles typographiques et la
+> règle des chiffres tabulaires — ils ne dépendent pas des familles choisies. Seule la police monospace
+> reste à arbitrer, la maquette se contentant de `monospace` générique.
 
 Trois familles, chargées depuis Google Fonts dans `index.html`.
 
@@ -194,7 +209,14 @@ Exigence 8.4 du cahier des charges : poste de travail, tablette et mobile.
 
 ---
 
-## 7. Décision structurante à trancher
+## 7. Décision structurante — tranchée (D10)
+
+> **Arbitrage rendu le 29/07/2026 : c'est l'option B.** shadcn/ui devient le socle de composants.
+> L'exposé ci-dessous est conservé comme justification, non comme question ouverte.
+>
+> **Mise en œuvre suspendue par D14 :** le pont de variables CSS doit être posé sur les jetons
+> définitifs issus de la maquette validée, pas sur la palette teal/corail abandonnée. Le chantier 6
+> d'`AUDIT.md` §8 reprend une fois §2 et §3 réécrits.
 
 Le projet contient **deux systèmes de composants qui ne communiquent pas** :
 
@@ -207,6 +229,6 @@ Deux options :
 
 **B — Adopter shadcn/ui comme socle.** Déclarer le pont de variables (§2), migrer les primitives maison vers les conventions shadcn. Résultat : accessibilité et comportements robustes fournis, écosystème de composants disponible. Coût : refonte de tous les composants existants, et le style `base-nova` devra être fortement personnalisé pour ne pas ressembler à toutes les autres applications shadcn.
 
-**Recommandation : option B**, parce que le cahier des charges impose explicitement « React + TypeScript + Tailwind CSS + shadcn/ui » (§2.1) et met en avant les « composants accessibles » comme justification du choix. L'identité visuelle vient alors du thème (jetons MAKOR, Space Grotesk, densité) et non de composants écrits à la main.
+**Option retenue : B** (D10), parce que le cahier des charges impose explicitement « React + TypeScript + Tailwind CSS + shadcn/ui » (§2.1) et met en avant les « composants accessibles » comme justification du choix. L'identité visuelle vient alors du thème (jetons MAKOR, typographie, densité) et non de composants écrits à la main.
 
-Cette décision conditionne tout le reste du travail d'identité visuelle. **À valider avant d'écrire la moindre ligne de style.**
+**État réel au 31/07 :** les **dix** composants shadcn cités plus haut ont été supprimés avec le reste du code mort frontend (chantier 5, 30/07). `src/components/ui/` ne contient plus que les primitives maison — `Badge`, `Button`, `Card`, `Field`, `Input`, `Modal`, `SignalMeter`, `Table`. Le constat des « deux systèmes qui ne communiquent pas » n'est donc plus d'actualité : appliquer l'option B consiste désormais à **réintroduire shadcn/ui sur des jetons propres**, ce qui est plus simple que la refonte décrite ci-dessus. `SignalMeter` et `KpiCard` restent maison, conformément à D10.
