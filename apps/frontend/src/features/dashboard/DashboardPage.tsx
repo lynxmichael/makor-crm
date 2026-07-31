@@ -1,11 +1,12 @@
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { SignalMeter } from "@/components/ui/SignalMeter";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { kpis, mockCampaigns, mockOpportunities, pipelineStageLabels } from "@/data/mock";
 import { formatCFA } from "@/lib/utils";
 import type { Opportunity } from "@/types";
+import { CommentThread } from "@/features/collaboration/CommentThread";
 
 const volumeTrend = [
   { day: "01/07", volume: 92 },
@@ -129,6 +130,13 @@ export function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Fil du tableau de bord (CDC §4.1) — portée globale, sans entityId. */}
+      <CommentThread
+        entityType="DASHBOARD"
+        title="Commentaires de l'équipe"
+        emptyDetail="Partagez une lecture des chiffres du mois, une alerte ou une consigne — tout le monde la verra ici."
+      />
     </div>
   );
 }

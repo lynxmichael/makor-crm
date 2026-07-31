@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Radio, TriangleAlert } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SignalMeter } from "@/components/ui/SignalMeter";
-import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/Table";
+import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { EntityFormModal, type FieldDef } from "@/components/shared/EntityFormModal";
 import { mockCampaigns, mockClients, countries } from "@/data/mock";
 import { formatDate } from "@/lib/utils";

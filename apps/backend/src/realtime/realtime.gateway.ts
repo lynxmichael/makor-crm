@@ -99,4 +99,37 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       .to(`user:${notification.userId}`)
       .emit('notification:new', notification);
   }
+
+  /**
+   * Messagerie interne (CDC §4.1). Le message part vers les deux parties :
+   * le destinataire voit arriver la ligne, l'expéditeur voit son propre
+   * envoi apparaître dans le fil qu'il a ouvert sur un autre onglet.
+   */
+  @OnEvent('message.created')
+  onMessageCreated(message: { id: string; senderId: string; recipientId: string }) {
+    this.server
+      .to(`user:${message.recipientId}`)
+      .emit('message:new', message);
+
+    this.server
+      .to(`user:${message.senderId}`)
+      .emit('message:sent', message);
+  }
+
+  /** Mention dans un commentaire — seule la personne citée est prévenue. */
+  @OnEvent('comment.mentioned')
+  onCommentMentioned(payload: { userId: string; comment: unknown }) {
+    this.server
+      .to(`user:${payload.userId}`)
+      .emit('comment:mentioned', payload.comment);
+  }
+
+  /**
+   * Nouveau commentaire : diffusé à tous, l'interface ne rafraîchit le fil
+   * que si elle affiche l'entité concernée.
+   */
+  @OnEvent('comment.created')
+  onCommentCreated(comment: { entityType: string; entityId: string | null }) {
+    this.server.to('broadcast').emit('comment:created', comment);
+  }
 }

@@ -152,6 +152,11 @@ model User {
   objectivesCreated     Objective[]        @relation("ObjectiveCreatedBy")
   dealStageChanges      DealStageHistory[]
 
+  comments          Comment[]      @relation("CommentAuthor")
+  messagesSent      Message[]      @relation("MessageSender")
+  messagesReceived  Message[]      @relation("MessageRecipient")
+  aiGenerations     AiGeneration[] @relation("AiRequestedBy")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   tickets   Ticket[]
@@ -1199,4 +1204,145 @@ model Warehouse {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ===========================================================================
+// Commentaires (CDC §4.1) — « possibilité de laisser des commentaires »
+// ===========================================================================
+
+/**
+ * Entités commentables. Le commentaire est polymorphe : une seule table
+ * plutôt qu'une table de commentaires par module, sinon la fonctionnalité
+ * devrait être réimplémentée à chaque nouvel écran.
+ *
+ * DASHBOARD est une portée libre, sans entityId : c'est le fil de commentaires
+ * du tableau de bord, que le CDC réserve au profil Admin ventes.
+ */
+enum CommentEntity {
+  DASHBOARD
+  CUSTOMER
+  LEAD
+  DEAL
+  QUOTE
+  PURCHASE_ORDER
+  CONTRACT
+  INVOICE
+  CAMPAIGN
+}
+
+model Comment {
+  id String @id @default(cuid())
+
+  body String
+
+  entityType CommentEntity
+  /// Nul pour les portées globales (DASHBOARD).
+  entityId   String?
+
+  /// Réponse à un autre commentaire — un seul niveau d'imbrication.
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  /// Utilisateurs mentionnés (@) — sert à déclencher une notification.
+  mentionedUserIds String[] @default([])
+
+  authorId String
+  author   User   @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  /// Renseigné dès la première modification : l'interface affiche « modifié ».
+  editedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+// ===========================================================================
+// Messagerie interne (CDC §4.1)
+// « envoie et reçois de message et des documents entre eux par email »
+// ===========================================================================
+
+model Message {
+  id String @id @default(cuid())
+
+  subject String?
+  body    String
+
+  /// Pièce jointe unique, stockée sous /uploads comme la GED.
+  attachmentPath String?
+  attachmentName String?
+  attachmentSize Int?
+
+  senderId String
+  sender   User   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  recipientId String
+  recipient   User   @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  readAt DateTime?
+
+  /// Suppression par corbeille, côté expéditeur et destinataire séparément :
+  /// chacun range sa boîte sans effacer le message de l'autre.
+  deletedBySender    Boolean @default(false)
+  deletedByRecipient Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([recipientId, readAt])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+// ===========================================================================
+// Génération assistée (CDC §4.8, §4.9 — tags « (ia) » / « (claudeia) »)
+// ===========================================================================
+
+enum AiTaskType {
+  QUOTE_INTRO
+  QUOTE_TERMS
+  CONTRACT_BODY
+  CONTRACT_CLAUSE
+  EMAIL_DRAFT
+  MEETING_SUMMARY
+}
+
+/**
+ * Trace des générations. Trois raisons de la garder :
+ * l'audit (CDC §4.16), la possibilité de revenir à une version précédente,
+ * et le suivi du coût en jetons.
+ *
+ * Le texte généré n'est jamais appliqué automatiquement : il est proposé,
+ * puis accepté ou rejeté par un humain — d'où `acceptedAt`.
+ */
+model AiGeneration {
+  id String @id @default(cuid())
+
+  taskType AiTaskType
+
+  /// Entité concernée (devis, contrat…), pour retrouver l'historique.
+  entityType CommentEntity?
+  entityId   String?
+
+  /// Consigne de l'utilisateur, hors contexte injecté automatiquement.
+  instruction String?
+
+  output String
+
+  model       String
+  inputTokens  Int @default(0)
+  outputTokens Int @default(0)
+
+  acceptedAt DateTime?
+
+  requestedById String
+  requestedBy   User   @relation("AiRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([requestedById])
 }

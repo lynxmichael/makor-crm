@@ -1,51 +1,14 @@
-import { Route, Routes } from "react-router-dom";
-import { SplashScreen } from "@/components/shared/SplashScreen";
-import { AppLayout } from "@/layouts/AppLayout";
-import { LoginPage } from "@/features/auth/LoginPage";
-import { DashboardPage } from "@/features/dashboard/DashboardPage";
-import { ClientsPage } from "@/features/clients/ClientsPage";
-import { PipelinePage } from "@/features/opportunities/PipelinePage";
-import { CampaignsPage } from "@/features/campaigns/CampaignsPage";
-import { ReportsPage } from "@/features/reports/ReportsPage";
-import {
-  AgendaPage,
-  AuditPage,
-  ContractsPage,
-  DocumentsPage,
-  InvoicingPage,
-  PaymentsPage,
-  ProspectsPage,
-  PurchaseOrdersPage,
-  QuotesPage,
-  SenderIdPage,
-  SettingsPage,
-} from "@/features/shared/placeholders";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { AppRouter } from "@/routes/AppRouter";
 
+/**
+ * L'application se réduit à deux choses : garantir qu'on sait qui est
+ * connecté, puis router. Toute la table des écrans vit dans AppRouter.
+ */
 export default function App() {
   return (
-    <>
-      <SplashScreen />
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route element={<AppLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="clients" element={<ClientsPage />} />
-          <Route path="prospects" element={<ProspectsPage />} />
-          <Route path="opportunities" element={<PipelinePage />} />
-          <Route path="quotes" element={<QuotesPage />} />
-          <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
-          <Route path="contracts" element={<ContractsPage />} />
-          <Route path="agenda" element={<AgendaPage />} />
-          <Route path="campaigns" element={<CampaignsPage />} />
-          <Route path="sender-id" element={<SenderIdPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="invoicing" element={<InvoicingPage />} />
-          <Route path="payments" element={<PaymentsPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="audit" element={<AuditPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-      </Routes>
-    </>
+    <AuthProvider>
+      <AppRouter />
+    </AuthProvider>
   );
 }

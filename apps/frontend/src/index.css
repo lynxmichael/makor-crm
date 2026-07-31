@@ -1,27 +1,72 @@
 @import "tailwindcss";
 
 /*
-  Système de design MAKOR CRM
-  — Palette "signal télécom" : encre profonde, papier froid, teal "wire" en primaire,
-    corail "pulse" en accent vivant, vert "signal" pour les statuts positifs.
-  — Typo : Space Grotesk (display) + IBM Plex Sans (UI/texte) + IBM Plex Mono (données, réf.)
+  Système de design MAKOR CRM — aligné sur la maquette de présentation.
+
+  Palette : orange MAKOR en primaire, bleu nuit en accent et en fond de
+  navigation, gris froids pour la surface. Les noms sémantiques (ink, paper,
+  wire, slate…) sont conservés : seules leurs valeurs changent, ce qui repeint
+  toute l'application sans toucher aux composants.
+
+  Typo : Manrope (titres, chiffres) + Inter (texte et interface).
 */
 @theme {
-  --color-ink: #12141c;
-  --color-paper: #f5f6f4;
+  --color-ink: #1a1b2e;
+  --color-paper: #f4f6fb;
   --color-surface: #ffffff;
-  --color-wire: #0e7c86;
-  --color-wire-dim: #0b646c;
-  --color-pulse: #ff6b4a;
-  --color-signal: #1e9e6b;
-  --color-alert: #e0433a;
-  --color-amber: #e8a23d;
-  --color-slate: #5b6472;
-  --color-line: #e3e5e1;
 
-  --font-display: "Space Grotesk", ui-sans-serif, sans-serif;
-  --font-body: "IBM Plex Sans", ui-sans-serif, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* Primaire — orange MAKOR */
+  --color-wire: #f39304;
+  --color-wire-dim: #d97d00;
+  --color-wire-soft: #fff4e2;
+
+  /* Accent — bleu nuit, utilisé en dégradé avec le primaire */
+  --color-accent: #0a4a78;
+
+  /* Statuts */
+  --color-signal: #16a34a;
+  --color-signal-soft: #dcfce7;
+  --color-alert: #dc2626;
+  --color-alert-soft: #fee2e2;
+  --color-amber: #d97706;
+  --color-amber-soft: #fef3c7;
+  --color-info: #2563eb;
+  --color-info-soft: #dbeafe;
+
+  /* Accent secondaire : pastilles de non-lus, points de notification */
+  --color-pulse: #dc2626;
+
+  --color-slate: #6b7089;
+  --color-line: #e8ebf4;
+
+  --font-display: "Manrope", ui-sans-serif, sans-serif;
+  --font-body: "Inter", ui-sans-serif, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", monospace;
+
+  --radius-xl: 16px;
+  --radius-lg: 11px;
+}
+
+@theme {
+  /* Navigation — dégradé nuit, repris tel quel de la maquette */
+  --color-nav-from: #001b2e;
+  --color-nav-mid: #00304f;
+  --color-nav-to: #003d66;
+}
+
+:root {
+  /*
+    Élévation en trois paliers plutôt qu'une ombre unique : une carte au repos,
+    une carte survolée et un élément détaché (modale, carte en cours de
+    déplacement) ne doivent pas flotter à la même hauteur.
+  */
+  --sh-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --sh-2: 0 4px 8px -2px rgba(16, 24, 40, 0.06), 0 12px 24px -4px rgba(16, 24, 40, 0.08);
+  --sh-3: 0 8px 16px -4px rgba(16, 24, 40, 0.08), 0 24px 48px -8px rgba(16, 24, 40, 0.14);
+  --sh-glow: 0 6px 20px -4px rgba(243, 147, 4, 0.42);
+
+  /* Courbe unique pour toute l'application : sortie franche, arrivée douce. */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
@@ -50,17 +95,24 @@
   h3,
   h4 {
     font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
   ::selection {
     background-color: color-mix(in srgb, var(--color-wire) 25%, transparent);
+  }
+  /* Anneau de focus visible sur fond clair comme sur fond nuit. */
+  :focus-visible {
+    outline: 2px solid var(--color-wire);
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
   .font-mono-tabular {
-    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
+
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -68,5 +120,88 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: var(--color-line);
     border-radius: 999px;
+  }
+
+  /* Élévation */
+  .shadow-e1 {
+    box-shadow: var(--sh-1);
+  }
+  .shadow-e2 {
+    box-shadow: var(--sh-2);
+  }
+  .shadow-e3 {
+    box-shadow: var(--sh-3);
+  }
+
+  /*
+    Carte : repos discret, léger décollement au survol. Le mouvement est de
+    3 px — assez pour signaler que l'élément réagit, pas assez pour faire
+    bouger la lecture d'un tableau dense.
+  */
+  .card-lift {
+    box-shadow: var(--sh-1);
+    transition:
+      transform 0.3s var(--ease),
+      box-shadow 0.3s var(--ease);
+  }
+  .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sh-2);
+  }
+
+  /* Filet lumineux qui se déploie sur le haut d'une carte de KPI au survol. */
+  .kpi-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-wire), #ffc061);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.55s var(--ease);
+  }
+  .kpi-sheen:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* Coque de navigation : dégradé nuit + liseré orange sur le bord droit. */
+  .nav-shell {
+    background: linear-gradient(
+      168deg,
+      var(--color-nav-from) 0%,
+      var(--color-nav-mid) 62%,
+      var(--color-nav-to) 100%
+    );
+    box-shadow: 4px 0 28px -12px rgba(0, 27, 46, 0.5);
+    position: relative;
+  }
+  .nav-shell::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, rgba(243, 147, 4, 0.34), transparent);
+  }
+
+  /* Barre supérieure translucide, qui laisse deviner le contenu qui défile. */
+  .topbar-blur {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card-lift,
+    .card-lift:hover,
+    .kpi-sheen::after {
+      transition: none;
+      transform: none;
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { forwardRef, type LabelHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { forwardRef, type ReactNode, type LabelHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
@@ -36,3 +36,48 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   )
 );
 Textarea.displayName = "Textarea";
+
+/**
+ * Regroupe libellé, champ et message d'erreur.
+ *
+ * L'erreur est rendue dans un conteneur de hauteur réservée : sans cela,
+ * l'apparition d'un message décale tout le formulaire vers le bas au moment
+ * précis où l'utilisateur essaie de corriger sa saisie.
+ */
+export function Field({
+  label,
+  htmlFor,
+  error,
+  hint,
+  required,
+  children,
+  className,
+}: {
+  label: string;
+  htmlFor?: string;
+  error?: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("min-w-0", className)}>
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required && <span className="ml-0.5 text-alert">*</span>}
+      </Label>
+
+      {children}
+
+      {(error || hint) && (
+        <p
+          className={cn("mt-1 text-xs", error ? "text-alert" : "text-slate")}
+          role={error ? "alert" : undefined}
+        >
+          {error || hint}
+        </p>
+      )}
+    </div>
+  );
+}

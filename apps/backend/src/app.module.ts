@@ -40,6 +40,9 @@ import { AuditModule } from './audit/audit.module';
 import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
 import { CommonModule } from './common/common.module';
+import { CommentsModule } from './comments/comments.module';
+import { MessagesModule } from './messages/messages.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -62,6 +65,9 @@ import { CommonModule } from './common/common.module';
     PrismaModule,
     QueueModule,
     CommonModule,
+    CommentsModule,
+    MessagesModule,
+    AiModule,
 
     AuthModule,
     UsersModule,

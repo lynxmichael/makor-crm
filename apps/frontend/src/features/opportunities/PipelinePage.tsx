@@ -1,8 +1,8 @@
 import { useMemo, useState, type DragEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SignalMeter } from "@/components/ui/SignalMeter";
 import { EntityFormModal, type FieldDef } from "@/components/shared/EntityFormModal";
 import { OpportunityQualificationModal } from "@/components/shared/OpportunityQualificationModal";

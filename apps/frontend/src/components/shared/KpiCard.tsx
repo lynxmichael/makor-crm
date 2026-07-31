@@ -1,11 +1,11 @@
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/card";
 import { SignalMeter } from "@/components/ui/SignalMeter";
 import { cn } from "@/lib/utils";
 import type { KpiSummary } from "@/types";
 
 export function KpiCard({ label, value, delta, deltaTone, level }: KpiSummary) {
   return (
-    <Card>
+    <Card className="kpi-sheen">
       <CardContent className="pt-5">
         <p className="text-xs font-medium uppercase tracking-wider text-slate">{label}</p>
         <p className="mt-2 font-display text-3xl font-semibold text-ink">{value}</p>
