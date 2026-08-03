@@ -56,11 +56,28 @@ export class ProductsController {
     return this.productsService.findOne(id);
   }
 
+  @Patch('pricing/:pricingId')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES')
+  updatePricing(
+    @Param('pricingId') pricingId: string,
+    @Body() dto: UpdateProductPricingDto,
+  ) {
+    return this.productsService.updatePricing(pricingId, dto);
+  }
+
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES')
   update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     return this.productsService.update(id, dto);
+  }
+
+  @Delete('pricing/:pricingId')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  removePricing(@Param('pricingId') pricingId: string) {
+    return this.productsService.removePricing(pricingId);
   }
 
   @Delete(':id')
@@ -83,20 +100,5 @@ export class ProductsController {
     return this.productsService.addPricing(id, dto);
   }
 
-  @Patch('pricing/:pricingId')
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN_VENTES')
-  updatePricing(
-    @Param('pricingId') pricingId: string,
-    @Body() dto: UpdateProductPricingDto,
-  ) {
-    return this.productsService.updatePricing(pricingId, dto);
+  
   }
-
-  @Delete('pricing/:pricingId')
-  @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN')
-  removePricing(@Param('pricingId') pricingId: string) {
-    return this.productsService.removePricing(pricingId);
-  }
-}

@@ -52,8 +52,17 @@ model Currency {
 }
 
 model Role {
-  id          String  @id @default(cuid())
-  name        String  @unique
+  id String @id @default(cuid())
+
+  /// Identifiant technique, en majuscules. Sert de discriminant dans @Roles()
+  /// et dans les gardes : ne jamais le traduire ni le renommer à la légère.
+  name String @unique
+
+  /// Libellé affiché dans l'interface. Modifiable dans Paramètres sans
+  /// toucher au code : c'est ce qui permet d'appeler « Financier » le rôle
+  /// techniquement nommé MANAGER.
+  label String?
+
   description String?
 
   users           User[]
@@ -61,6 +70,7 @@ model Role {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  commissionPlans CommissionPlan[]
 }
 
 model Permission {
@@ -156,6 +166,12 @@ model User {
   messagesSent      Message[]      @relation("MessageSender")
   messagesReceived  Message[]      @relation("MessageRecipient")
   aiGenerations     AiGeneration[] @relation("AiRequestedBy")
+  resources         Resource[]     @relation("ResourceAuthor")
+  apiKeys           ApiKey[]       @relation("ApiKeyCreatedBy")
+  signatureRequests SignatureRequest[] @relation("SignatureRequestedBy")
+  workflows         Workflow[]         @relation("WorkflowCreatedBy")
+  commissions       Commission[]       @relation("CommissionBeneficiary")
+  commissionPlans   CommissionPlan[]   @relation("CommissionPlanUser")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -236,6 +252,7 @@ model Customer {
   @@index([companyName])
   @@index([country])
   @@index([status])
+  apiKeys ApiKey[]
 }
 
 model Contact {
@@ -350,6 +367,15 @@ model Deal {
 
   amount      Decimal @db.Decimal(14, 2)
   probability Int     @default(0)
+
+  /// Réponses à la grille de qualification (CDC §4.6), une clé par question
+  /// sous la forme `<etape>.<champ>`. Stockée en JSON plutôt qu'en colonnes :
+  /// les questions évoluent avec la méthode commerciale, et chaque évolution
+  /// exigerait sinon une migration.
+  qualification Json?
+
+  /// Points de contrôle de mise en service, cochés à l'étape Go live.
+  goLiveChecklist Json?
 
   expectedCloseDate DateTime?
 
@@ -1345,4 +1371,502 @@ model AiGeneration {
 
   @@index([entityType, entityId])
   @@index([requestedById])
+}
+
+// ===========================================================================
+// Espace Ressources — formation et documentation (demande du 31/07/2026)
+// ===========================================================================
+
+/**
+ * Module du CRM auquel se rattache une ressource. Permet de grouper la
+ * formation par écran plutôt que par ordre d'ajout : un commercial qui bute
+ * sur les devis cherche « Devis », pas la ressource n° 14.
+ */
+enum ResourceCategory {
+  GENERAL
+  PRISE_EN_MAIN
+  CLIENTS
+  PIPELINE
+  CAMPAGNES
+  DEVIS_COMMANDES
+  CONTRATS
+  FACTURATION
+  SENDER_ID
+  AGENDA
+  DOCUMENTS
+  REPORTING
+  PARAMETRES
+}
+
+enum ResourceType {
+  DOCUMENT
+  VIDEO
+  LIEN
+  ARTICLE
+}
+
+model Resource {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+
+  category ResourceCategory @default(GENERAL)
+  type     ResourceType     @default(DOCUMENT)
+
+  /// Fichier déposé — pour type DOCUMENT.
+  filePath String?
+  fileName String?
+  fileSize Int?
+
+  /// Lien externe — pour type VIDEO ou LIEN.
+  url String?
+
+  /// Contenu rédigé directement dans le CRM — pour type ARTICLE.
+  content String?
+
+  /// Ordre d'affichage au sein de la catégorie.
+  position Int @default(0)
+
+  /// Un brouillon reste invisible des agents tant qu'il n'est pas publié.
+  isPublished Boolean @default(true)
+
+  /// Compteur de consultations, pour repérer ce qui sert et ce qui dort.
+  viewCount Int @default(0)
+
+  createdById String
+  createdBy   User   @relation("ResourceAuthor", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, position])
+  @@index([isPublished])
+  @@index([createdById])
+}
+
+// ===========================================================================
+// API partenaires (CDC §5 — V2)
+// ===========================================================================
+
+/**
+ * Périmètre accordé à une clé. Une clé d'intégration ne doit jamais tout
+ * pouvoir : un partenaire qui n'envoie que des OTP n'a aucune raison de
+ * pouvoir lire le solde d'un autre client.
+ */
+enum ApiScope {
+  MESSAGES_SEND
+  MESSAGES_READ
+  BALANCE_READ
+  CAMPAIGNS_READ
+}
+
+model ApiKey {
+  id String @id @default(cuid())
+
+  /// Nom donné par l'administrateur — « Intégration boutique en ligne ».
+  name String
+
+  /// Préfixe visible (mk_live_a1b2c3). Sert à identifier la clé sans la
+  /// révéler, et à retrouver la ligne sans comparer tous les hachages.
+  prefix String @unique
+
+  /// Seul le haché est conservé. La clé complète n'est affichée qu'une fois,
+  /// à la création : nous ne pouvons pas la retrouver, seulement la révoquer.
+  keyHash String
+
+  scopes ApiScope[] @default([])
+
+  /// Le partenaire agit pour le compte de ce client : ses envois sont
+  /// débités de son solde et apparaissent dans son reporting.
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  /// Sender ID imposé aux envois de cette clé, quand il est fixé.
+  senderId String?
+
+  /// Plafond d'appels par minute. Zéro = pas de limite propre à la clé.
+  rateLimitPerMinute Int @default(60)
+
+  isActive  Boolean   @default(true)
+  expiresAt DateTime?
+
+  lastUsedAt DateTime?
+  usageCount Int       @default(0)
+
+  /// Renseigné à la révocation — on ne supprime pas une clé, on la coupe :
+  /// les envois passés doivent rester rattachables à leur origine.
+  revokedAt DateTime?
+
+  createdById String?
+  createdBy   User?   @relation("ApiKeyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  requests ApiRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([isActive])
+}
+
+/**
+ * Journal des appels partenaires. Distinct de l'AuditLog, qui trace les
+ * actions humaines : ici le volume est d'un autre ordre, et les besoins
+ * diffèrent — facturation, diagnostic d'intégration, détection d'abus.
+ */
+model ApiRequest {
+  id String @id @default(cuid())
+
+  apiKeyId String
+  apiKey   ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  method   String
+  path     String
+  status   Int
+  /// Durée de traitement en millisecondes.
+  durationMs Int @default(0)
+
+  ipAddress String?
+  errorCode String?
+
+  createdAt DateTime @default(now())
+
+  @@index([apiKeyId, createdAt])
+  @@index([createdAt])
+}
+
+// ===========================================================================
+// Signature électronique (CDC §5 — V2)
+// ===========================================================================
+
+enum SignableEntity {
+  QUOTE
+  PURCHASE_ORDER
+  CONTRACT
+}
+
+enum SignatureStatus {
+  PENDING
+  VIEWED
+  SIGNED
+  REFUSED
+  EXPIRED
+  CANCELLED
+}
+
+/**
+ * Demande de signature envoyée à un client.
+ *
+ * L'implémentation native produit une « signature électronique simple » :
+ * le signataire trace ou saisit sa signature, et l'on conserve les éléments
+ * qui la rendent opposable — horodatage, adresse IP, navigateur, et
+ * empreinte SHA-256 du document au moment de la signature. Cette empreinte
+ * est le point clé : elle prouve que le document n'a pas changé après coup.
+ *
+ * Le passage à un prestataire qualifié (signature avancée ou qualifiée) se
+ * fait en fournissant une autre implémentation à SIGNATURE_PROVIDER, sans
+ * toucher au reste — même principe que la passerelle SMS (CDC §2.2).
+ */
+model SignatureRequest {
+  id String @id @default(cuid())
+
+  entityType SignableEntity
+  entityId   String
+
+  signerName  String
+  signerEmail String
+  /// Facultatif — permet une relance par SMS ou WhatsApp.
+  signerPhone String?
+
+  /// Jeton d'accès au lien public de signature. Long et aléatoire : c'est
+  /// la seule barrière avant la page de signature, qui n'est pas
+  /// authentifiée — un client n'a pas de compte sur le CRM.
+  token String @unique
+
+  status SignatureStatus @default(PENDING)
+
+  /// Empreinte SHA-256 du PDF présenté, figée à l'envoi.
+  documentHash String
+
+  /// Trace de la signature : image tracée en base64, ou nom saisi.
+  signatureData String?
+  signatureType String?
+
+  /// Éléments de preuve collectés au moment de la signature.
+  signedAt   DateTime?
+  signedIp   String?
+  signedUserAgent String?
+
+  viewedAt   DateTime?
+  refusedAt  DateTime?
+  refusalReason String?
+
+  expiresAt DateTime
+
+  /// Renseigné quand un prestataire externe est utilisé.
+  providerName      String?
+  providerRequestId String?
+
+  requestedById String?
+  requestedBy   User?   @relation("SignatureRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+// ===========================================================================
+// Commissions (CDC §5 — V2)
+// ===========================================================================
+
+/** Assiette de calcul de la commission. */
+enum CommissionBase {
+  /// Montant signé, hors taxes.
+  SIGNED_AMOUNT
+  /// Marge réalisée — nécessite un coût de revient renseigné sur les produits.
+  MARGIN
+  /// Montant réellement encaissé.
+  COLLECTED_AMOUNT
+}
+
+/** Fait générateur : à quel moment la commission naît. */
+enum CommissionTrigger {
+  PURCHASE_ORDER_SIGNED
+  CONTRACT_ACTIVATED
+  INVOICE_PAID
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+/**
+ * Barème de commissionnement.
+ *
+ * Les règles sont en base et non dans le code : un taux de commission se
+ * renégocie, et cela ne doit pas demander un redéploiement. Un barème peut
+ * viser un rôle entier ou un commercial précis — le second l'emporte.
+ */
+model CommissionPlan {
+  id String @id @default(cuid())
+
+  name String
+
+  /// Taux appliqué à l'assiette. 0.05 = 5 %.
+  rate Decimal @db.Decimal(6, 4)
+
+  base    CommissionBase    @default(SIGNED_AMOUNT)
+  trigger CommissionTrigger @default(INVOICE_PAID)
+
+  /// Plancher en deçà duquel aucune commission n'est due.
+  minimumAmount Decimal? @db.Decimal(14, 2)
+  /// Plafond par opération, quand il en existe un.
+  capAmount     Decimal? @db.Decimal(14, 2)
+
+  /// Barème applicable à tout un rôle.
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  /// Barème nominatif — prime sur le barème de rôle.
+  userId String?
+  user   User?   @relation("CommissionPlanUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  isActive Boolean @default(true)
+
+  commissions Commission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roleId])
+  @@index([userId])
+}
+
+/**
+ * Commission acquise sur une opération.
+ *
+ * Le taux et l'assiette sont recopiés à la création plutôt que lus depuis le
+ * barème : une renégociation ne doit pas réécrire l'historique des
+ * commissions déjà acquises.
+ */
+model Commission {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("CommissionBeneficiary", fields: [userId], references: [id], onDelete: Cascade)
+
+  planId String?
+  plan   CommissionPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  /// Opération d'origine — facture, bon de commande ou contrat.
+  sourceType String
+  sourceId   String
+
+  baseAmount Decimal @db.Decimal(14, 2)
+  rate       Decimal @db.Decimal(6, 4)
+  amount     Decimal @db.Decimal(14, 2)
+
+  /// Période de rattachement, au format AAAA-MM.
+  period String
+
+  status CommissionStatus @default(PENDING)
+
+  approvedAt DateTime?
+  paidAt     DateTime?
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceType, sourceId, userId])
+  @@index([userId, period])
+  @@index([status])
+}
+
+// ===========================================================================
+// Moteur de workflow (CDC §5 — V2)
+// ===========================================================================
+
+/**
+ * Fait déclencheur d'une règle.
+ *
+ * Volontairement fermé plutôt que libre : chaque valeur correspond à un
+ * point d'accroche réellement instrumenté dans le code métier. Une liste
+ * ouverte laisserait créer des règles qui ne se déclencheraient jamais,
+ * sans que rien ne le signale.
+ */
+enum WorkflowTrigger {
+  DEAL_STAGE_CHANGED
+  DEAL_CREATED
+  QUOTE_SENT
+  QUOTE_ACCEPTED
+  QUOTE_REJECTED
+  PURCHASE_ORDER_SIGNED
+  CONTRACT_ACTIVATED
+  INVOICE_SENT
+  INVOICE_PAID
+  INVOICE_OVERDUE
+  CUSTOMER_CREATED
+  LEAD_CREATED
+  ACTIVITY_OVERDUE
+  CAMPAIGN_FINISHED
+  SIGNATURE_SIGNED
+  SIGNATURE_REFUSED
+}
+
+enum WorkflowActionType {
+  NOTIFY_USER
+  NOTIFY_ROLE
+  SEND_EMAIL
+  CREATE_ACTIVITY
+  ASSIGN_OWNER
+  UPDATE_FIELD
+  POST_COMMENT
+  CALL_WEBHOOK
+}
+
+enum WorkflowRunStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+  SKIPPED
+}
+
+model Workflow {
+  id String @id @default(cuid())
+
+  name        String
+  description String?
+
+  trigger WorkflowTrigger
+
+  /**
+   * Conditions à remplir, au format JSON :
+   * `[{ "field": "amount", "operator": "gte", "value": 1000000 }]`
+   *
+   * Toutes doivent être vraies. Un tableau vide signifie « toujours ».
+   * Ne pas modéliser les conditions en tables évite une jointure par
+   * critère, au prix d'une validation applicative — arbitrage assumé pour
+   * un volume de règles qui restera modeste.
+   */
+  conditions Json @default("[]")
+
+  /// Délai avant exécution, en minutes. Zéro = immédiat.
+  delayMinutes Int @default(0)
+
+  isActive Boolean @default(true)
+
+  /// Empêche une règle emballée de saturer les notifications.
+  maxRunsPerDay Int @default(500)
+
+  actions WorkflowAction[]
+  runs    WorkflowRun[]
+
+  createdById String?
+  createdBy   User?   @relation("WorkflowCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([trigger, isActive])
+}
+
+model WorkflowAction {
+  id String @id @default(cuid())
+
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  type WorkflowActionType
+
+  /**
+   * Paramètres propres au type d'action — destinataire, gabarit, champ à
+   * modifier. Leur forme dépend du type, d'où le JSON plutôt qu'une
+   * colonne par variante.
+   */
+  config Json @default("{}")
+
+  /// Ordre d'exécution au sein de la règle.
+  position Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([workflowId, position])
+}
+
+/**
+ * Journal d'exécution. Sans lui, une règle qui ne se déclenche pas est
+ * indébogable : on ne sait pas distinguer « jamais déclenchée » de
+ * « déclenchée mais condition fausse » ou « action en échec ».
+ */
+model WorkflowRun {
+  id String @id @default(cuid())
+
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  /// Entité ayant déclenché la règle.
+  entityType String
+  entityId   String
+
+  status WorkflowRunStatus
+
+  /// Détail par action : ce qui a réussi, ce qui a échoué et pourquoi.
+  result Json @default("{}")
+
+  /// Renseigné quand les conditions n'étaient pas remplies.
+  skipReason String?
+
+  durationMs Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([workflowId, createdAt])
+  @@index([entityType, entityId])
 }

@@ -1,0 +1,116 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CommissionStatus } from '@prisma/client';
+
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+
+import { CommissionsService } from './commissions.service';
+import { CreatePlanDto } from './dto/create-plan.dto';
+import { UpdatePlanDto } from './dto/update-plan.dto';
+import { ComputeCommissionsDto } from './dto/compute-commissions.dto';
+
+/**
+ * Commissions (CDC §5 — V2).
+ *
+ * Barèmes et validation relèvent de la direction commerciale et du service
+ * financier. Chaque agent accède en revanche à ses propres lignes via
+ * `/commissions/mine` : une rémunération variable qu'on ne peut pas
+ * consulter soi-même engendre plus de contestations qu'elle n'en évite.
+ */
+@ApiTags('Commissions')
+@ApiBearerAuth()
+@Controller('commissions')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class CommissionsController {
+  constructor(private readonly commissionsService: CommissionsService) {}
+
+  @Get('mine')
+  @ApiOperation({ summary: 'Mes propres commissions' })
+  mine(@CurrentUser() user: { id: string }) {
+    return this.commissionsService.mine(user.id);
+  }
+
+  @Get('plans')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER')
+  @ApiOperation({ summary: 'Barèmes de commissionnement' })
+  plans() {
+    return this.commissionsService.plans();
+  }
+
+  @Post('plans')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Créer un barème' })
+  createPlan(@Body() dto: CreatePlanDto) {
+    return this.commissionsService.createPlan(dto);
+  }
+
+  @Patch('plans/:id')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Modifier un barème' })
+  updatePlan(@Param('id') id: string, @Body() dto: UpdatePlanDto) {
+    return this.commissionsService.updatePlan(id, dto);
+  }
+
+  @Delete('plans/:id')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Désactiver ou supprimer un barème' })
+  removePlan(@Param('id') id: string) {
+    return this.commissionsService.removePlan(id);
+  }
+
+  @Get('summary')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER')
+  @ApiOperation({ summary: 'Synthèse par commercial sur une période' })
+  summary(@Query('period') period: string) {
+    return this.commissionsService.summary(period);
+  }
+
+  @Post('compute')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Calculer les commissions d’une période (idempotent)' })
+  compute(@Body() dto: ComputeCommissionsDto, @CurrentUser() user: { id: string }) {
+    return this.commissionsService.compute(dto, user.id);
+  }
+
+  @Post('approve')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Valider les commissions en attente d’une période' })
+  approve(
+    @Body() body: { period: string; userId?: string },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.commissionsService.approve(body.period, user.id, body.userId);
+  }
+
+  @Post('pay')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Marquer les commissions validées comme payées' })
+  pay(@Body() body: { period: string; userId?: string }, @CurrentUser() user: { id: string }) {
+    return this.commissionsService.markPaid(body.period, user.id, body.userId);
+  }
+
+  @Patch(':id/cancel')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  @ApiOperation({ summary: 'Annuler une commission non payée' })
+  cancel(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.commissionsService.cancel(id, body.reason, user.id);
+  }
+
+  @Get()
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER')
+  @ApiOperation({ summary: 'Lignes de commission, filtrables' })
+  findAll(
+    @Query('period') period?: string,
+    @Query('userId') userId?: string,
+    @Query('status') status?: CommissionStatus,
+  ) {
+    return this.commissionsService.findAll({ period, userId, status });
+  }
+}

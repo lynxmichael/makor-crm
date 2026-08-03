@@ -1,3 +1,5 @@
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
 import {
   Body,
   Controller,
@@ -6,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { OffersService } from './offers.service';
@@ -14,6 +17,7 @@ import { CreateOfferDto } from './dto/create-offer.dto';
 import { UpdateOfferDto } from './dto/update-offer.dto';
 
 @Controller('offers')
+@UseGuards(JwtAuthGuard)
 export class OffersController {
   constructor(private readonly offersService: OffersService) {}
 

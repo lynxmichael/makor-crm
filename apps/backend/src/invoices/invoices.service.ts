@@ -8,6 +8,7 @@ import { InvoiceNumberService } from './invoice-number.service';
 
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class InvoicesService {
@@ -15,6 +16,7 @@ export class InvoicesService {
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
     private readonly invoiceNumberService: InvoiceNumberService,
+    private readonly events: EventEmitter2
   ) {}
 
   async create(dto: CreateInvoiceDto) {
@@ -231,15 +233,28 @@ export class InvoicesService {
   async markAsPaid(id: string) {
     await this.findOne(id);
 
-    return this.prisma.invoice.update({
-      where: {
-        id,
-      },
+    const invoice = await this.prisma.invoice.update({
+      where: { id },
+      data: { status: 'PAID' },
+      include: { customer: true },
+    });
 
-      data: {
-        status: 'PAID',
+    // Point d'accroche du moteur de workflow : la charge utile porte les
+    // champs sur lesquels les conditions des règles peuvent s'appuyer.
+    this.events.emit('workflow.trigger', {
+      trigger: 'INVOICE_PAID',
+      entityType: 'INVOICE',
+      entityId: invoice.id,
+      payload: {
+        number: invoice.number,
+        total: Number(invoice.total),
+        customerId: invoice.customerId,
+        customerName: invoice.customer.companyName,
+        assignedToId: invoice.customer.assignedToId,
       },
     });
+
+    return invoice;
   }
 
   async cancel(id: string) {

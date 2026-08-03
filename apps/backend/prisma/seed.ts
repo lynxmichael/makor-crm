@@ -8,11 +8,11 @@ const prisma = new PrismaClient();
  * ventes, Superviseur, Commercial, Manager.
  */
 const ROLES = [
-  { name: 'SUPER_ADMIN', description: 'Administration système complète' },
-  { name: 'ADMIN_VENTES', description: 'Pilotage commercial, campagnes et catalogue' },
-  { name: 'SUPERVISEUR', description: "Supervision d'une équipe commerciale" },
-  { name: 'COMMERCIAL', description: 'Gestion du portefeuille client assigné' },
-  { name: 'MANAGER', description: 'Facturation et encaissements' },
+  { name: 'SUPER_ADMIN', label: 'Super administrateur', description: 'Administration système complète' },
+  { name: 'ADMIN_VENTES', label: 'Admin ventes', description: 'Pilotage commercial, campagnes et catalogue' },
+  { name: 'SUPERVISEUR', label: 'Superviseur', description: "Supervision d'une équipe commerciale" },
+  { name: 'COMMERCIAL', label: 'Commercial', description: 'Gestion du portefeuille client assigné' },
+  { name: 'MANAGER', label: 'Financier', description: 'Facturation et encaissements' },
 ] as const;
 
 /** Un "module" de permission par grande fonction du CRM (CDC §3 :

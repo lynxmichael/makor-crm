@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown, Lock, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label, Select, Textarea } from "@/components/ui/Field";
+import { Label, Select } from "@/components/ui/Field";
+import { SteppedFieldset, isSectionComplete } from "@/components/shared/SteppedFieldset";
 import { qualificationSections, goLiveChecklistItems, pipelineStageLabels } from "@/data/mock";
 import { cn, formatCFA } from "@/lib/utils";
 import type { Opportunity, Payment } from "@/types";
@@ -45,10 +46,6 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
 
   if (!opportunity) return null;
 
-  function updateField(sectionStage: string, key: string, value: string) {
-    setQualification((prev) => ({ ...prev, [`${sectionStage}.${key}`]: value }));
-  }
-
   function toggleChecklist(key: string) {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   }
@@ -84,28 +81,59 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
       className="max-w-2xl"
     >
       <div className="space-y-3">
-        {qualificationSections.map((section) => {
+        {qualificationSections.map((section, sectionIndex) => {
           const answered = section.fields.filter((f) => qualification[`${section.stage}.${f.key}`]?.trim()).length;
           const isOpen = openSection === section.stage;
           const isCurrent = section.stage === opportunity.stage;
+
+          // Une étape n'est déverrouillée que si toutes celles qui la
+          // précèdent sont complètes : c'est le séquencement demandé, appliqué
+          // au niveau des étapes du pipeline comme au niveau des séries de
+          // questions à l'intérieur de chacune.
+          const previousComplete = qualificationSections
+            .slice(0, sectionIndex)
+            .every((s) => isSectionComplete(s.fields, qualification, s.stage));
+
+          const complete = isSectionComplete(section.fields, qualification, section.stage);
+          const locked = !previousComplete && !complete;
+
           return (
-            <div key={section.stage} className="overflow-hidden rounded-xl border border-line">
+            <div
+              key={section.stage}
+              className={cn(
+                "overflow-hidden rounded-xl border border-line",
+                locked && "opacity-60"
+              )}
+            >
               <button
                 type="button"
-                onClick={() => setOpenSection(isOpen ? null : section.stage)}
+                disabled={locked}
+                onClick={() => !locked && setOpenSection(isOpen ? null : section.stage)}
                 className={cn(
                   "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
-                  isCurrent ? "bg-wire/5" : "bg-paper/40 hover:bg-paper/70"
+                  locked
+                    ? "cursor-not-allowed bg-paper/30"
+                    : isCurrent
+                      ? "bg-wire/5"
+                      : "bg-paper/40 hover:bg-paper/70"
                 )}
               >
                 <div className="flex items-center gap-2">
+                  {locked && <Lock className="h-3.5 w-3.5 shrink-0 text-slate" />}
                   <span className="text-sm font-semibold text-ink">{section.title}</span>
-                  {isCurrent && <Badge tone="wire">Étape actuelle</Badge>}
+                  {isCurrent && !locked && <Badge tone="wire">Étape actuelle</Badge>}
+                  {complete && <Check className="h-4 w-4 shrink-0 text-signal" />}
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <span className="font-mono-tabular text-[11px] text-slate">
-                    {answered}/{section.fields.length}
-                  </span>
+                  {locked ? (
+                    <span className="text-[11px] text-slate">
+                      Complétez l'étape précédente
+                    </span>
+                  ) : (
+                    <span className="font-mono-tabular text-[11px] text-slate">
+                      {answered}/{section.fields.length}
+                    </span>
+                  )}
                   <ChevronDown className={cn("h-4 w-4 shrink-0 text-slate transition-transform", isOpen && "rotate-180")} />
                 </div>
               </button>
@@ -118,18 +146,22 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="space-y-3 border-t border-line px-4 py-4">
-                      {section.fields.map((field) => (
-                        <div key={field.key}>
-                          <Label htmlFor={`${section.stage}.${field.key}`}>{field.label}</Label>
-                          <Textarea
-                            id={`${section.stage}.${field.key}`}
-                            rows={2}
-                            value={qualification[`${section.stage}.${field.key}`] ?? ""}
-                            onChange={(e) => updateField(section.stage, field.key, e.target.value)}
-                          />
-                        </div>
-                      ))}
+                    <div className="border-t border-line px-4 py-4">
+                      <SteppedFieldset
+                        fields={section.fields}
+                        values={qualification}
+                        keyPrefix={section.stage}
+                        chunkSize={5}
+                        onChange={(key, value) =>
+                          setQualification((prev) => ({ ...prev, [key]: value }))
+                        }
+                        onComplete={() => {
+                          // Étape bouclée : on ouvre directement la suivante
+                          // plutôt que de laisser l'utilisateur la chercher.
+                          const next = qualificationSections[sectionIndex + 1];
+                          setOpenSection(next ? next.stage : null);
+                        }}
+                      />
                     </div>
                   </motion.div>
                 )}

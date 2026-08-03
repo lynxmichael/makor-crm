@@ -1,3 +1,5 @@
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
 import {
   Body,
   Controller,
@@ -6,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { SubscriptionsService } from './subscriptions.service';
@@ -14,6 +17,7 @@ import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 
 @Controller('subscriptions')
+@UseGuards(JwtAuthGuard)
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 

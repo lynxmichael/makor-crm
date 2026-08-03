@@ -9,7 +9,9 @@ export interface MailAttachment {
 
 @Injectable()
 export class MailService {
-  constructor(private readonly mailer: MailerService) {}
+  constructor(
+    private readonly mailer: MailerService,
+  ) {}
 
   async sendMail(
     to: string,
@@ -152,7 +154,10 @@ export class MailService {
     });
   }
 
-  async sendResetPassword(email: string, link: string) {
+  async sendResetPassword(
+    email: string,
+    link: string,
+  ) {
     return this.mailer.sendMail({
       to: email,
 

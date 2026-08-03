@@ -5,6 +5,8 @@ import {
   Headers,
   Post,
   UseGuards,
+  Param,
+  Query,
 } from '@nestjs/common';
 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -13,6 +15,8 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService, RequestContext } from './auth.service';
 
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 import { LoginDto } from './dto/login.dto';
@@ -102,8 +106,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Initialiser la double authentification (génère le secret et le QR code)',
   })
-  async setupTwoFactor(@CurrentUser() user: { id: string }) {
-    return this.authService.setupTwoFactor(user.id);
+  async setupTwoFactor(@CurrentUser() user: { id: string }, @Query('regenerate') regenerate?: string) {
+    return this.authService.setupTwoFactor(user.id, regenerate === 'true');
   }
 
   @Post('2fa/enable')
@@ -129,4 +133,19 @@ export class AuthController {
   ) {
     return this.authService.disableTwoFactor(user.id, dto);
   }
+
+  @Post('2fa/reset/:userId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({
+    summary:
+      'Réinitialiser la 2FA d’un autre compte (perte de téléphone, ou tests)',
+  })
+  resetTwoFactorFor(
+    @Param('userId') userId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.authService.resetTwoFactorFor(userId, user.id);
+  }
+
 }

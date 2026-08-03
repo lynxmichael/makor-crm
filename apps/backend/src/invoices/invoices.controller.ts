@@ -17,6 +17,8 @@ import type { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 import { InvoicesService } from './invoices.service';
 import { InvoicePdfService } from './invoice-pdf.service';
@@ -27,7 +29,8 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 @ApiTags('Invoices')
 @ApiBearerAuth()
 @Controller('invoices')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'MANAGER')
 export class InvoicesController {
   constructor(
     private readonly invoicesService: InvoicesService,

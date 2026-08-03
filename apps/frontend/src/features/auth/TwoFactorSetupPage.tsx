@@ -35,13 +35,34 @@ export function TwoFactorSetupPage() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
 
-  // Le secret est généré et stocké côté serveur dès cet appel ; on ne le
-  // relance donc pas à chaque rendu.
+  /**
+   * `POST /auth/2fa/setup` écrit en base : il ne doit partir qu'une fois.
+   *
+   * D'où les garde-fous ci-dessous — le backend est désormais idempotent tant
+   * que la 2FA n'est pas activée, mais une requête d'écriture rejouée à chaque
+   * remontage reste une mauvaise idée.
+   */
   const setup = useQuery({
     queryKey: ["auth", "2fa", "setup"],
     queryFn: () => authService.setupTwoFactor(),
     staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     refetchOnWindowFocus: false,
+  });
+
+  /** Repart d'un secret neuf — utile si le QR a été scanné puis perdu. */
+  const regenerate = useMutation({
+    mutationFn: () => authService.setupTwoFactor(true),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["auth", "2fa", "setup"], data);
+      setStep("scan");
+      setCode("");
+      toast.success("Nouveau QR code généré — rescannez-le");
+    },
+    onError: (error) => toast.error((error as ApiError).message),
   });
 
   const enable = useMutation({

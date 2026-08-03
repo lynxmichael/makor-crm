@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Building2, Plus, Search, SlidersHorizontal, Trash2, Pencil } from "lucide-react";
+import { Building2, History, Plus, Search, SlidersHorizontal, Trash2, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataState";
 
 import { CustomerFormModal } from "./CustomerFormModal";
+import { CustomerTimeline } from "@/features/communications/CustomerTimeline";
 import { CUSTOMER_STATUS_LABELS, CUSTOMER_STATUS_TONES } from "./customer-status";
 
 import { customersService } from "@/services/resources";
@@ -32,6 +33,7 @@ export function ClientsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [toDelete, setToDelete] = useState<Customer | null>(null);
+  const [timelineFor, setTimelineFor] = useState<Customer | null>(null);
 
   const debouncedSearch = useDebounced(search, 350);
 
@@ -266,6 +268,14 @@ export function ClientsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => setTimelineFor(customer)}
+                          aria-label={`Historique de ${customer.companyName}`}
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => openEdit(customer)}
                           aria-label={`Modifier ${customer.companyName}`}
                         >
@@ -325,6 +335,16 @@ export function ClientsPage() {
         pending={create.isPending || update.isPending}
         error={(editing ? update.error : create.error) as ApiError | null}
       />
+
+      <Modal
+        open={Boolean(timelineFor)}
+        onClose={() => setTimelineFor(null)}
+        title={timelineFor?.companyName ?? ""}
+        description="Tous les échanges avec ce client, du plus récent au plus ancien."
+        className="max-w-3xl"
+      >
+        {timelineFor && <CustomerTimeline customerId={timelineFor.id} />}
+      </Modal>
 
       <Modal
         open={Boolean(toDelete)}

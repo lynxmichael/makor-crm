@@ -1,4 +1,4 @@
-import { http } from "./api";
+import { api, http } from "./api";
 import type { RoleName } from "@/config/constants";
 import type { Customer, CustomerInput, Paginated } from "@/types/api";
 
@@ -84,16 +84,49 @@ export const dashboardService = {
     http.get<Row>("/dashboard/my-portfolio", { params }),
 };
 
-/** Un rapport = un endpoint. Filtres de période passés en query. */
+/**
+ * Rapports (CDC §4.15).
+ *
+ * Ces endpoints ne renvoient pas du JSON mais un **fichier** — csv, xlsx ou
+ * pdf — avec un en-tête Content-Disposition. On les récupère donc en blob et
+ * on déclenche le téléchargement : le jeton voyage dans un en-tête, un lien
+ * direct se solderait par un 401.
+ */
+export type ExportFormat = "csv" | "xlsx" | "pdf";
+
+async function downloadReport(
+  path: string,
+  filename: string,
+  params: Record<string, unknown>,
+) {
+  const response = await api.get(path, { params, responseType: "blob" });
+
+  const format = String(params.format ?? "xlsx");
+  const url = URL.createObjectURL(response.data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filename}.${format}`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export const reportingService = {
-  customers: (params?: Record<string, unknown>) => http.get<Row>("/reporting/customers", { params }),
-  deals: (params?: Record<string, unknown>) => http.get<Row>("/reporting/deals", { params }),
-  invoices: (params?: Record<string, unknown>) => http.get<Row>("/reporting/invoices", { params }),
-  recharges: (params?: Record<string, unknown>) => http.get<Row>("/reporting/recharges", { params }),
-  salesPerformance: (params?: Record<string, unknown>) =>
-    http.get<Row>("/reporting/sales-performance", { params }),
-  campaignRecipients: (campaignId: string, params?: Record<string, unknown>) =>
-    http.get<Row>(`/reporting/campaigns/${campaignId}/recipients`, { params }),
+  customers: (params: Record<string, unknown>) =>
+    downloadReport("/reporting/customers", "clients", params),
+  deals: (params: Record<string, unknown>) =>
+    downloadReport("/reporting/deals", "pipeline", params),
+  invoices: (params: Record<string, unknown>) =>
+    downloadReport("/reporting/invoices", "factures", params),
+  recharges: (params: Record<string, unknown>) =>
+    downloadReport("/reporting/recharges", "rechargements", params),
+  salesPerformance: (params: Record<string, unknown>) =>
+    downloadReport("/reporting/sales-performance", "performance-commerciale", params),
+  campaignRecipients: (campaignId: string, params: Record<string, unknown>) =>
+    downloadReport(
+      `/reporting/campaigns/${campaignId}/recipients`,
+      `campagne-${campaignId}`,
+      params,
+    ),
 };
 
 export const searchService = {

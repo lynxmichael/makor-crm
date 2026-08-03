@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryKey,
+  type UseQueryOptions,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import type { ListParams, Resource } from "@/services/resources";
@@ -16,11 +22,21 @@ export function useResourceList<T = Record<string, unknown>>(
   key: QueryKey,
   resource: Resource<T>,
   params: ListParams = {},
+  /**
+   * Options TanStack Query supplémentaires — `refetchInterval` notamment,
+   * pour les listes qui bougent côté serveur (envois de campagne en cours).
+   * `queryKey` et `queryFn` restent pilotés ici.
+   */
+  options?: Omit<
+    UseQueryOptions<Paginated<T>, unknown, Paginated<T>>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
     queryKey: [...key, params],
     queryFn: () => resource.list({ limit: DEFAULT_PAGE_SIZE, ...params }),
     placeholderData: (previous) => previous as Paginated<T> | undefined,
+    ...options,
   });
 }
 

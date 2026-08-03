@@ -26,8 +26,16 @@ export const env = {
 } as const;
 
 /** Construit l'URL publique d'un document déposé via la GED. */
+/**
+ * URL d'un fichier déposé.
+ *
+ * `/uploads` n'est plus servi en statique : les fichiers passent par
+ * `/files/:name`, derrière authentification. Comme le jeton voyage dans un
+ * en-tête et non dans l'URL, un `window.open` direct ne l'emporte pas —
+ * utilisez `downloadFile()` pour ouvrir un fichier depuis l'interface.
+ */
 export function uploadUrl(path: string): string {
   if (!path) return "";
   if (path.startsWith("http")) return path;
-  return `${env.serverUrl}/uploads/${path.replace(/^\/?uploads\/?/, "")}`;
+  return `${env.apiUrl}/files/${path.replace(/^\/?uploads\/?/, "")}`;
 }

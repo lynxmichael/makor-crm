@@ -209,3 +209,33 @@ export const http = {
   put: <T>(url: string, body?: unknown) => api.put<T>(url, body).then((r) => r.data),
   delete: <T>(url: string) => api.delete<T>(url).then((r) => r.data),
 };
+
+/**
+ * Ouvre un fichier déposé dans un nouvel onglet.
+ *
+ * `/files/:name` exige un jeton, porté par un en-tête. Un `window.open` sur
+ * l'URL n'emporterait pas cet en-tête et se solderait par un 401 : on récupère
+ * donc le fichier par l'instance axios — qui gère aussi le renouvellement de
+ * session — puis on l'ouvre depuis une URL d'objet locale.
+ */
+export async function openFile(path: string, filename?: string): Promise<void> {
+  if (!path) return;
+  if (path.startsWith("http")) {
+    window.open(path, "_blank", "noopener");
+    return;
+  }
+
+  const name = path.replace(/^\/?uploads\/?/, "");
+  const response = await api.get(`/files/${name}`, { responseType: "blob" });
+
+  const url = URL.createObjectURL(response.data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener";
+  if (filename) link.download = filename;
+  link.click();
+
+  // Laisser au navigateur le temps d'ouvrir avant de libérer l'URL.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

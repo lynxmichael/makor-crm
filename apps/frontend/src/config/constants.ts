@@ -9,14 +9,26 @@ export const ROLES = {
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 
-/** Libellés affichés — le backend stocke des codes, l'interface parle français. */
+/**
+ * Libellés affichés — le backend stocke des codes, l'interface parle français.
+ *
+ * Sert de repli : quand la réponse porte un `role.label` (modifiable dans
+ * Paramètres), c'est lui qui prime. L'identifiant technique, lui, ne change
+ * pas — il sert de discriminant dans les gardes côté serveur.
+ */
 export const ROLE_LABELS: Record<RoleName, string> = {
-  SUPER_ADMIN: "Super Admin",
+  SUPER_ADMIN: "Super administrateur",
   ADMIN_VENTES: "Admin ventes",
   SUPERVISEUR: "Superviseur",
   COMMERCIAL: "Commercial",
-  MANAGER: "Manager",
+  MANAGER: "Financier",
 };
+
+/** Libellé d'un rôle : celui défini en base s'il existe, sinon le repli ci-dessus. */
+export function roleLabel(role?: { name?: string | null; label?: string | null } | null): string {
+  if (!role?.name) return "—";
+  return role.label || ROLE_LABELS[role.name as RoleName] || role.name;
+}
 
 /** Rôles pour lesquels le CDC (§2.4) impose la double authentification. */
 export const TWO_FACTOR_MANDATORY_ROLES: RoleName[] = [
@@ -53,6 +65,7 @@ export const QK = {
   dashboard: ["dashboard"] as const,
   reporting: ["reporting"] as const,
   users: ["users"] as const,
+  roles: ["roles"] as const,
   settings: ["settings"] as const,
 } as const;
 

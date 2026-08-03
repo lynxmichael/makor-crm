@@ -12,6 +12,12 @@ import {
   Fingerprint,
   Calendar,
   MessagesSquare,
+  GraduationCap,
+  UsersRound,
+  KeyRound,
+  Coins,
+  Gauge,
+  Zap,
   FolderOpen,
   BarChart3,
   ShieldCheck,
@@ -56,6 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/", label: "Tableau de bord", icon: LayoutDashboard },
       { to: "/messages", label: "Messages", icon: MessagesSquare },
+      { to: "/ressources", label: "Ressources", icon: GraduationCap },
     ],
   },
   {
@@ -89,12 +96,32 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Pilotage",
     items: [
       { to: "/reports", label: "Rapports", icon: BarChart3 },
+      { to: "/priorites", label: "Priorités", icon: Gauge },
+      { to: "/commissions", label: "Commissions", icon: Coins },
       { to: "/audit", label: "Audit", icon: ShieldCheck, roles: [ROLES.SUPER_ADMIN] },
     ],
   },
   {
     label: "Système",
     items: [
+      {
+        to: "/users",
+        label: "Comptes et accès",
+        icon: UsersRound,
+        roles: [ROLES.SUPER_ADMIN],
+      },
+      {
+        to: "/workflows",
+        label: "Automatisations",
+        icon: Zap,
+        roles: [ROLES.SUPER_ADMIN],
+      },
+      {
+        to: "/api-keys",
+        label: "API partenaires",
+        icon: KeyRound,
+        roles: [ROLES.SUPER_ADMIN],
+      },
       {
         to: "/settings",
         label: "Paramètres",

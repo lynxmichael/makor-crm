@@ -1,3 +1,5 @@
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
 import {
   Body,
   Controller,
@@ -6,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { TicketsService } from './tickets.service';
@@ -14,6 +17,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
 @Controller('tickets')
+@UseGuards(JwtAuthGuard)
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 

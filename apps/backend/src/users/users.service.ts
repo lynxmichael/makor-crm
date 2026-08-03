@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ConflictException,
@@ -196,8 +197,31 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, dto: UpdateUserDto) {
-    await this.findById(id);
+  /**
+   * Modification d'un compte par un administrateur.
+   *
+   * `actorId` permet d'appliquer deux garde-fous que l'interface seule ne
+   * peut pas garantir — l'API reste appelable directement.
+   */
+  async update(id: string, dto: UpdateUserDto, actorId?: string) {
+    const target = await this.findById(id);
+
+    // Un administrateur ne se rétrograde pas lui-même : la manœuvre est
+    // irréversible dès qu'il perd le droit de se réattribuer un rôle.
+    if (actorId && actorId === id && dto.roleId && dto.roleId !== target.roleId) {
+      throw new BadRequestException(
+        'Vous ne pouvez pas modifier votre propre rôle. Demandez à un autre Super administrateur.',
+      );
+    }
+
+    // Le dernier Super administrateur actif ne peut être ni rétrogradé ni
+    // désactivé : sans lui, plus personne ne peut administrer le CRM.
+    const losesSuperAdmin =
+      (dto.roleId && dto.roleId !== target.roleId) || dto.isActive === false;
+
+    if (losesSuperAdmin && target.role?.name === 'SUPER_ADMIN') {
+      await this.assertNotLastSuperAdmin(id);
+    }
 
     const data: Prisma.UserUpdateInput = {
       firstName: dto.firstName,
@@ -241,8 +265,14 @@ export class UsersService {
   }
 
   /** Désactivation logique (CDC §3 : "désactivation des comptes"). */
+  /** Désactivation — on ne supprime jamais un compte : ses opportunités,
+   *  devis et écritures d'audit lui restent rattachés. */
   async remove(id: string) {
-    await this.findById(id);
+    const target = await this.findById(id);
+
+    if (target.role?.name === 'SUPER_ADMIN') {
+      await this.assertNotLastSuperAdmin(id);
+    }
 
     return this.prisma.user.update({
       where: {
@@ -351,6 +381,38 @@ export class UsersService {
     });
   }
 
+  /**
+   * Réinitialisation par un administrateur. Distincte de `disableTwoFactor`,
+   * qui est l'action volontaire du titulaire : ici c'est un tiers qui agit,
+   * d'où la vérification que la cible existe et le retour d'un résumé
+   * exploitable par le journal d'audit.
+   */
+  async resetTwoFactorAsAdmin(targetUserId: string, actorId: string) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, email: true, firstName: true, lastName: true },
+    });
+
+    if (!target) throw new NotFoundException('Utilisateur introuvable.');
+
+    await this.prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorRecoveryCodes: [],
+      },
+    });
+
+    return {
+      id: target.id,
+      email: target.email,
+      resetBy: actorId,
+      message:
+        'Double authentification réinitialisée. Le compte devra la reconfigurer à sa prochaine connexion si son rôle l’impose.',
+    };
+  }
+
   async disableTwoFactor(userId: string) {
     return this.prisma.user.update({
       where: { id: userId },
@@ -416,5 +478,22 @@ export class UsersService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /** Refuse l'opération s'il ne reste aucun autre Super administrateur actif. */
+  private async assertNotLastSuperAdmin(excludedUserId: string) {
+    const remaining = await this.prisma.user.count({
+      where: {
+        id: { not: excludedUserId },
+        isActive: true,
+        role: { name: 'SUPER_ADMIN' },
+      },
+    });
+
+    if (remaining === 0) {
+      throw new BadRequestException(
+        'Ce compte est le dernier Super administrateur actif : il ne peut être ni désactivé ni rétrogradé.',
+      );
+    }
   }
 }

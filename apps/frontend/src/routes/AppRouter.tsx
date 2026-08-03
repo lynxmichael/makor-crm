@@ -16,21 +16,23 @@ import { CampaignsPage } from "@/features/campaigns/CampaignsPage";
 import { ReportsPage } from "@/features/reports/ReportsPage";
 import { MessagesPage } from "@/features/messages/MessagesPage";
 import { TwoFactorSetupPage } from "@/features/auth/TwoFactorSetupPage";
+import { ResourcesPage } from "@/features/resources/ResourcesPage";
 import { NotFoundPage } from "@/features/shared/ErrorPages";
+import { PublicSignaturePage } from "@/features/signatures/PublicSignaturePage";
 
-import {
-  AgendaPage,
-  AuditPage,
-  ContractsPage,
-  DocumentsPage,
-  InvoicingPage,
-  PaymentsPage,
-  ProspectsPage,
-  PurchaseOrdersPage,
-  QuotesPage,
-  SenderIdPage,
-  SettingsPage,
-} from "@/features/shared/placeholders";
+import { ResourceModulePage } from "@/features/shared/ResourceModulePage";
+import { MODULE_CONFIGS } from "@/features/shared/module-configs";
+
+import { SettingsPage } from "@/features/settings/SettingsPage";
+
+import { QuotesPage } from "@/features/quotes/QuotesPage";
+import { PurchaseOrdersPage } from "@/features/purchase-orders/PurchaseOrdersPage";
+import { InvoicesPage } from "@/features/invoices/InvoicesPage";
+import { UsersPage } from "@/features/users/UsersPage";
+import { ApiKeysPage } from "@/features/api-keys/ApiKeysPage";
+import { CommissionsPage } from "@/features/commissions/CommissionsPage";
+import { WorkflowsPage } from "@/features/workflows/WorkflowsPage";
+import { ScoringPage } from "@/features/scoring/ScoringPage";
 
 /**
  * Table de routage unique de l'application.
@@ -45,6 +47,11 @@ export function AppRouter() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
+        {/* Signature client — hors de PublicRoute comme de ProtectedRoute :
+            le signataire n'a pas de compte, et un agent déjà connecté qui
+            ouvre le lien ne doit pas être renvoyé au tableau de bord. */}
+        <Route path="/signature/:token" element={<PublicSignaturePage />} />
+
         <Route element={<PublicRoute />}>
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
@@ -56,21 +63,27 @@ export function AppRouter() {
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="clients" element={<ClientsPage />} />
-            <Route path="prospects" element={<ProspectsPage />} />
+            <Route path="prospects" element={<ResourceModulePage config={MODULE_CONFIGS.prospects} />} />
             <Route path="opportunities" element={<PipelinePage />} />
             <Route path="quotes" element={<QuotesPage />} />
             <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
-            <Route path="contracts" element={<ContractsPage />} />
-            <Route path="agenda" element={<AgendaPage />} />
+            <Route path="contracts" element={<ResourceModulePage config={MODULE_CONFIGS.contrats} />} />
+            <Route path="agenda" element={<ResourceModulePage config={MODULE_CONFIGS.agenda} />} />
             <Route path="securite/2fa" element={<TwoFactorSetupPage />} />
             <Route path="messages" element={<MessagesPage />} />
+            <Route path="ressources" element={<ResourcesPage />} />
             <Route path="campaigns" element={<CampaignsPage />} />
-            <Route path="sender-id" element={<SenderIdPage />} />
-            <Route path="documents" element={<DocumentsPage />} />
-            <Route path="invoicing" element={<InvoicingPage />} />
-            <Route path="payments" element={<PaymentsPage />} />
+            <Route path="sender-id" element={<ResourceModulePage config={MODULE_CONFIGS.senderId} />} />
+            <Route path="documents" element={<ResourceModulePage config={MODULE_CONFIGS.documents} />} />
+            <Route path="invoicing" element={<InvoicesPage />} />
+            <Route path="payments" element={<ResourceModulePage config={MODULE_CONFIGS.encaissements} />} />
             <Route path="reports" element={<ReportsPage />} />
-            <Route path="audit" element={<AuditPage />} />
+            <Route path="audit" element={<ResourceModulePage config={MODULE_CONFIGS.audit} />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="api-keys" element={<ApiKeysPage />} />
+            <Route path="commissions" element={<CommissionsPage />} />
+            <Route path="workflows" element={<WorkflowsPage />} />
+            <Route path="priorites" element={<ScoringPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>

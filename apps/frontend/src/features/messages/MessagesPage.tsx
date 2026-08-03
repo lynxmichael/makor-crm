@@ -15,7 +15,7 @@ import { messagesService } from "@/services/collab";
 import { usersService } from "@/services/resources";
 import { useAuthStore } from "@/store/auth.store";
 import { formatDateTime, formatRelative, initials } from "@/lib/format";
-import { uploadUrl } from "@/config/env";
+import { openFile } from "@/services/api";
 import { cn } from "@/lib/utils";
 import type { ApiError } from "@/types/api";
 import type { Conversation } from "@/types/collab";
@@ -40,7 +40,6 @@ export function MessagesPage() {
   const conversations = useQuery({
     queryKey: ["messages", "conversations"],
     queryFn: () => messagesService.conversations(),
-    refetchInterval: 30_000,
   });
 
   const thread = useQuery({
@@ -272,10 +271,14 @@ export function MessagesPage() {
                         <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.body}</p>
 
                         {message.attachmentPath && (
-                          <a
-                            href={uploadUrl(message.attachmentPath)}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void openFile(
+                                message.attachmentPath!,
+                                message.attachmentName ?? undefined,
+                              )
+                            }
                             className={cn(
                               "mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs underline-offset-2 hover:underline",
                               mine ? "bg-white/15" : "bg-surface",
@@ -283,7 +286,7 @@ export function MessagesPage() {
                           >
                             <Paperclip className="h-3.5 w-3.5" />
                             {message.attachmentName}
-                          </a>
+                          </button>
                         )}
 
                         <p className={cn("mt-1 text-[10px]", mine ? "text-white/70" : "text-slate")}>

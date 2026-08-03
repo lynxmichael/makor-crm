@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 import { connectAuthBridge } from "@/services/api";
 import { authService } from "@/services/auth";
-import { STORAGE_KEYS, TWO_FACTOR_MANDATORY_ROLES, type RoleName } from "@/config/constants";
+import { STORAGE_KEYS, type RoleName } from "@/config/constants";
 import type { AuthUser, SessionTokens } from "@/types/api";
 
 interface AuthState {
@@ -44,10 +44,10 @@ export const useAuthStore = create<AuthState>()(
           user: session.user,
           accessToken: session.access_token,
           refreshToken: session.refresh_token,
-          twoFactorSetupRequired:
-            session.twoFactorSetupRequired ??
-            (!session.user.twoFactorEnabled &&
-              TWO_FACTOR_MANDATORY_ROLES.includes(session.user.role?.name)),
+          // Le repli local a été retiré : quand le serveur ne dit rien,
+          // c'est qu'il n'impose rien. Deviner à sa place rouvrait la
+          // divergence que ce correctif ferme.
+          twoFactorSetupRequired: session.twoFactorSetupRequired ?? false,
           bootstrapping: false,
         }),
 
@@ -84,8 +84,17 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const user = await authService.me();
-          set({ user, bootstrapping: false });
+          const me = await authService.me();
+
+          // `/users/me` porte le verdict du serveur sur l'obligation de 2FA.
+          // On le reporte ici plutôt que de le recalculer : c'est ce qui
+          // permet à l'échappatoire de recette de fonctionner, et ce qui
+          // fait survivre l'obligation à un rechargement de page.
+          const { twoFactorSetupRequired = false, ...user } = me as typeof me & {
+            twoFactorSetupRequired?: boolean;
+          };
+
+          set({ user, twoFactorSetupRequired, bootstrapping: false });
         } catch {
           // L'intercepteur a déjà tenté le renouvellement : si on arrive
           // ici, la session est bel et bien perdue.
@@ -106,16 +115,17 @@ export const useAuthStore = create<AuthState>()(
        * faux, alors que l'obligation, elle, tient toujours. On le recalcule
        * donc à partir du profil, qui est persisté et revalidé au démarrage.
        */
-      needsTwoFactorSetup: () => {
-        const user = get().user;
-        if (!user) return false;
-
-        return (
-          get().twoFactorSetupRequired ||
-          (!user.twoFactorEnabled &&
-            TWO_FACTOR_MANDATORY_ROLES.includes(user.role?.name))
-        );
-      },
+      /**
+       * L'obligation est décidée par le serveur, jamais recalculée ici.
+       *
+       * Redériver la règle côté client la faisait diverger de la règle
+       * serveur : l'échappatoire de recette TWO_FACTOR_ENFORCED=false était
+       * ignorée par le frontend, qui continuait d'imposer l'écran de mise en
+       * place. `GET /users/me` renvoie désormais `twoFactorSetupRequired`, et
+       * `bootstrap()` le reporte dans le store — ce qui règle aussi le cas du
+       * rechargement de page, puisque la valeur est revalidée au démarrage.
+       */
+      needsTwoFactorSetup: () => Boolean(get().user) && get().twoFactorSetupRequired,
 
       /** Appelé une fois la 2FA activée et les codes de secours conservés. */
       completeTwoFactorSetup: () =>

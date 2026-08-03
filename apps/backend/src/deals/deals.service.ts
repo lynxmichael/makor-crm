@@ -13,6 +13,7 @@ import { AuditService } from '../audit/audit.service';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { UpdateDealDto } from './dto/update-deal.dto';
 import { MoveDealStageDto } from './dto/move-stage.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class DealsService {
@@ -20,6 +21,7 @@ export class DealsService {
     private readonly prisma: PrismaService,
     private readonly pipelineStagesService: PipelineStagesService,
     private readonly auditService: AuditService,
+    private readonly events: EventEmitter2
   ) {}
 
   async create(dto: CreateDealDto) {
@@ -161,6 +163,11 @@ export class DealsService {
               : null
             : undefined,
 
+        // `undefined` laisse la valeur en place, `null` l'efface : on ne
+        // touche à la qualification que si le client l'envoie explicitement.
+        ...(dto.qualification !== undefined && { qualification: dto.qualification }),
+        ...(dto.goLiveChecklist !== undefined && { goLiveChecklist: dto.goLiveChecklist }),
+
         ...(dto.assignedToId && { assignedTo: { connect: { id: dto.assignedToId } } }),
         ...(dto.customerId && { customer: { connect: { id: dto.customerId } } }),
         ...(dto.leadId && { lead: { connect: { id: dto.leadId } } }),
@@ -230,6 +237,27 @@ export class DealsService {
       entityId: id,
       description: `Étape déplacée vers "${targetStage.name}"`,
       userId: changedById,
+    });
+
+    // Point d'accroche du moteur de workflow. La charge utile porte l'étape
+    // d'origine ET la nouvelle : une règle du type « alerter si une affaire
+    // revient en arrière » a besoin des deux.
+    this.events.emit('workflow.trigger', {
+      trigger: 'DEAL_STAGE_CHANGED',
+      entityType: 'DEAL',
+      entityId: id,
+      actorId: changedById,
+      payload: {
+        title: updated.title,
+        amount: Number(updated.amount),
+        probability: updated.probability,
+        stageName: targetStage.name,
+        previousStageId: deal.stageId,
+        isClosedWon: targetStage.isClosedWon,
+        isClosedLost: targetStage.isClosedLost,
+        customerId: updated.customerId,
+        assignedToId: updated.assignedToId,
+      },
     });
 
     // Conversion automatique Prospect -> Client "sans ressaisie" (CDC §4.3)

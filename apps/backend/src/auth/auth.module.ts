@@ -12,6 +12,7 @@ import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { AuditModule } from '../audit/audit.module';
+import { TwoFactorPolicy } from './two-factor.policy';
 
 @Module({
   imports: [
@@ -41,8 +42,8 @@ import { AuditModule } from '../audit/audit.module';
 
   controllers: [AuthController],
 
-  providers: [AuthService, JwtStrategy],
+  providers: [TwoFactorPolicy, AuthService, JwtStrategy],
 
-  exports: [AuthService, JwtModule],
+  exports: [TwoFactorPolicy, AuthService, JwtModule],
 })
 export class AuthModule {}

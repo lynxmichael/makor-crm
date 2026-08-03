@@ -1,202 +1,256 @@
-import { useMemo, useState, type DragEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { GripVertical, Loader2, Target, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { SignalMeter } from "@/components/ui/SignalMeter";
-import { EntityFormModal, type FieldDef } from "@/components/shared/EntityFormModal";
-import { OpportunityQualificationModal } from "@/components/shared/OpportunityQualificationModal";
-import { mockOpportunities, pipelineStageLabels, sectors, countries } from "@/data/mock";
-import { cn, formatCFA } from "@/lib/utils";
-import type { ModuleRow, Opportunity, PipelineStage } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, ErrorState } from "@/components/shared/DataState";
 
-const stages = Object.keys(pipelineStageLabels) as PipelineStage[];
-const products = ["SMS Marketing", "OTP", "API SMS", "WhatsApp", "Voice", "Sender ID"];
-const team = ["Aïcha Koné", "Moussa Traoré", "Sarah Bamba"];
+import { DealQualificationModal } from "./DealQualificationModal";
+import { http } from "@/services/api";
+import { QK } from "@/config/constants";
+import { formatMoney, initials } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
+import type { ApiError } from "@/types/api";
 
-const opportunityFields: FieldDef[] = [
-  { key: "clientName", label: "Client", placeholder: "Ex. Ecobank CI" },
-  { key: "sector", label: "Secteur d'activité", type: "select", options: sectors },
-  { key: "product", label: "Produit", type: "select", options: products },
-  { key: "country", label: "Pays", type: "select", options: countries },
-  { key: "value", label: "Valeur estimée (FCFA)", type: "number", placeholder: "Ex. 5000000" },
-  { key: "probability", label: "Probabilité (%)", type: "number", placeholder: "Ex. 40" },
-  { key: "owner", label: "Commercial", type: "select", options: team },
-];
+type Row = Record<string, unknown>;
 
-function probabilityLevel(p: number): 1 | 2 | 3 | 4 {
-  if (p < 30) return 1;
-  if (p < 60) return 2;
-  if (p < 90) return 3;
-  return 4;
+interface BoardColumn {
+  stage: { id: string; name: string; order: number; color?: string | null };
+  deals: Row[];
+  totalValue: number;
 }
 
-function probabilityTone(p: number): "alert" | "amber" | "signal" {
-  if (p < 30) return "alert";
-  if (p < 60) return "amber";
-  return "signal";
-}
-
+/**
+ * Pipeline commercial (CDC §4.6).
+ *
+ * Le backend renvoie le tableau déjà groupé par étape via `GET /deals/board`,
+ * avec le cumul par colonne : rien à regrouper côté interface.
+ *
+ * Le glisser-déposer utilise l'API HTML native plutôt qu'une bibliothèque.
+ * Le besoin ici se limite à déplacer une carte d'une colonne à l'autre —
+ * pas de réordonnancement fin, pas de listes imbriquées — et cela évite
+ * d'ajouter une dépendance pour un seul écran.
+ */
 export function PipelinePage() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(mockOpportunities);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverStage, setDragOverStage] = useState<PipelineStage | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
+  const reduced = usePrefersReducedMotion();
+  const queryClient = useQueryClient();
 
-  const byStage = useMemo(() => {
-    const map = new Map<PipelineStage, Opportunity[]>();
-    stages.forEach((s) => map.set(s, []));
-    opportunities.forEach((o) => map.get(o.stage)?.push(o));
-    return map;
-  }, [opportunities]);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [hoveredStage, setHoveredStage] = useState<string | null>(null);
+  const [qualifying, setQualifying] = useState<Row | null>(null);
 
-  function handleDrop(stage: PipelineStage) {
-    if (draggingId) {
-      setOpportunities((prev) => prev.map((o) => (o.id === draggingId ? { ...o, stage } : o)));
-    }
-    setDraggingId(null);
-    setDragOverStage(null);
+  const query = useQuery({
+    queryKey: [...QK.deals, "board"],
+    queryFn: () => http.get<BoardColumn[]>("/deals/board"),
+  });
+
+  const moveStage = useMutation({
+    mutationFn: ({ dealId, stageId }: { dealId: string; stageId: string }) =>
+      http.patch(`/deals/${dealId}/move-stage`, { stageId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QK.deals });
+      // Le tableau de bord affiche conversion et cycle de vente : les deux
+      // bougent dès qu'une affaire change d'étape.
+      queryClient.invalidateQueries({ queryKey: QK.dashboard });
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
+
+  function handleDrop(stageId: string) {
+    setHoveredStage(null);
+
+    if (!dragging) return;
+
+    // Déposer une carte dans sa propre colonne ne doit pas déclencher
+    // d'écriture : c'est un geste courant quand on hésite.
+    const origin = columns.find((column) =>
+      column.deals.some((deal) => String(deal.id) === dragging),
+    );
+
+    setDragging(null);
+
+    if (origin?.stage.id === stageId) return;
+
+    moveStage.mutate({ dealId: dragging, stageId });
   }
 
-  function handleDragStart(e: DragEvent<HTMLDivElement>, id: string) {
-    setDraggingId(id);
-    e.dataTransfer.effectAllowed = "move";
-  }
-
-  function handleDelete(id: string) {
-    setOpportunities((prev) => prev.filter((o) => o.id !== id));
-  }
-
-  function handleCreate(values: ModuleRow) {
-    const created: Opportunity = {
-      id: `o${Date.now()}`,
-      clientName: String(values.clientName ?? ""),
-      sector: String(values.sector ?? ""),
-      product: String(values.product ?? "SMS Marketing") as Opportunity["product"],
-      country: String(values.country ?? ""),
-      value: Number(values.value ?? 0),
-      probability: Math.min(100, Math.max(0, Number(values.probability ?? 20))),
-      stage: "prospection",
-      owner: String(values.owner ?? ""),
-      updatedAt: new Date().toISOString().slice(0, 10),
-    };
-    setOpportunities((prev) => [created, ...prev]);
-  }
-
-  function handleQualificationSave(id: string, patch: Partial<Opportunity>) {
-    setOpportunities((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
-  }
-
-  const totalValue = opportunities.filter((o) => o.stage !== "go_live").reduce((s, o) => s + o.value, 0);
+  const columns = query.data ?? [];
+  const totalPipeline = columns.reduce((sum, column) => sum + Number(column.totalValue ?? 0), 0);
+  const totalDeals = columns.reduce((sum, column) => sum + column.deals.length, 0);
 
   return (
-    <div className="flex h-full flex-col space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Pipeline commercial</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Pipeline</h1>
           <p className="mt-1 text-sm text-slate">
-            Prospection → Business case → Bon de commande → Négociation → Closing → Go live · {formatCFA(totalValue)} en
-            cours
+            {query.isPending
+              ? "Chargement du pipeline…"
+              : `${totalDeals} opportunité${totalDeals > 1 ? "s" : ""} en cours`}
           </p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Nouvelle opportunité
-        </Button>
-      </div>
 
-      <div className="scrollbar-thin flex flex-1 gap-4 overflow-x-auto pb-2">
-        {stages.map((stage) => {
-          const items = byStage.get(stage) ?? [];
-          const stageValue = items.reduce((s, o) => s + o.value, 0);
-          const isOver = dragOverStage === stage;
+        {!query.isPending && totalPipeline > 0 && (
+          <div className="rounded-xl border border-line bg-surface px-4 py-2.5">
+            <p className="text-xs text-slate">Valeur du pipeline</p>
+            <p className="font-display text-xl font-semibold text-ink">
+              {formatMoney(totalPipeline)}
+            </p>
+          </div>
+        )}
+      </header>
 
-          return (
-            <div
-              key={stage}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOverStage(stage);
-              }}
-              onDragLeave={() => setDragOverStage((s) => (s === stage ? null : s))}
-              onDrop={() => handleDrop(stage)}
-              className={cn(
-                "flex w-72 shrink-0 flex-col rounded-xl border border-line bg-paper/60 transition-colors",
-                isOver && "border-wire bg-wire/5"
-              )}
-            >
-              <div className="flex items-center justify-between border-b border-line px-3.5 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-ink">{pipelineStageLabels[stage]}</p>
-                  <p className="font-mono-tabular text-[11px] text-slate">{formatCFA(stageValue)}</p>
-                </div>
-                <span className="rounded-full bg-line/60 px-2 py-0.5 font-mono-tabular text-xs text-slate">
-                  {items.length}
-                </span>
-              </div>
+      {query.isPending ? (
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-96 w-72 shrink-0 rounded-xl" />
+          ))}
+        </div>
+      ) : query.isError ? (
+        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+      ) : columns.length === 0 ? (
+        <EmptyState
+          icon={Target}
+          title="Aucune étape de pipeline"
+          detail="Le Super administrateur doit d'abord définir les étapes du pipeline dans les paramètres."
+        />
+      ) : (
+        <div className="scrollbar-thin flex gap-4 overflow-x-auto pb-3">
+          {columns.map((column) => {
+            const isTarget = hoveredStage === column.stage.id;
 
-              <div className="scrollbar-thin flex-1 space-y-2 overflow-y-auto p-2.5">
-                {items.map((opp) => (
-                  <Card
-                    key={opp.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, opp.id)}
-                    onClick={() => setSelectedOpp(opp)}
-                    className={cn(
-                      "group cursor-grab space-y-2 p-3 active:cursor-grabbing",
-                      draggingId === opp.id && "opacity-40"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium leading-snug text-ink">{opp.clientName}</p>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(opp.id);
-                        }}
-                        aria-label="Retirer l'opportunité"
-                        className="rounded-full p-1 text-slate opacity-0 transition-opacity hover:bg-alert/10 hover:text-alert group-hover:opacity-100"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <Badge tone="wire">{opp.product}</Badge>
-                    <p className="font-mono-tabular text-sm font-semibold text-ink">{formatCFA(opp.value)}</p>
-                    <div className="flex items-center justify-between">
-                      <SignalMeter
-                        level={probabilityLevel(opp.probability)}
-                        tone={probabilityTone(opp.probability)}
-                        label={`${opp.probability}%`}
-                      />
-                      <span className="text-[11px] text-slate">{opp.owner.split(" ")[0]}</span>
-                    </div>
-                  </Card>
-                ))}
-                {items.length === 0 && (
-                  <p className="px-1 py-6 text-center text-xs text-slate/70">Aucun deal à cette étape</p>
+            return (
+              <section
+                key={column.stage.id}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setHoveredStage(column.stage.id);
+                }}
+                onDragLeave={() => setHoveredStage(null)}
+                onDrop={() => handleDrop(column.stage.id)}
+                className={cn(
+                  "flex w-72 shrink-0 flex-col rounded-xl border bg-paper/40 transition-colors",
+                  isTarget ? "border-wire bg-wire/5" : "border-line",
                 )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              >
+                <header className="border-b border-line px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: column.stage.color ?? "var(--color-wire)" }}
+                      />
+                      <h2 className="font-display text-sm font-semibold text-ink">
+                        {column.stage.name}
+                      </h2>
+                    </span>
+                    <Badge tone="neutral">{column.deals.length}</Badge>
+                  </div>
 
-      <EntityFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleCreate}
-        title="Nouvelle opportunité"
-        description="Elle apparaît à l'étape Prospection."
-        fields={opportunityFields}
-      />
+                  <p className="mt-1 font-mono-tabular text-xs text-slate">
+                    {formatMoney(column.totalValue)}
+                  </p>
+                </header>
 
-      <OpportunityQualificationModal
-        opportunity={selectedOpp}
-        onClose={() => setSelectedOpp(null)}
-        onSave={handleQualificationSave}
-      />
+                <div className="scrollbar-thin flex-1 space-y-2 overflow-y-auto p-3">
+                  {column.deals.length === 0 ? (
+                    <p className="py-8 text-center text-xs text-slate">
+                      {isTarget ? "Déposez ici" : "Aucune opportunité"}
+                    </p>
+                  ) : (
+                    column.deals.map((deal) => {
+                      const customer = deal.customer as Row | undefined;
+                      const lead = deal.lead as Row | undefined;
+                      const assignee = deal.assignedTo as Row | undefined;
+                      const dealId = String(deal.id);
+                      const isDragged = dragging === dealId;
+
+                      return (
+                        <motion.article
+                          key={dealId}
+                          layout={!reduced}
+                          draggable
+                          onDragStart={() => setDragging(dealId)}
+                          onDragEnd={() => {
+                            setDragging(null);
+                            setHoveredStage(null);
+                          }}
+                          // Le clic ouvre la grille de qualification ; le
+                          // glisser reste prioritaire, `onClick` ne se
+                          // déclenche pas à l'issue d'un déplacement.
+                          onClick={() => setQualifying(deal)}
+                          className={cn(
+                            "group cursor-grab rounded-lg border border-line bg-surface p-3 shadow-e1 transition-shadow active:cursor-grabbing",
+                            isDragged ? "opacity-40" : "hover:shadow-e2",
+                          )}
+                        >
+                          <div className="flex items-start gap-2">
+                            <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-line transition-colors group-hover:text-slate" />
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-ink">
+                                {String(deal.title ?? "")}
+                              </p>
+                              <p className="truncate text-xs text-slate">
+                                {String(
+                                  customer?.companyName ??
+                                    (lead
+                                      ? `${String(lead.firstName ?? "")} ${String(lead.lastName ?? "")}`.trim()
+                                      : "Sans client"),
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-2.5 flex items-center justify-between gap-2">
+                            <span className="font-mono-tabular text-sm text-ink">
+                              {formatMoney(deal.amount as string)}
+                            </span>
+
+                            <span className="flex items-center gap-1.5">
+                              {Number(deal.probability ?? 0) > 0 && (
+                                <span className="flex items-center gap-0.5 text-[11px] text-slate">
+                                  <TrendingUp className="h-3 w-3" />
+                                  {String(deal.probability)} %
+                                </span>
+                              )}
+
+                              {assignee && (
+                                <span
+                                  title={`${String(assignee.firstName ?? "")} ${String(assignee.lastName ?? "")}`}
+                                  className="flex h-6 w-6 items-center justify-center rounded-full bg-wire/10 text-[10px] font-semibold text-wire"
+                                >
+                                  {initials(
+                                    String(assignee.firstName ?? ""),
+                                    String(assignee.lastName ?? ""),
+                                  )}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </motion.article>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+
+      <DealQualificationModal deal={qualifying} onClose={() => setQualifying(null)} />
+
+      {moveStage.isPending && (
+        <p className="flex items-center gap-2 text-xs text-slate">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Déplacement en cours…
+        </p>
+      )}
     </div>
   );
 }

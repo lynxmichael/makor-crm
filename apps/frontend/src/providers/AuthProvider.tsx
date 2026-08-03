@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuthStore } from "@/store/auth.store";
 import { SplashScreen } from "@/components/shared/SplashScreen";
+import { useRealtimeConnection } from "@/hooks/use-realtime";
 
 /**
  * Revalide la session persistée avant de laisser le routeur décider quoi
@@ -14,6 +15,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const bootstrapping = useAuthStore((s) => s.bootstrapping);
   const accessToken = useAuthStore((s) => s.accessToken);
   const navigate = useNavigate();
+
+  // La connexion temps réel suit la session : elle s'ouvre dès qu'un jeton
+  // est disponible et se ferme à la déconnexion.
+  useRealtimeConnection();
 
   useEffect(() => {
     void bootstrap();

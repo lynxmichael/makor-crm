@@ -16,6 +16,7 @@ import type { StringValue } from 'ms';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../mail/mail.service';
 import { AuditService } from '../audit/audit.service';
+import { TwoFactorPolicy } from './two-factor.policy';
 
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -31,7 +32,8 @@ const LOCK_MINUTES = 15;
  * (CDC §2.4, §8.2). Le backend ne bloque pas l'accès si elle n'est pas
  * encore configurée, mais le signale pour que le frontend impose sa
  * mise en place immédiate. */
-const TWO_FACTOR_MANDATORY_ROLES = ['SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER'];
+// La liste et la règle vivent désormais dans TwoFactorPolicy, partagée
+// avec UsersController — voir auth/two-factor.policy.ts.
 
 export interface RequestContext {
   ipAddress?: string;
@@ -48,6 +50,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly mailService: MailService,
     private readonly auditService: AuditService,
+    private readonly twoFactorPolicy: TwoFactorPolicy,
   ) {}
 
   // -------------------------------------------------------------------
@@ -139,11 +142,10 @@ export class AuthService {
 
       // Incite le frontend à imposer la mise en place de la 2FA pour les
       // rôles sensibles qui ne l'ont pas encore configurée.
-      twoFactorSetupRequired:
-        !user.twoFactorEnabled &&
-        TWO_FACTOR_MANDATORY_ROLES.includes(user.role?.name),
+      twoFactorSetupRequired: this.twoFactorPolicy.isSetupRequiredFor(user),
     };
   }
+
 
   // -------------------------------------------------------------------
   // Connexion / déconnexion
@@ -398,11 +400,35 @@ export class AuthService {
   // Double authentification (CDC §2.4, §8.2)
   // -------------------------------------------------------------------
 
-  async setupTwoFactor(userId: string) {
+  /**
+   * Prépare la double authentification.
+   *
+   * Idempotent tant que la 2FA n'est pas activée : on réutilise le secret déjà
+   * en attente au lieu d'en générer un nouveau. Sans cela, un simple
+   * rechargement de la page de configuration écrase le secret que
+   * l'utilisateur vient de scanner, et son application génère alors des codes
+   * vérifiés contre un secret qui n'existe plus — l'erreur remontée est
+   * « code invalide », ce qui n'aide pas à comprendre.
+   *
+   * `regenerate: true` force un nouveau secret, pour repartir de zéro.
+   */
+  async setupTwoFactor(userId: string, regenerate = false) {
     const user = await this.usersService.findById(userId);
 
-    const secret = this.otp.generateSecret();
-    await this.usersService.setTwoFactorSecret(userId, secret);
+    if (user.twoFactorEnabled) {
+      throw new BadRequestException(
+        'La double authentification est déjà active. Désactivez-la avant de la reconfigurer.',
+      );
+    }
+
+    const secret =
+      !regenerate && user.twoFactorSecret
+        ? user.twoFactorSecret
+        : this.otp.generateSecret();
+
+    if (secret !== user.twoFactorSecret) {
+      await this.usersService.setTwoFactorSecret(userId, secret);
+    }
 
     const otpauthUrl = this.otp.generateURI({
       issuer: 'MAKOR CRM',
@@ -428,11 +454,17 @@ export class AuthService {
         await this.otp.verify({
           secret: user.twoFactorSecret,
           token: dto.code,
-          epochTolerance: 1,
+          // Tolérance élargie à l'activation uniquement : c'est le seul moment
+          // où le téléphone n'a jamais été confronté à l'horloge du serveur,
+          // et une dérive de quelques dizaines de secondes est fréquente.
+          // Les vérifications ultérieures restent à ±1 pas.
+          epochTolerance: 2,
         })
       ).valid
     ) {
-      throw new BadRequestException('Code de vérification invalide.');
+      throw new BadRequestException(
+        'Code de vérification invalide. Vérifiez que l’heure de votre téléphone est réglée automatiquement, puis saisissez le code affiché à l’instant.',
+      );
     }
 
     const { plain, hashed } = this.generateRecoveryCodes();
@@ -486,4 +518,31 @@ export class AuthService {
 
     return { success: true };
   }
+
+  /**
+   * Réinitialise la double authentification d'un autre compte.
+   *
+   * Réservé au Super Admin, et utile bien au-delà des tests : un agent qui
+   * perd son téléphone n'a aucun autre moyen de se reconnecter, ses codes de
+   * secours étant hachés en base. La trace est portée au journal d'audit
+   * avec l'identité de celui qui a réinitialisé — c'est une action sensible.
+   */
+  async resetTwoFactorFor(targetUserId: string, actingUserId: string) {
+    const target = await this.usersService.findById(targetUserId);
+
+    await this.usersService.disableTwoFactor(targetUserId);
+
+    await this.auditService.create({
+      action: 'UPDATE',
+      entity: 'User',
+      entityId: targetUserId,
+      description: `Double authentification réinitialisée pour ${target.email}`,
+      userId: actingUserId,
+    });
+
+    return {
+      message: `Double authentification réinitialisée pour ${target.email}. Ce compte devra la reconfigurer à sa prochaine connexion.`,
+    };
+  }
+
 }

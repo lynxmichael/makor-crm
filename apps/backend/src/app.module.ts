@@ -43,6 +43,14 @@ import { CommonModule } from './common/common.module';
 import { CommentsModule } from './comments/comments.module';
 import { MessagesModule } from './messages/messages.module';
 import { AiModule } from './ai/ai.module';
+import { ResourcesModule } from './resources/resources.module';
+import { FilesModule } from './files/files.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
+import { SignaturesModule } from './signatures/signatures.module';
+import { CommissionsModule } from './commissions/commissions.module';
+import { WorkflowsModule } from './workflows/workflows.module';
+import { ScoringModule } from './scoring/scoring.module';
+import { CommunicationsModule } from './communications/communications.module';
 
 @Module({
   imports: [
@@ -68,6 +76,14 @@ import { AiModule } from './ai/ai.module';
     CommentsModule,
     MessagesModule,
     AiModule,
+    ResourcesModule,
+    FilesModule,
+    ApiKeysModule,
+    SignaturesModule,
+    CommissionsModule,
+    WorkflowsModule,
+    ScoringModule,
+    CommunicationsModule,
 
     AuthModule,
     UsersModule,

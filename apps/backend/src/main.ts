@@ -12,28 +12,24 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // ✅ Récupération correcte du ConfigService
   const config = app.get(ConfigService);
+
+  // Servir les fichiers statiques (PDFs, uploads)
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads',
+  });
 
   app.use(
     helmet({
-      // Le frontend (SPA) est servi depuis une autre origine que l'API :
-      // sans cela, les documents de /uploads seraient bloqués par le
-      // Cross-Origin-Resource-Policy par défaut de Helmet.
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
   app.use(compression());
   app.use(cookieParser());
 
-  // Documents déposés via la GED (CDC §4.13) — servis en dehors du
-  // préfixe /api/v1, à l'extérieur de tout guard applicatif : le lien
-  // renvoyé par l'API n'est exploitable que par qui le connaît déjà.
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
-    prefix: '/uploads',
-  });
-
   app.enableCors({
-    origin: config.get('FRONTEND_URL'),
+    origin: config.getOrThrow<string>('FRONTEND_URL'),
     credentials: true,
   });
 
@@ -47,22 +43,26 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('MAKOR CRM API')
     .setDescription('Enterprise CRM API')
     .setVersion('1.0')
     .addBearerAuth()
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'api-key')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  SwaggerModule.setup('docs', app, document);
+  if (config.get<string>('NODE_ENV') !== 'production') {
+    SwaggerModule.setup('docs', app, document);
+  }
 
-  await app.listen(config.get('PORT') || 3000);
+  const port = config.get<number>('PORT') || 3000;
+  await app.listen(port);
 
-  console.log(`🚀 Server running on http://localhost:${config.get('PORT')}`);
-
-  console.log(`📚 Swagger: http://localhost:${config.get('PORT')}/docs`);
+  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`📚 Swagger: http://localhost:${port}/docs`);
 }
 
 bootstrap();

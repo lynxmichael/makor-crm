@@ -1,3 +1,5 @@
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
 import {
   Body,
   Controller,
@@ -6,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -18,6 +21,7 @@ import { QueryWarehouseDto } from './dto/query-warehouse.dto';
 
 @ApiTags('Warehouses')
 @Controller('warehouses')
+@UseGuards(JwtAuthGuard)
 export class WarehousesController {
   constructor(private readonly warehousesService: WarehousesService) {}
 
@@ -33,10 +37,22 @@ export class WarehousesController {
     return this.warehousesService.create(dto);
   }
 
-@Get()
- findAll(@Query() query: QueryWarehouseDto) {
-  return this.warehousesService.findAll(query);
-}
+  @Get()
+  findAll(@Query() query: QueryWarehouseDto) {
+    return this.warehousesService.findAll(query);
+  }
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Indicateurs des entrepôts' })
+  dashboard() {
+    return this.warehousesService.dashboard();
+  }
+
+  @Get('code/:code')
+  @ApiOperation({ summary: 'Entrepôt par code' })
+  findByCode(@Param('code') code: string) {
+    return this.warehousesService.findByCode(code);
+  }
 
   @Get(':id')
   @ApiOperation({
@@ -61,21 +77,10 @@ export class WarehousesController {
   remove(@Param('id') id: string) {
     return this.warehousesService.remove(id);
   }
-  @Get('dashboard')
-dashboard() {
-  return this.warehousesService.dashboard();
-}
-@Patch(':id/restore')
-restore(
-  @Param('id') id: string,
-) {
-  return this.warehousesService.restore(id);
-}
-@Get('code/:code')
-findByCode(
-  @Param('code') code: string,
-) {
-  return this.warehousesService.findByCode(code);
-}
+  @Patch(':id/restore')
+  @ApiOperation({ summary: 'Réactiver un entrepôt' })
+  restore(@Param('id') id: string) {
+    return this.warehousesService.restore(id);
+  }
 
 }
