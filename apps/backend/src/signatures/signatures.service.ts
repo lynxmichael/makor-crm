@@ -35,9 +35,9 @@ export class SignaturesService {
     private readonly quotes: QuotesService,
     private readonly purchaseOrders: PurchaseOrdersService,
     private readonly contracts: ContractsService,
-    @Inject(SIGNATURE_PROVIDER,
+    @Inject(SIGNATURE_PROVIDER)
+    private readonly provider: SignatureProvider,
     private readonly events: EventEmitter2,
-  ) private readonly provider: SignatureProvider,
   ) {}
 
   // -------------------------------------------------------------------------
