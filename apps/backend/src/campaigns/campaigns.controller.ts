@@ -18,6 +18,8 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { CampaignsService } from './campaigns.service';
@@ -44,6 +46,7 @@ export class CampaignsController {
    * partagé transmis en en-tête.
    */
   @Post('webhook/delivery-status')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
   @SkipThrottle()
   @ApiOperation({ summary: 'Callback de statut de livraison (passerelle)' })
   handleWebhook(
@@ -60,7 +63,8 @@ export class CampaignsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Créer une campagne' })
   create(
@@ -124,6 +128,7 @@ export class CampaignsController {
   }
 
   @Post(':id/recipients')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Ajouter des destinataires' })
@@ -132,6 +137,7 @@ export class CampaignsController {
   }
 
   @Post(':id/send')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lancer l’envoi (immédiat ou différé)' })
@@ -140,6 +146,7 @@ export class CampaignsController {
   }
 
   @Post(':id/cancel')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   cancel(@Param('id') id: string) {
@@ -147,6 +154,7 @@ export class CampaignsController {
   }
 
   @Patch(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   update(@Param('id') id: string, @Body() dto: UpdateCampaignDto) {
@@ -154,6 +162,7 @@ export class CampaignsController {
   }
 
   @Delete(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   remove(@Param('id') id: string) {

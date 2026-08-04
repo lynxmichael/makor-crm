@@ -25,6 +25,14 @@ interface Props {
 export function UserFormModal({ open, onClose, user, roles }: Props) {
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentRole = useAuthStore((s) => s.user?.role?.name);
+
+  // Le serveur refuse déjà l'attribution hors périmètre ; on ne propose pas
+  // un choix qui serait rejeté à l'enregistrement.
+  const assignableRoles =
+    currentRole === "SUPERVISEUR"
+      ? roles.filter((r) => String(r.name) === "COMMERCIAL")
+      : roles;
   const isEdit = Boolean(user);
   const isSelf = isEdit && String(user?.id) === currentUserId;
 
@@ -151,7 +159,7 @@ export function UserFormModal({ open, onClose, user, roles }: Props) {
               disabled={isSelf}
             >
               <option value="">Choisir un rôle</option>
-              {roles.map((entry) => (
+              {assignableRoles.map((entry) => (
                 <option key={String(entry.id)} value={String(entry.id)}>
                   {roleLabel(entry as { name?: string; label?: string })}
                 </option>

@@ -51,6 +51,27 @@ const TASK_PROMPTS: Record<AiTaskType, string> = {
     "Rédige l'e-mail d'accompagnement du document, court et direct, prêt à être envoyé au client.",
   MEETING_SUMMARY:
     'Rédige le compte rendu de rendez-vous à partir des notes fournies : points abordés, décisions, prochaines étapes.',
+
+  CAMPAIGN_MESSAGE: `Rédige le message de la campagne.
+
+Contraintes techniques impératives :
+- 160 caractères maximum, espaces compris. Au-delà, l'opérateur facture un
+  second segment par destinataire — sur 50 000 envois, cela double le coût.
+- N'utilise AUCUN caractère accentué ni emoji : ils font basculer le message
+  en alphabet étendu, où la limite tombe à 70 caractères. Écris « reglement »
+  et non « règlement », « des » et non « dès ».
+- Termine par « STOP au XXXXX » si le message est promotionnel : c'est une
+  obligation légale pour la prospection par SMS.
+- Les variables disponibles s'écrivent {{prenom}}, {{nom}}, {{entreprise}}.
+
+Ne renvoie que le message, sans guillemets ni commentaire.`,
+
+  CAMPAIGN_VARIANTS: `Propose trois variantes du message de campagne, numérotées
+1., 2. et 3., séparées par une ligne vide.
+
+Chacune doit tenir en 160 caractères sans accent ni emoji, et se distinguer
+des autres par l'angle : une factuelle, une orientée bénéfice, une avec
+urgence. Ne commente pas tes choix.`,
 };
 
 /** Quelles tâches portent sur un devis, lesquelles sur un contrat. */
@@ -61,6 +82,8 @@ const TASK_ENTITY: Record<AiTaskType, CommentEntity> = {
   CONTRACT_CLAUSE: CommentEntity.CONTRACT,
   EMAIL_DRAFT: CommentEntity.QUOTE,
   MEETING_SUMMARY: CommentEntity.DEAL,
+  CAMPAIGN_MESSAGE: CommentEntity.CAMPAIGN,
+  CAMPAIGN_VARIANTS: CommentEntity.CAMPAIGN,
 };
 
 @Injectable()
@@ -228,6 +251,32 @@ export class AiService {
           ? `Établi à partir du bon de commande n° ${contract.purchaseOrder.number}`
           : '',
         contract.description ? `Description existante : ${contract.description}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+    }
+
+    if (entityType === CommentEntity.CAMPAIGN) {
+      const campaign = await this.prisma.campaign.findUnique({
+        where: { id: entityId },
+        include: { customer: true, product: true },
+      });
+
+      if (!campaign) throw new NotFoundException('Campagne introuvable.');
+
+      const recipients = await this.prisma.campaignRecipient.count({
+        where: { campaignId: entityId },
+      });
+
+      return [
+        `Campagne : ${campaign.name}`,
+        `Canal : ${campaign.type}`,
+        campaign.customer ? `Client : ${campaign.customer.companyName}` : 'Client : non rattachée',
+        campaign.customer?.sector ? `Secteur : ${campaign.customer.sector}` : '',
+        campaign.country ? `Pays ciblé : ${campaign.country}` : '',
+        campaign.product ? `Produit : ${campaign.product.name}` : '',
+        `Destinataires enregistrés : ${recipients}`,
+        campaign.message ? `Message actuel : ${campaign.message}` : '',
       ]
         .filter(Boolean)
         .join('\n');

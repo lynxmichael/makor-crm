@@ -10,9 +10,14 @@ import {
   UploadedFile,
   UseInterceptors,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 
 import { FileInterceptor } from '@nestjs/platform-express';
+
+import { DocumentEventType } from '@prisma/client';
+
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { diskStorage } from 'multer';
 
@@ -21,6 +26,8 @@ import { extname } from 'path';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 import { DocumentsService } from './documents.service';
 
@@ -30,13 +37,14 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 @ApiTags('Documents')
 @ApiBearerAuth()
 @Controller('documents')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DocumentsController {
   constructor(
     private readonly documentsService: DocumentsService,
   ) {}
 
   @Post('upload')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER')
   @ApiOperation({ summary: 'Déposer un document (GED)' })
   @UseInterceptors(
     FileInterceptor('file', {
@@ -72,12 +80,36 @@ export class DocumentsController {
     @Query('dealId') dealId?: string,
     @Query('quoteId') quoteId?: string,
     @Query('contractId') contractId?: string,
+    @CurrentUser() user?: any,
   ) {
     return this.documentsService.findAll({
       customerId,
       dealId,
       quoteId,
       contractId,
+      scopeToUserId: user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    });
+  }
+
+  @Get(':id/stats')
+  @ApiOperation({ summary: 'Statistiques de consultation d’un document' })
+  stats(@Param('id') id: string) {
+    return this.documentsService.stats(id);
+  }
+
+  @Post(':id/track')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER')
+  @ApiOperation({ summary: 'Enregistrer une consultation, un téléchargement ou un envoi' })
+  track(
+    @Param('id') id: string,
+    @Body() body: { type: DocumentEventType },
+    @CurrentUser() user: { id: string },
+    @Req() request: { ip?: string; headers: Record<string, unknown> },
+  ) {
+    return this.documentsService.trackEvent(id, body.type, {
+      userId: user?.id,
+      ipAddress: request.ip,
+      userAgent: String(request.headers['user-agent'] ?? ''),
     });
   }
 
@@ -87,11 +119,13 @@ export class DocumentsController {
   }
 
   @Patch(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER')
   update(@Param('id') id: string, @Body() dto: UpdateDocumentDto) {
     return this.documentsService.update(id, dto);
   }
 
   @Delete(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER')
   remove(@Param('id') id: string) {
     return this.documentsService.remove(id);
   }

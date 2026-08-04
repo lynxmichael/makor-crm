@@ -74,6 +74,7 @@ export function CampaignsPage() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [statsFor, setStatsFor] = useState<Row | null>(null);
+  const [editing, setEditing] = useState<Row | null>(null);
   const [confirmSend, setConfirmSend] = useState<Row | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
 
@@ -140,7 +141,10 @@ export function CampaignsPage() {
         </div>
 
         <Button
-          onClick={() => setEditorOpen(true)}
+          onClick={() => {
+            setEditing(null);
+            setEditorOpen(true);
+          }}
         >
           <Plus className="h-4 w-4" />
           Nouvelle campagne
@@ -206,7 +210,12 @@ export function CampaignsPage() {
                 Réinitialiser les filtres
               </Button>
             ) : (
-              <Button onClick={() => setEditorOpen(true)}>
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setEditorOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4" />
                 Nouvelle campagne
               </Button>
@@ -290,6 +299,17 @@ export function CampaignsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                  setEditing(campaign);
+                                  setEditorOpen(true);
+                                }}
+                                aria-label="Modifier"
+                              >
+                                <SlidersHorizontal className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="text-signal hover:bg-signal/10"
                                 onClick={() => setConfirmSend(campaign)}
                                 aria-label="Lancer l'envoi"
@@ -361,7 +381,11 @@ export function CampaignsPage() {
       {/* La modale d'édition ne gère que la création : le backend n'expose
           l'édition que sur les brouillons, et le formulaire existant ne prend
           pas de campagne en entrée. */}
-      <CampaignEditorModal open={editorOpen} onClose={() => setEditorOpen(false)} />
+      <CampaignEditorModal
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        campaign={editing}
+      />
 
       <CampaignStatsModal campaign={statsFor} onClose={() => setStatsFor(null)} />
 

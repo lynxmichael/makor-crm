@@ -196,17 +196,39 @@ export class PaymentsService {
     });
   }
 
-  async findAll() {
-    return this.prisma.payment.findMany({
-      include: {
-        invoice: true,
-        customer: true,
-        createdBy: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  async findAll(params: { page?: number; limit?: number; search?: string; status?: string; customerId?: string } = {}) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(200, Math.max(1, Number(params.limit) || 20));
+
+    const where = {
+      ...(params.status ? { status: params.status as never } : {}),
+      ...(params.customerId ? { customerId: params.customerId } : {}),
+      ...(params.search
+        ? {
+            OR: [
+              { reference: { contains: params.search, mode: 'insensitive' as const } },
+              { customer: { companyName: { contains: params.search, mode: 'insensitive' as const } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.payment.findMany({
+        where,
+        include: {
+          invoice: true,
+          customer: true,
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.payment.count({ where }),
+    ]);
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findOne(id: string) {

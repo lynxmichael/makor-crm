@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/shared/DataState";
 import { http } from "@/services/api";
 import { QK } from "@/config/constants";
 import type { ApiError } from "@/types/api";
+import { CommentThread } from "@/features/collaboration/CommentThread";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -145,6 +146,14 @@ export function CampaignStatsModal({
             <p className="text-xs text-slate">
               Envoi en cours — les compteurs se mettent à jour automatiquement.
             </p>
+          )}
+
+          {campaign?.id && (
+            <CommentThread
+              entityType="CAMPAIGN"
+              entityId={String(campaign.id)}
+              emptyDetail="Notez ici le bilan de la campagne ou une anomalie constatée."
+            />
           )}
         </div>
       ) : null}

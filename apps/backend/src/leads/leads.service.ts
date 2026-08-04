@@ -87,9 +87,10 @@ export class LeadsService {
     };
   }
 
-  async findOne(id: string) {
-    const lead = await this.prisma.lead.findUnique({
-      where: { id },
+  /** Un prospect hors périmètre renvoie 404 : un 403 confirmerait son existence. */
+  async findOne(id: string, scopeToUserId?: string) {
+    const lead = await this.prisma.lead.findFirst({
+      where: { id, ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}) },
       include: {
         assignedTo: true,
         deals: { include: { stage: true } },
@@ -104,8 +105,8 @@ export class LeadsService {
     return lead;
   }
 
-  async update(id: string, dto: UpdateLeadDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateLeadDto, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.lead.update({
       where: { id },
@@ -133,8 +134,8 @@ export class LeadsService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.lead.delete({ where: { id } });
   }

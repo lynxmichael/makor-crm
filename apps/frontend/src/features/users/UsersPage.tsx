@@ -46,6 +46,13 @@ export function UsersPage() {
   const reduced = usePrefersReducedMotion();
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentRole = useAuthStore((s) => s.user?.role?.name);
+
+  // Un superviseur n'administre que les commerciaux : on masque les actions
+  // sur les autres comptes plutôt que de laisser le serveur les refuser.
+  const canManage = (user: Row) =>
+    currentRole === "SUPER_ADMIN" ||
+    (currentRole === "SUPERVISEUR" && (user.role as Row | undefined)?.name === "COMMERCIAL");
 
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
@@ -289,16 +296,18 @@ export function UsersPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openForm(user)}
-                            aria-label={`Modifier ${String(user.firstName ?? "")}`}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          {canManage(user) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openForm(user)}
+                              aria-label={`Modifier ${String(user.firstName ?? "")}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
 
-                          {has2fa && (
+                          {has2fa && canManage(user) && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -310,7 +319,7 @@ export function UsersPage() {
                             </Button>
                           )}
 
-                          {isActive ? (
+                          {!canManage(user) ? null : isActive ? (
                             <Button
                               variant="ghost"
                               size="sm"

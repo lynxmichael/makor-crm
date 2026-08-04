@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { UserAdminPolicy } from './user-admin.policy';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -32,9 +33,22 @@ const USER_WITH_ROLE = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly adminPolicy: UserAdminPolicy,
+  ) {}
 
-  async create(dto: CreateUserDto): Promise<User> {
+  /**
+   * Création d'un compte.
+   *
+   * `actorRole` permet d'appliquer le périmètre d'administration : un
+   * superviseur ne crée que des commerciaux. Le contrôle vit ici, pas dans
+   * le formulaire — l'API reste appelable directement.
+   */
+  async create(dto: CreateUserDto, actorRole?: string): Promise<User> {
+    if (actorRole) {
+      await this.adminPolicy.assertCanAssignById(actorRole, dto.roleId);
+    }
+
     const existing = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -203,8 +217,16 @@ export class UsersService {
    * `actorId` permet d'appliquer deux garde-fous que l'interface seule ne
    * peut pas garantir — l'API reste appelable directement.
    */
-  async update(id: string, dto: UpdateUserDto, actorId?: string) {
+  async update(id: string, dto: UpdateUserDto, actorId?: string, actorRole?: string) {
     const target = await this.findById(id);
+
+    if (actorRole) {
+      // Deux vérifications : pouvoir agir sur ce compte, et pouvoir lui
+      // attribuer le rôle demandé. Sans la seconde, un superviseur
+      // promouvrait un commercial en Super Admin.
+      await this.adminPolicy.assertCanManage(actorRole, id);
+      if (dto.roleId) await this.adminPolicy.assertCanAssignById(actorRole, dto.roleId);
+    }
 
     // Un administrateur ne se rétrograde pas lui-même : la manœuvre est
     // irréversible dès qu'il perd le droit de se réattribuer un rôle.
@@ -267,8 +289,10 @@ export class UsersService {
   /** Désactivation logique (CDC §3 : "désactivation des comptes"). */
   /** Désactivation — on ne supprime jamais un compte : ses opportunités,
    *  devis et écritures d'audit lui restent rattachés. */
-  async remove(id: string) {
+  async remove(id: string, actorRole?: string) {
     const target = await this.findById(id);
+
+    if (actorRole) await this.adminPolicy.assertCanManage(actorRole, id);
 
     if (target.role?.name === 'SUPER_ADMIN') {
       await this.assertNotLastSuperAdmin(id);
@@ -387,7 +411,9 @@ export class UsersService {
    * d'où la vérification que la cible existe et le retour d'un résumé
    * exploitable par le journal d'audit.
    */
-  async resetTwoFactorAsAdmin(targetUserId: string, actorId: string) {
+  async resetTwoFactorAsAdmin(targetUserId: string, actorId: string, actorRole?: string) {
+    if (actorRole) await this.adminPolicy.assertCanManage(actorRole, targetUserId);
+
     const target = await this.prisma.user.findUnique({
       where: { id: targetUserId },
       select: { id: true, email: true, firstName: true, lastName: true },

@@ -9,7 +9,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class SearchService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async globalSearch(query: string, limitPerEntity = 5) {
+  /**
+   * Recherche globale.
+   *
+   * `scopeToUserId` restreint les résultats au portefeuille de l'appelant.
+   * Sans lui, la recherche contournait tout le cloisonnement posé sur les
+   * modules : il suffisait de taper le nom d'une entreprise pour voir
+   * apparaître le contrat ou la facture d'un collègue.
+   *
+   * Les documents et contacts passent par le client rattaché ; un document
+   * sans client n'apparaît pas dans une recherche restreinte, faute de
+   * pouvoir établir à qui il appartient.
+   */
+  async globalSearch(query: string, limitPerEntity = 5, scopeToUserId?: string) {
     if (!query || query.trim().length < 2) {
       return {
         query,
@@ -27,6 +39,13 @@ export class SearchService {
     const q = query.trim();
     const insensitive = { contains: q, mode: 'insensitive' as const };
 
+    // Périmètre : direct quand l'entité porte l'affectation, indirect quand
+    // elle passe par le client.
+    const mine = scopeToUserId ? { assignedToId: scopeToUserId } : {};
+    const viaCustomer = scopeToUserId
+      ? { customer: { assignedToId: scopeToUserId } }
+      : {};
+
     const [
       customers,
       leads,
@@ -39,6 +58,7 @@ export class SearchService {
     ] = await Promise.all([
       this.prisma.customer.findMany({
         where: {
+          ...mine,
           OR: [
             { companyName: insensitive },
             { email: insensitive },
@@ -51,6 +71,7 @@ export class SearchService {
 
       this.prisma.lead.findMany({
         where: {
+          ...mine,
           OR: [
             { firstName: insensitive },
             { lastName: insensitive },
@@ -63,6 +84,7 @@ export class SearchService {
 
       this.prisma.contact.findMany({
         where: {
+          ...viaCustomer,
           OR: [
             { firstName: insensitive },
             { lastName: insensitive },
@@ -74,13 +96,14 @@ export class SearchService {
       }),
 
       this.prisma.deal.findMany({
-        where: { title: insensitive },
+        where: { ...mine, title: insensitive },
         include: { stage: true, customer: true, lead: true },
         take: limitPerEntity,
       }),
 
       this.prisma.quote.findMany({
         where: {
+          ...viaCustomer,
           OR: [{ number: insensitive }, { title: insensitive }],
         },
         include: { customer: true },
@@ -89,6 +112,7 @@ export class SearchService {
 
       this.prisma.contract.findMany({
         where: {
+          ...viaCustomer,
           OR: [{ number: insensitive }, { title: insensitive }],
         },
         include: { customer: true },
@@ -96,13 +120,13 @@ export class SearchService {
       }),
 
       this.prisma.invoice.findMany({
-        where: { number: insensitive },
+        where: { ...viaCustomer, number: insensitive },
         include: { customer: true },
         take: limitPerEntity,
       }),
 
       this.prisma.document.findMany({
-        where: { name: insensitive },
+        where: { ...viaCustomer, name: insensitive },
         include: { customer: true },
         take: limitPerEntity,
       }),

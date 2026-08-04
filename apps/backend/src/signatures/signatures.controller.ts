@@ -17,6 +17,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SignableEntity } from '@prisma/client';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { SignaturesService } from './signatures.service';
@@ -27,7 +29,7 @@ import { SubmitSignatureDto, RefuseSignatureDto } from './dto/submit-signature.d
 @ApiTags('Signatures')
 @ApiBearerAuth()
 @Controller('signatures')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class SignaturesController {
   constructor(private readonly signatures: SignaturesService) {}
 
@@ -47,12 +49,14 @@ export class SignaturesController {
   }
 
   @Post()
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Envoyer un document à signer' })
   create(@Body() dto: CreateSignatureRequestDto, @CurrentUser() user: { id: string }) {
     return this.signatures.create(dto, user.id);
   }
 
   @Delete(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Annuler une demande en attente' })
   cancel(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.signatures.cancel(id, user.id);
@@ -86,6 +90,7 @@ export class PublicSignatureController {
   }
 
   @Post(':token')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Apposer sa signature' })
   sign(
     @Param('token') token: string,
@@ -97,6 +102,7 @@ export class PublicSignatureController {
   }
 
   @Post(':token/refuse')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Refuser de signer, avec motif' })
   refuse(
     @Param('token') token: string,

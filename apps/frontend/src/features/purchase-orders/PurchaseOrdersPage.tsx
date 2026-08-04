@@ -5,6 +5,7 @@ import {
   Ban,
   Download,
   FileSignature,
+  FileOutput,
   PenLine,
   Plus,
   Search,
@@ -94,6 +95,18 @@ export function PurchaseOrdersPage() {
       // Un BC signé peut donner lieu à un contrat : la liste des contrats
       // n'est plus à jour.
       queryClient.invalidateQueries({ queryKey: QK.contracts });
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
+
+  // Un bon de commande signé donne lieu au contrat (CDC §4.9). Le backend
+  // recopie montant, client et lignes : rien n'est ressaisi.
+  const toContract = useMutation({
+    mutationFn: (id: string) => http.post(`/contracts/from-purchase-order/${id}`),
+    onSuccess: () => {
+      toast.success("Contrat généré depuis le bon de commande");
+      queryClient.invalidateQueries({ queryKey: QK.contracts });
+      queryClient.invalidateQueries({ queryKey: QK.purchaseOrders });
     },
     onError: (error) => toast.error((error as ApiError).message),
   });
@@ -319,6 +332,19 @@ export function PurchaseOrdersPage() {
                                 <Send className="h-4 w-4" />
                               </Button>
                             </>
+                          )}
+
+                          {orderStatus === "SIGNED" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-signal hover:bg-signal/10"
+                              onClick={() => toContract.mutate(String(order.id))}
+                              disabled={toContract.isPending}
+                              aria-label="Générer le contrat"
+                            >
+                              <FileOutput className="h-4 w-4" />
+                            </Button>
                           )}
 
                           {orderStatus === "SENT" && (

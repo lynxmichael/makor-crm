@@ -73,7 +73,9 @@ export type AiTaskType =
   | "CONTRACT_BODY"
   | "CONTRACT_CLAUSE"
   | "EMAIL_DRAFT"
-  | "MEETING_SUMMARY";
+  | "MEETING_SUMMARY"
+  | "CAMPAIGN_MESSAGE"
+  | "CAMPAIGN_VARIANTS";
 
 /** Réponse de `GET /ai/status` — sert à masquer les actions plutôt qu'à les faire échouer. */
 export interface AiStatus {
@@ -104,4 +106,6 @@ export const AI_TASK_LABELS: Record<AiTaskType, string> = {
   CONTRACT_CLAUSE: "Clause particulière",
   EMAIL_DRAFT: "E-mail d'accompagnement",
   MEETING_SUMMARY: "Compte rendu de RDV",
+  CAMPAIGN_MESSAGE: "Message de campagne",
+  CAMPAIGN_VARIANTS: "Trois variantes de message",
 };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Loader2, Lock } from "lucide-react";
+import { Check, ChevronDown, List, Loader2, Lock, PencilLine } from "lucide-react";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/ui/Modal";
@@ -15,6 +15,7 @@ import { QK } from "@/config/constants";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ApiError } from "@/types/api";
+import { CommentThread } from "@/features/collaboration/CommentThread";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -39,6 +40,7 @@ export function DealQualificationModal({ deal, onClose }: Props) {
   const queryClient = useQueryClient();
 
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const [view, setView] = useState<"form" | "table">("form");
   const [qualification, setQualification] = useState<Record<string, string>>({});
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
 
@@ -88,7 +90,31 @@ export function DealQualificationModal({ deal, onClose }: Props) {
       className="max-w-2xl"
     >
       <div className="space-y-3">
-        {qualificationSections.map((section, index) => {
+        {/* Deux lectures d'une même qualification : y répondre, ou la relire. */}
+        <div className="flex gap-1 rounded-xl border border-line bg-paper p-1">
+          {(
+            [
+              ["form", "Questionnaire", PencilLine],
+              ["table", "Récapitulatif", List],
+            ] as const
+          ).map(([value, label, Glyph]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setView(value)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                view === value ? "bg-surface text-ink shadow-e1" : "text-slate hover:text-ink",
+              )}
+            >
+              <Glyph className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {view === "form" &&
+          qualificationSections.map((section, index) => {
           const answered = section.fields.filter((field) =>
             qualification[`${section.stage}.${field.key}`]?.trim(),
           ).length;
@@ -233,6 +259,61 @@ export function DealQualificationModal({ deal, onClose }: Props) {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Récapitulatif : une fois les questions répondues, on veut les
+            relire d'un bloc, pas rouvrir cinq accordéons. */}
+        {view === "table" && (
+          <div className="space-y-5">
+            {qualificationSections.map((section) => {
+              const answered = section.fields.filter(
+                (f) => qualification[`${section.stage}.${f.key}`]?.trim(),
+              );
+
+              if (answered.length === 0) return null;
+
+              return (
+                <section key={section.stage}>
+                  <h3 className="mb-2 font-display text-sm font-semibold text-ink">
+                    {section.title}
+                  </h3>
+
+                  <div className="overflow-hidden rounded-xl border border-line">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {answered.map((field) => (
+                          <tr key={field.key} className="border-b border-line last:border-0">
+                            <th
+                              scope="row"
+                              className="w-2/5 bg-paper/50 px-3 py-2 text-left align-top font-medium text-slate"
+                            >
+                              {field.label}
+                            </th>
+                            <td className="px-3 py-2 align-top whitespace-pre-wrap text-ink">
+                              {qualification[`${section.stage}.${field.key}`]}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            })}
+
+            {Object.values(qualification).filter((v) => v?.trim()).length === 0 && (
+              <p className="rounded-xl bg-paper px-4 py-8 text-center text-sm text-slate">
+                Aucune réponse enregistrée pour l'instant. Passez en mode Questionnaire pour
+                commencer la qualification.
+              </p>
+            )}
+          </div>
+        )}
+
+        <CommentThread
+          entityType="DEAL"
+          entityId={String(deal.id)}
+          emptyDetail="Notez ici ce que la grille ne capture pas : objection, contexte, décision prise en réunion."
+        />
 
         <div className="flex items-center justify-between gap-3 border-t border-line pt-4">
           <Badge tone="neutral">

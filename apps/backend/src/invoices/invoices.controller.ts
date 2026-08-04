@@ -19,6 +19,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { InvoicesService } from './invoices.service';
 import { InvoicePdfService } from './invoice-pdf.service';
@@ -94,6 +95,12 @@ export class InvoicesController {
   })
   update(@Param('id') id: string, @Body() dto: UpdateInvoiceDto) {
     return this.invoicesService.update(id, dto);
+  }
+
+  @Post(':id/send')
+  @ApiOperation({ summary: 'Envoyer la facture au client par e-mail, PDF joint' })
+  send(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.invoicesService.send(id, user.id);
   }
 
   @Patch(':id/pay')

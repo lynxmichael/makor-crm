@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { FileSignature, Loader2, Send, ShieldCheck, X } from "lucide-react";
+import { Building2, FileSignature, Loader2, Send, ShieldCheck, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Field } from "@/components/ui/Field";
+import { EntitySelect } from "@/components/shared/EntitySelect";
 
 import { http } from "@/services/api";
+import { usersService } from "@/services/resources";
+import { QK } from "@/config/constants";
 import { EASE_OUT } from "@/lib/motion";
 import { formatDateTime } from "@/lib/format";
 import type { ApiError } from "@/types/api";
@@ -59,6 +62,7 @@ export function SignaturePanel({
   const [signerName, setSignerName] = useState(defaultSignerName);
   const [signerEmail, setSignerEmail] = useState(defaultSignerEmail);
   const [validityDays, setValidityDays] = useState("30");
+  const [signerKind, setSignerKind] = useState<"client" | "agent">("client");
 
   const queryKey = ["signatures", entityType, entityId];
 
@@ -123,6 +127,65 @@ export function SignaturePanel({
             className="overflow-hidden border-b border-line"
           >
             <div className="space-y-4 px-5 py-4">
+              {/* Le modèle ne distingue pas client et agent : un signataire est
+                  un nom et une adresse. Le choix ci-dessous ne fait que
+                  pré-remplir depuis l'annuaire interne — utile pour une
+                  contresignature côté MAKOR. */}
+              <div className="flex gap-1 rounded-xl border border-line bg-paper p-1">
+                {(
+                  [
+                    ["client", "Client", Building2],
+                    ["agent", "Agent MAKOR", User],
+                  ] as const
+                ).map(([value, label, Glyph]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSignerKind(value);
+                      setSignerName("");
+                      setSignerEmail("");
+                    }}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      signerKind === value
+                        ? "bg-surface text-ink shadow-e1"
+                        : "text-slate hover:text-ink"
+                    }`}
+                  >
+                    <Glyph className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {signerKind === "agent" && (
+                <Field
+                  label="Agent signataire"
+                  htmlFor="sg-agent"
+                  required
+                  hint="Il recevra le même lien personnel que s'il s'agissait d'un client."
+                >
+                  <EntitySelect
+                    id="sg-agent"
+                    service={usersService}
+                    queryKey={QK.users}
+                    value=""
+                    onChange={(_id, row) => {
+                      if (!row) return;
+                      setSignerName(
+                        `${String(row.firstName ?? "")} ${String(row.lastName ?? "")}`.trim(),
+                      );
+                      setSignerEmail(String(row.email ?? ""));
+                    }}
+                    placeholder="Rechercher un agent"
+                    render={(row) => ({
+                      label: `${String(row.firstName ?? "")} ${String(row.lastName ?? "")}`,
+                      detail: String(row.email ?? ""),
+                    })}
+                  />
+                </Field>
+              )}
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Nom du signataire" htmlFor="sg-name" required>
                   <Input

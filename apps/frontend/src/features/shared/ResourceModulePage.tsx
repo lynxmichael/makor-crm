@@ -1,6 +1,18 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, SlidersHorizontal, Trash2, Pencil, type LucideIcon } from "lucide-react";
+import {
+  Check,
+  BarChart3,
+  CirclePause,
+  CircleStop,
+  Plus,
+  Search,
+  Send,
+  SlidersHorizontal,
+  Trash2,
+  Pencil,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +22,10 @@ import { Modal } from "@/components/ui/Modal";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataState";
 
 import { ModuleFormModal } from "./ModuleFormModal";
+import { DocumentStatsPanel } from "@/features/documents/DocumentStatsPanel";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { http } from "@/services/api";
 import { useResourceList, useResourceMutations } from "@/hooks/use-resource";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -43,6 +59,9 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
   const [editing, setEditing] = useState<Row | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [toSend, setToSend] = useState<Row | null>(null);
+  const [rowAction, setRowAction] = useState<{ row: Row; index: number } | null>(null);
+  const [statsFor, setStatsFor] = useState<Row | null>(null);
 
   const debouncedSearch = useDebounced(search, 350);
 
@@ -63,6 +82,30 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
     config.service,
     config.toasts,
   );
+
+  const queryClient = useQueryClient();
+
+  const send = useMutation({
+    mutationFn: (id: string) => http.post(config.sendAction!.path.replace(":id", id)),
+    onSuccess: () => {
+      toast.success(config.sendAction!.successMessage);
+      queryClient.invalidateQueries({ queryKey: config.queryKey });
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
+
+  const runRowAction = useMutation({
+    mutationFn: ({ row, index }: { row: Row; index: number }) => {
+      const action = config.rowActions![index];
+      const url = action.path.replace(":id", String(row.id));
+      return action.method === "post" ? http.post(url) : http.patch(url);
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(config.rowActions![variables.index].successMessage);
+      queryClient.invalidateQueries({ queryKey: config.queryKey });
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
 
   const rows = query.data?.data ?? [];
   const total = query.data?.total ?? 0;
@@ -201,7 +244,9 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                       {column.label}
                     </th>
                   ))}
-                  {canWrite && <th className="px-4 py-3 text-right">Actions</th>}
+                  {(canWrite || config.statsPanel) && (
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  )}
                 </tr>
               </thead>
 
@@ -230,29 +275,88 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                       </td>
                     ))}
 
-                    {canWrite && (
+                    {(canWrite || config.statsPanel) && (
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditing(row);
-                              setFormOpen(true);
-                            }}
-                            aria-label="Modifier"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-alert hover:bg-alert/10"
-                            onClick={() => setToDelete(row)}
-                            aria-label="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {config.statsPanel && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setStatsFor(row)}
+                              aria-label="Statistiques de consultation"
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {canWrite &&
+                            config.rowActions?.map((action, index) => {
+                            const status = String(row[config.statusFilterKey ?? "status"] ?? "");
+                            if (action.visibleWhen && !action.visibleWhen.includes(status)) {
+                              return null;
+                            }
+
+                            const Glyph =
+                              action.icon === "pause"
+                                ? CirclePause
+                                : action.icon === "stop"
+                                  ? CircleStop
+                                  : Check;
+
+                            return (
+                              <Button
+                                key={action.path}
+                                variant="ghost"
+                                size="sm"
+                                className={
+                                  action.tone === "alert"
+                                    ? "text-alert hover:bg-alert/10"
+                                    : action.tone === "amber"
+                                      ? "text-amber hover:bg-amber/10"
+                                      : "text-signal hover:bg-signal/10"
+                                }
+                                onClick={() => setRowAction({ row, index })}
+                                aria-label={action.label}
+                              >
+                                <Glyph className="h-4 w-4" />
+                              </Button>
+                            );
+                          })}
+
+                          {canWrite && config.sendAction && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setToSend(row)}
+                              aria-label={config.sendAction.label}
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canWrite && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEditing(row);
+                                  setFormOpen(true);
+                                }}
+                                aria-label="Modifier"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-alert hover:bg-alert/10"
+                                onClick={() => setToDelete(row)}
+                                aria-label="Supprimer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     )}
@@ -301,6 +405,71 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
           error={(editing ? update.error : create.error) as ApiError | null}
         />
       )}
+
+      {config.sendAction && (
+        <Modal
+          open={Boolean(toSend)}
+          onClose={() => setToSend(null)}
+          title={config.sendAction.confirmTitle}
+          description={toSend ? String(toSend[config.columns[0].key] ?? "") : undefined}
+        >
+          <p className="text-sm leading-relaxed text-slate">{config.sendAction.confirmBody}</p>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setToSend(null)}>
+              Annuler
+            </Button>
+            <Button
+              disabled={send.isPending}
+              onClick={() => {
+                if (toSend) send.mutate(String(toSend.id));
+                setToSend(null);
+              }}
+            >
+              <Send className="h-4 w-4" />
+              {config.sendAction.label}
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {config.statsPanel && (
+        <Modal
+          open={Boolean(statsFor)}
+          onClose={() => setStatsFor(null)}
+          title={statsFor ? String(statsFor[config.columns[0].key] ?? "") : ""}
+          description="Consultations, téléchargements et envois de ce document."
+          className="max-w-2xl"
+        >
+          {statsFor && <DocumentStatsPanel documentId={String(statsFor.id)} />}
+        </Modal>
+      )}
+
+      <Modal
+        open={Boolean(rowAction)}
+        onClose={() => setRowAction(null)}
+        title={rowAction ? config.rowActions![rowAction.index].label + " ?" : ""}
+        description={
+          rowAction ? String(rowAction.row[config.columns[0].key] ?? "") : undefined
+        }
+      >
+        <p className="text-sm leading-relaxed text-slate">
+          {rowAction ? config.rowActions![rowAction.index].confirmBody : ""}
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setRowAction(null)}>
+            Annuler
+          </Button>
+          <Button
+            disabled={runRowAction.isPending}
+            onClick={() => {
+              if (rowAction) runRowAction.mutate(rowAction);
+              setRowAction(null);
+            }}
+          >
+            {rowAction ? config.rowActions![rowAction.index].label : ""}
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         open={Boolean(toDelete)}

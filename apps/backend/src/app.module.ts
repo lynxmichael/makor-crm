@@ -48,6 +48,7 @@ import { FilesModule } from './files/files.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { SignaturesModule } from './signatures/signatures.module';
 import { CommissionsModule } from './commissions/commissions.module';
+import { EvaluationModule } from './evaluation/evaluation.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { CommunicationsModule } from './communications/communications.module';
@@ -81,6 +82,7 @@ import { CommunicationsModule } from './communications/communications.module';
     ApiKeysModule,
     SignaturesModule,
     CommissionsModule,
+    EvaluationModule,
     WorkflowsModule,
     ScoringModule,
     CommunicationsModule,

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, Select } from "@/components/ui/Field";
 import { EntitySelect } from "@/components/shared/EntitySelect";
+import { SignaturePanel } from "@/features/signatures/SignaturePanel";
+import { CommentThread } from "@/features/collaboration/CommentThread";
 
 import { customersService, productsService, quotesService } from "@/services/resources";
 import { http } from "@/services/api";
@@ -443,6 +445,21 @@ export function PurchaseOrderEditorModal({ open, onClose, purchaseOrder }: Props
             ))}
           </Select>
         </Field>
+
+        {/* Un bon de commande se signe et se commente une fois émis. */}
+        {isEdit && purchaseOrder?.id && (
+          <div className="space-y-4 border-t border-line pt-5">
+            <SignaturePanel
+              entityType="PURCHASE_ORDER"
+              entityId={String(purchaseOrder.id)}
+            />
+            <CommentThread
+              entityType="PURCHASE_ORDER"
+              entityId={String(purchaseOrder.id)}
+              emptyDetail="Notez ici un point d'attention sur cette commande."
+            />
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="secondary" onClick={onClose} disabled={save.isPending}>

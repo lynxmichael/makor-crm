@@ -8,6 +8,7 @@ import {
   Delete,
   Get,
   Param,
+  Query,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -27,8 +28,20 @@ export class AuditController {
   }
 
   @Get()
-  findAll() {
-    return this.auditService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('entity') entity?: string,
+    @Query('action') action?: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.auditService.findAll({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      entity,
+      action,
+      userId,
+    });
   }
 
   @Get(':id')

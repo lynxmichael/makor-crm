@@ -17,6 +17,7 @@ import { QK } from "@/config/constants";
 import { formatMoney } from "@/lib/format";
 import type { ApiError } from "@/types/api";
 import { SignaturePanel } from "@/features/signatures/SignaturePanel";
+import { CommentThread } from "@/features/collaboration/CommentThread";
 
 interface QuoteLine {
   /** Clé de rendu uniquement — le backend ne la reçoit pas. */
@@ -362,6 +363,14 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
             entityType="QUOTE"
             entityId={String(quote!.id)}
             defaultSignerEmail={String((quote as Record<string, unknown>)?.customerEmail ?? "")}
+          />
+        )}
+
+        {isEdit && (
+          <CommentThread
+            entityType="QUOTE"
+            entityId={String(quote!.id)}
+            emptyDetail="Notez ici le contexte de la proposition ou un point négocié."
           />
         )}
       </div>

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Query,
   Patch,
   Post,
   UseGuards,
@@ -40,8 +41,20 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'Liste des paiements',
   })
-  findAll() {
-    return this.paymentsService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('customerId') customerId?: string,
+  ) {
+    return this.paymentsService.findAll({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      status,
+      customerId,
+    });
   }
 
   @Get(':id')

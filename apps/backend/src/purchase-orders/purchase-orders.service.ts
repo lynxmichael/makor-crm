@@ -132,11 +132,13 @@ export class PurchaseOrdersService {
     search?: string;
     status?: string;
     customerId?: string;
+    scopeToUserId?: string;
   }) {
-    const { page, limit, search, status, customerId } = params;
+    const { page, limit, search, status, customerId , scopeToUserId } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.PurchaseOrderWhereInput = {
+      ...(scopeToUserId ? { customer: { assignedToId: scopeToUserId } } : {}),
       AND: [
         search ? { number: { contains: search, mode: 'insensitive' } } : {},
         status ? { status: status as any } : {},

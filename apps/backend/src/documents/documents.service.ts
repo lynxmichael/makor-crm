@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { DocumentEventType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateDocumentDto } from './dto/create-document.dto';
@@ -57,6 +58,7 @@ export class DocumentsService {
     dealId?: string;
     quoteId?: string;
     contractId?: string;
+    scopeToUserId?: string;
   }) {
     return this.prisma.document.findMany({
       where: {
@@ -64,6 +66,12 @@ export class DocumentsService {
         dealId: params?.dealId,
         quoteId: params?.quoteId,
         contractId: params?.contractId,
+        // Périmètre : un commercial ne voit que les documents des clients
+        // dont il a la charge. Un document sans client rattaché n'apparaît
+        // pas — faute de pouvoir établir à qui il appartient.
+        ...(params?.scopeToUserId
+          ? { customer: { assignedToId: params.scopeToUserId } }
+          : {}),
       },
 
       include: {
@@ -137,6 +145,82 @@ export class DocumentsService {
         uploadedBy: true,
       },
     });
+  }
+
+  /**
+   * Enregistre une consultation, un téléchargement ou un envoi
+   * (demande du 31/07/2026).
+   *
+   * `userId` est nul quand l'action vient du client, qui n'a pas de compte :
+   * c'est justement le cas le plus intéressant — savoir si le devis envoyé
+   * a été ouvert.
+   */
+  async trackEvent(
+    documentId: string,
+    type: DocumentEventType,
+    context: { userId?: string; ipAddress?: string; userAgent?: string } = {},
+  ) {
+    const exists = await this.prisma.document.findUnique({
+      where: { id: documentId },
+      select: { id: true },
+    });
+
+    if (!exists) throw new NotFoundException('Document introuvable.');
+
+    return this.prisma.documentEvent.create({
+      data: {
+        documentId,
+        type,
+        userId: context.userId ?? null,
+        ipAddress: context.ipAddress ?? null,
+        userAgent: context.userAgent ?? null,
+      },
+    });
+  }
+
+  /** Statistiques de consultation d'un document. */
+  async stats(documentId: string) {
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+      select: { id: true, name: true, type: true, createdAt: true },
+    });
+
+    if (!document) throw new NotFoundException('Document introuvable.');
+
+    const [grouped, recent, firstView] = await Promise.all([
+      this.prisma.documentEvent.groupBy({
+        by: ['type'],
+        where: { documentId },
+        _count: { _all: true },
+      }),
+      this.prisma.documentEvent.findMany({
+        where: { documentId },
+        include: { user: { select: { firstName: true, lastName: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 25,
+      }),
+      this.prisma.documentEvent.findFirst({
+        where: { documentId, type: { in: ['VIEWED', 'PREVIEWED'] }, userId: null },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+    ]);
+
+    const counts = Object.fromEntries(grouped.map((g) => [g.type, g._count._all]));
+
+    return {
+      document,
+      counts: {
+        viewed: counts.VIEWED ?? 0,
+        previewed: counts.PREVIEWED ?? 0,
+        downloaded: counts.DOWNLOADED ?? 0,
+        sent: counts.SENT ?? 0,
+      },
+      // Le premier accès sans utilisateur connecté est, selon toute
+      // vraisemblance, celui du client destinataire.
+      firstClientAccessAt: firstView?.createdAt ?? null,
+      recent,
+    };
   }
 
   async remove(id: string) {

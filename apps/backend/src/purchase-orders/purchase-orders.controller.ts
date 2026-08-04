@@ -16,6 +16,8 @@ import type { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { PurchaseOrdersService } from './purchase-orders.service';
@@ -28,13 +30,14 @@ import { SignPurchaseOrderDto } from './dto/sign-purchase-order.dto';
 @ApiTags('Purchase Orders')
 @ApiBearerAuth()
 @Controller('purchase-orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class PurchaseOrdersController {
   constructor(
     private readonly purchaseOrdersService: PurchaseOrdersService,
   ) {}
 
   @Post('from-quote/:quoteId')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Transformer un devis accepté en bon de commande (CDC §4.8)',
   })
@@ -47,6 +50,7 @@ export class PurchaseOrdersController {
   }
 
   @Post()
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Créer un bon de commande autonome' })
   create(
     @Body() dto: CreatePurchaseOrderDto,
@@ -63,6 +67,7 @@ export class PurchaseOrdersController {
     @Query('search') search?: string,
     @Query('status') status?: string,
     @Query('customerId') customerId?: string,
+    @CurrentUser() user?: any,
   ) {
     return this.purchaseOrdersService.findAll({
       page: Number(page),
@@ -70,6 +75,7 @@ export class PurchaseOrdersController {
       search,
       status,
       customerId,
+      scopeToUserId: user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
     });
   }
 
@@ -91,17 +97,20 @@ export class PurchaseOrdersController {
   }
 
   @Patch(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   update(@Param('id') id: string, @Body() dto: UpdatePurchaseOrderDto) {
     return this.purchaseOrdersService.update(id, dto);
   }
 
   @Post(':id/send')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Envoyer le bon de commande par email au client' })
   send(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.purchaseOrdersService.send(id, user?.id);
   }
 
   @Patch(':id/sign')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Marquer le bon de commande comme signé' })
   sign(
     @Param('id') id: string,
@@ -112,11 +121,13 @@ export class PurchaseOrdersController {
   }
 
   @Patch(':id/cancel')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   cancel(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.purchaseOrdersService.cancel(id, user?.id);
   }
 
   @Delete(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   remove(@Param('id') id: string) {
     return this.purchaseOrdersService.remove(id);
   }

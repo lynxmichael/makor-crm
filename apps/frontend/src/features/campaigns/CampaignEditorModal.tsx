@@ -12,10 +12,15 @@ import { EntitySelect } from "@/components/shared/EntitySelect";
 import { campaignsService, productsService } from "@/services/resources";
 import { QK } from "@/config/constants";
 import type { ApiError } from "@/types/api";
+import { AiGeneratePanel } from "@/features/ai/AiGeneratePanel";
+
+type Row = Record<string, unknown> & { id?: unknown };
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Absent = création. Une campagne déjà envoyée n'est plus modifiable. */
+  campaign?: Row | null;
 }
 
 const TYPES = {
@@ -27,8 +32,9 @@ const TYPES = {
 
 type CampaignType = keyof typeof TYPES;
 
-export function CampaignEditorModal({ open, onClose }: Props) {
+export function CampaignEditorModal({ open, onClose, campaign }: Props) {
   const queryClient = useQueryClient();
+  const isEdit = Boolean(campaign);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<CampaignType>("SMS");
@@ -42,15 +48,17 @@ export function CampaignEditorModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return;
 
-    setName("");
-    setType("SMS");
-    setSubject("");
-    setMessage("");
-    setCountry("");
-    setProductId("");
-    setScheduledAt("");
+    setName(String(campaign?.name ?? ""));
+    setType((campaign?.type as CampaignType) ?? "SMS");
+    setSubject(String(campaign?.subject ?? ""));
+    setMessage(String(campaign?.message ?? ""));
+    setCountry(String(campaign?.country ?? ""));
+    setProductId(String(campaign?.productId ?? ""));
+    setScheduledAt(String(campaign?.scheduledAt ?? "").slice(0, 16));
+    // Les destinataires déjà enregistrés ne se réécrivent pas ici : ils se
+    // gèrent depuis la fiche de la campagne.
     setDestinations("");
-  }, [open]);
+  }, [open, campaign]);
 
   const create = useMutation({
     mutationFn: () => {
@@ -61,7 +69,7 @@ export function CampaignEditorModal({ open, onClose }: Props) {
         .map((entry) => entry.trim())
         .filter(Boolean);
 
-      return campaignsService.create({
+      const body = {
         name: name.trim(),
         type,
         message: message.trim(),
@@ -70,10 +78,14 @@ export function CampaignEditorModal({ open, onClose }: Props) {
         ...(productId ? { productId } : {}),
         ...(scheduledAt ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
         ...(list.length ? { destinations: list } : {}),
-      });
+      };
+
+      return isEdit
+        ? campaignsService.update(String(campaign!.id), body as never)
+        : campaignsService.create(body as never);
     },
     onSuccess: () => {
-      toast.success("Campagne créée en brouillon");
+      toast.success(isEdit ? "Campagne mise à jour" : "Campagne créée en brouillon");
       queryClient.invalidateQueries({ queryKey: QK.campaigns });
       onClose();
     },
@@ -227,13 +239,33 @@ export function CampaignEditorModal({ open, onClose }: Props) {
           </p>
         )}
 
+        {/* Rédaction assistée — sur une campagne enregistrée seulement : le
+            serveur relit le canal, le pays et le produit ciblés en base pour
+            composer le contexte, il lui faut donc un identifiant. */}
+        {isEdit && campaign?.id && (
+          <div className="space-y-3 border-t border-line pt-5">
+            <AiGeneratePanel
+              taskType="CAMPAIGN_MESSAGE"
+              entityType="CAMPAIGN"
+              entityId={String(campaign.id)}
+              onAccept={(text) => setMessage(text.trim())}
+            />
+            <AiGeneratePanel
+              taskType="CAMPAIGN_VARIANTS"
+              entityType="CAMPAIGN"
+              entityId={String(campaign.id)}
+              onAccept={(text) => setMessage(text.trim())}
+            />
+          </div>
+        )}
+
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="secondary" onClick={onClose} disabled={create.isPending}>
             Annuler
           </Button>
           <Button onClick={() => create.mutate()} disabled={create.isPending || !canSubmit}>
             {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Créer le brouillon
+            {isEdit ? "Enregistrer" : "Créer le brouillon"}
           </Button>
         </div>
       </div>

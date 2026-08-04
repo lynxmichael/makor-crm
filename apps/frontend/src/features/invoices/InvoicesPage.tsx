@@ -9,6 +9,7 @@ import {
   Plus,
   Receipt,
   Search,
+  Send,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
@@ -68,6 +69,7 @@ export function InvoicesPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [confirmPay, setConfirmPay] = useState<Row | null>(null);
+  const [confirmSend, setConfirmSend] = useState<Row | null>(null);
   const [toDelete, setToDelete] = useState<Row | null>(null);
 
   const debouncedSearch = useDebounced(search, 350);
@@ -83,6 +85,15 @@ export function InvoicesPage() {
   );
 
   const query = useResourceList<Row>(QK.invoices, invoicesService, params);
+
+  const send = useMutation({
+    mutationFn: (id: string) => http.post(`/invoices/${id}/send`),
+    onSuccess: () => {
+      toast.success("Facture envoyée au client");
+      queryClient.invalidateQueries({ queryKey: QK.invoices });
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
 
   const transition = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "pay" | "cancel" }) =>
@@ -324,6 +335,14 @@ export function InvoicesPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => setConfirmSend(invoice)}
+                                aria-label="Envoyer au client"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => openEditor(invoice)}
                                 aria-label="Modifier"
                               >
@@ -405,6 +424,36 @@ export function InvoicesPage() {
         onClose={() => setEditorOpen(false)}
         invoice={editing}
       />
+
+      <Modal
+        open={Boolean(confirmSend)}
+        onClose={() => setConfirmSend(null)}
+        title="Envoyer la facture au client ?"
+        description={String(confirmSend?.number ?? "")}
+      >
+        <p className="text-sm leading-relaxed text-slate">
+          La facture part par e-mail à{" "}
+          <strong className="text-ink">
+            {String((confirmSend?.customer as Row | undefined)?.email ?? "l'adresse du client")}
+          </strong>
+          , avec le PDF en pièce jointe. Un brouillon passe alors en « émise ».
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setConfirmSend(null)}>
+            Annuler
+          </Button>
+          <Button
+            disabled={send.isPending}
+            onClick={() => {
+              if (confirmSend) send.mutate(String(confirmSend.id));
+              setConfirmSend(null);
+            }}
+          >
+            <Send className="h-4 w-4" />
+            Envoyer
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         open={Boolean(confirmPay)}

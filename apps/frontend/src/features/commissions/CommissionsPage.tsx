@@ -51,9 +51,19 @@ export function CommissionsPage() {
   const [planOpen, setPlanOpen] = useState(false);
   const [confirmCompute, setConfirmCompute] = useState(false);
 
+  // Un commercial ne voit pas la synthèse d'équipe mais ses propres lignes :
+  // une rémunération variable qu'on ne peut pas consulter soi-même engendre
+  // plus de contestations qu'elle n'en évite.
+  const mine = useQuery({
+    queryKey: ["commissions", "mine"],
+    queryFn: () => http.get<Row[]>("/commissions/mine"),
+    enabled: !canManage,
+  });
+
   const summary = useQuery({
     queryKey: ["commissions", "summary", period],
     queryFn: () => http.get<Row[]>("/commissions/summary", { params: { period } }),
+    enabled: canManage,
   });
 
   const compute = useMutation({
@@ -129,7 +139,46 @@ export function CommissionsPage() {
         )}
       </div>
 
-      {summary.isPending ? (
+      {!canManage ? (
+        mine.isPending ? (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-14 rounded-xl" />
+            ))}
+          </div>
+        ) : mine.isError ? (
+          <ErrorState error={mine.error as ApiError} onRetry={() => void mine.refetch()} />
+        ) : (mine.data ?? []).length === 0 ? (
+          <EmptyState
+            icon={Coins}
+            title="Aucune commission"
+            detail="Vos commissions apparaîtront ici une fois les factures de vos clients encaissées."
+          />
+        ) : (
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {(mine.data ?? []).map((line) => (
+              <li key={String(line.id)} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-ink">{String(line.period ?? "")}</p>
+                  <p className="text-xs text-slate">
+                    {String((line.plan as Row | undefined)?.name ?? "")} ·{" "}
+                    {(Number(line.rate ?? 0) * 100).toFixed(1)} % de{" "}
+                    {formatMoney(line.baseAmount as string)}
+                  </p>
+                </div>
+
+                <Badge tone={STATUS_TONES[String(line.status)] ?? "neutral"}>
+                  {STATUS_LABELS[String(line.status)] ?? String(line.status)}
+                </Badge>
+
+                <span className="font-mono-tabular font-display text-lg font-semibold text-ink">
+                  {formatMoney(line.amount as string)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : summary.isPending ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-16 rounded-xl" />

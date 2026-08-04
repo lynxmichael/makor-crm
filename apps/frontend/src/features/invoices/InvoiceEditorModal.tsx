@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, Select } from "@/components/ui/Field";
 import { EntitySelect } from "@/components/shared/EntitySelect";
+import { CommentThread } from "@/features/collaboration/CommentThread";
 
 import {
   contractsService,
@@ -367,6 +368,18 @@ export function InvoiceEditorModal({ open, onClose, invoice }: Props) {
             Estimation. Les montants définitifs sont calculés par le serveur à l'enregistrement.
           </p>
         </div>
+
+        {/* Pas de signature sur une facture : elle constate une créance, elle
+            ne l'engage pas — c'est le contrat ou le bon de commande qui le fait. */}
+        {isEdit && invoice?.id && (
+          <div className="border-t border-line pt-5">
+            <CommentThread
+              entityType="INVOICE"
+              entityId={String(invoice.id)}
+              emptyDetail="Notez ici une relance effectuée, un litige ou un accord de règlement."
+            />
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button variant="secondary" onClick={onClose} disabled={save.isPending}>

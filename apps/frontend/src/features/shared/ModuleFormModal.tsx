@@ -6,6 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, Select, Textarea } from "@/components/ui/Field";
 import type { ApiError } from "@/types/api";
+import { useAuthStore } from "@/store/auth.store";
+import { EntitySelect } from "@/components/shared/EntitySelect";
+import {
+  contractsService,
+  customersService,
+  dealsService,
+  invoicesService,
+  leadsService,
+  productsService,
+  usersService,
+} from "@/services/resources";
+import { QK } from "@/config/constants";
+import { CommentThread } from "@/features/collaboration/CommentThread";
+import { SignaturePanel } from "@/features/signatures/SignaturePanel";
+import { AiGeneratePanel } from "@/features/ai/AiGeneratePanel";
+import type { CommentEntityType } from "@/types/collab";
+import type { AiTaskType } from "@/types/collab";
 import type { ModuleConfig, ModuleField, Row } from "./module-config";
 
 interface Props {
@@ -17,6 +34,71 @@ interface Props {
   pending: boolean;
   error?: ApiError | null;
 }
+
+/**
+ * Ressources sélectionnables et rendu d'une option.
+ *
+ * Chaque entrée dit quoi chercher et comment l'afficher — le libellé doit
+ * suffire à reconnaître la fiche sans ouvrir autre chose.
+ */
+const REFERENCES = {
+  customers: {
+    service: customersService,
+    queryKey: QK.customers,
+    placeholder: "Rechercher un client",
+    render: (row: Row) => ({
+      label: String(row.companyName ?? ""),
+      detail: String(row.code ?? ""),
+    }),
+  },
+  invoices: {
+    service: invoicesService,
+    queryKey: QK.invoices,
+    placeholder: "Rechercher une facture",
+    render: (row: Row) => ({
+      label: String(row.number ?? ""),
+      detail: String((row.customer as Row | undefined)?.companyName ?? ""),
+    }),
+  },
+  contracts: {
+    service: contractsService,
+    queryKey: QK.contracts,
+    placeholder: "Rechercher un contrat",
+    render: (row: Row) => ({
+      label: `${String(row.number ?? "")} — ${String(row.title ?? "")}`,
+    }),
+  },
+  products: {
+    service: productsService,
+    queryKey: QK.products,
+    placeholder: "Rechercher un produit",
+    render: (row: Row) => ({ label: String(row.name ?? ""), detail: String(row.code ?? "") }),
+  },
+  users: {
+    service: usersService,
+    queryKey: QK.users,
+    placeholder: "Rechercher un agent",
+    render: (row: Row) => ({
+      label: `${String(row.firstName ?? "")} ${String(row.lastName ?? "")}`,
+      detail: String(row.email ?? ""),
+    }),
+  },
+  deals: {
+    service: dealsService,
+    queryKey: QK.deals,
+    placeholder: "Rechercher une opportunité",
+    render: (row: Row) => ({ label: String(row.title ?? "") }),
+  },
+  leads: {
+    service: leadsService,
+    queryKey: QK.leads,
+    placeholder: "Rechercher un prospect",
+    render: (row: Row) => ({
+      label: `${String(row.firstName ?? "")} ${String(row.lastName ?? "")}`,
+      detail: String(row.company ?? ""),
+    }),
+  },
+} as const;
 
 /** Une date ISO arrive en `2026-07-31T00:00:00.000Z` ; l'input attend `2026-07-31`. */
 const toDateInput = (value: unknown) =>
@@ -32,6 +114,7 @@ export function ModuleFormModal({
   error,
 }: Props) {
   const isEdit = Boolean(row);
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const [values, setValues] = useState<Row>({});
 
   useEffect(() => {
@@ -65,6 +148,16 @@ export function ModuleFormModal({
         field.type === "number" || field.type === "money" ? Number(value) : value;
     }
 
+    // Certains DTO exigent un champ que l'utilisateur n'a pas à saisir —
+    // `assignedToId` sur une activité, par exemple. On l'ajoute à la
+    // création seulement : en modification, le renvoyer réattribuerait la
+    // fiche à qui l'édite.
+    if (!isEdit && config.injectOnCreate) {
+      for (const [key, source] of Object.entries(config.injectOnCreate)) {
+        if (source === "currentUserId" && currentUserId) payload[key] = currentUserId;
+      }
+    }
+
     await onSubmit(payload);
   }
 
@@ -96,6 +189,47 @@ export function ModuleFormModal({
           ))}
         </div>
 
+        {/* Panneaux transverses — uniquement en modification : signature,
+            commentaires et rédaction assistée portent sur une fiche déjà
+            enregistrée, dont le serveur peut reconstruire le contexte. */}
+        {isEdit && config.panels && row?.id && (
+          <div className="space-y-4 border-t border-line pt-5">
+            {config.panels.aiTask && config.panels.aiTarget && (
+              <AiGeneratePanel
+                taskType={config.panels.aiTask as AiTaskType}
+                entityType={config.panels.entityType as CommentEntityType}
+                entityId={String(row.id)}
+                onAccept={(text) =>
+                  set(
+                    config.panels!.aiTarget!,
+                    [String(values[config.panels!.aiTarget!] ?? ""), text]
+                      .filter(Boolean)
+                      .join("\n\n"),
+                  )
+                }
+              />
+            )}
+
+            {config.panels.signature && (
+              <SignaturePanel
+                entityType={
+                  config.panels.entityType as "QUOTE" | "PURCHASE_ORDER" | "CONTRACT"
+                }
+                entityId={String(row.id)}
+              />
+            )}
+
+            {config.panels.comments && (
+              <CommentThread
+                entityType={config.panels.entityType as CommentEntityType}
+                entityId={String(row.id)}
+                title="Commentaires"
+                emptyDetail="Notez ici le contexte, une consigne ou un point d'attention — vos collègues le verront."
+              />
+            )}
+          </div>
+        )}
+
         {error && !error.fieldErrors && (
           <p role="alert" className="rounded-lg bg-alert/10 px-3 py-2 text-sm text-alert">
             {error.message}
@@ -117,6 +251,22 @@ export function ModuleFormModal({
 }
 
 function renderInput(field: ModuleField, value: unknown, onChange: (value: unknown) => void) {
+  if (field.type === "reference" && field.reference) {
+    const ref = REFERENCES[field.reference.resource];
+
+    return (
+      <EntitySelect
+        id={field.key}
+        service={ref.service as never}
+        queryKey={ref.queryKey}
+        value={String(value ?? "")}
+        onChange={(id) => onChange(id)}
+        placeholder={field.placeholder ?? ref.placeholder}
+        render={ref.render}
+      />
+    );
+  }
+
   const common = {
     id: field.key,
     value: String(value ?? ""),

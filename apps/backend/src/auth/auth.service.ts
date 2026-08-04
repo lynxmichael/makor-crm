@@ -16,7 +16,7 @@ import type { StringValue } from 'ms';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../mail/mail.service';
 import { AuditService } from '../audit/audit.service';
-import { TwoFactorPolicy } from './two-factor.policy';
+import { TwoFactorPolicy, TWO_FACTOR_MANDATORY_ROLES } from './two-factor.policy';
 
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -487,6 +487,16 @@ export class AuthService {
 
   async disableTwoFactor(userId: string, dto: TwoFactorCodeDto) {
     const user = await this.usersService.findById(userId);
+
+    // L'obligation du CDC §2.4 doit tenir côté serveur : sans ce contrôle,
+    // un Super Admin désactive sa propre double authentification en un appel,
+    // et l'obligation ne vaut plus rien.
+    if (this.twoFactorPolicy.isEnforced() && TWO_FACTOR_MANDATORY_ROLES.includes(user.role?.name ?? '')) {
+      throw new BadRequestException(
+        'Votre rôle impose la double authentification : elle ne peut pas être désactivée. ' +
+          'En cas de perte de votre téléphone, demandez une réinitialisation à un administrateur.',
+      );
+    }
 
     if (!user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new BadRequestException(

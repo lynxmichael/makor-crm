@@ -13,6 +13,10 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { ActivitiesService } from './activities.service';
 
@@ -22,11 +26,12 @@ import { UpdateActivityDto } from './dto/update-activity.dto';
 @ApiTags('Activities')
 @ApiBearerAuth()
 @Controller('activities')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Créer une activité',
   })
@@ -45,6 +50,7 @@ export class ActivitiesController {
     @Query('type') type?: string,
     @Query('status') status?: string,
     @Query('assignedToId') assignedToId?: string,
+    @CurrentUser() user?: any,
     @Query('leadId') leadId?: string,
     @Query('customerId') customerId?: string,
     @Query('dealId') dealId?: string,
@@ -55,7 +61,11 @@ export class ActivitiesController {
       search,
       type,
       status,
-      assignedToId,
+      // Un commercial ne voit que son propre agenda : le filtre est
+
+      // imposé, pas proposé.
+
+      assignedToId: user?.role?.name === 'COMMERCIAL' ? user.id : assignedToId,
       leadId,
       customerId,
       dealId,
@@ -71,6 +81,7 @@ export class ActivitiesController {
   }
 
   @Patch(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Modifier une activité',
   })
@@ -79,6 +90,7 @@ export class ActivitiesController {
   }
 
   @Post(':id/send-report')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Envoyer le compte rendu du rendez-vous par email au client',
   })
@@ -87,6 +99,7 @@ export class ActivitiesController {
   }
 
   @Delete(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Supprimer une activité',
   })

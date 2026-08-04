@@ -17,6 +17,7 @@ import {
   KeyRound,
   Coins,
   Gauge,
+  CalendarCheck,
   Zap,
   FolderOpen,
   BarChart3,
@@ -97,6 +98,13 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/reports", label: "Rapports", icon: BarChart3 },
       { to: "/priorites", label: "Priorités", icon: Gauge },
+      {
+        to: "/evaluation",
+        label: "Évaluation",
+        icon: CalendarCheck,
+        // Fermé au COMMERCIAL, conformément à la demande du 31/07.
+        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_VENTES, ROLES.SUPERVISEUR, ROLES.MANAGER],
+      },
       { to: "/commissions", label: "Commissions", icon: Coins },
       { to: "/audit", label: "Audit", icon: ShieldCheck, roles: [ROLES.SUPER_ADMIN] },
     ],
@@ -108,7 +116,9 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/users",
         label: "Comptes et accès",
         icon: UsersRound,
-        roles: [ROLES.SUPER_ADMIN],
+        // Le superviseur y accède aussi : il gère ses commerciaux. Le
+        // périmètre est appliqué côté serveur par `UserAdminPolicy`.
+        roles: [ROLES.SUPER_ADMIN, ROLES.SUPERVISEUR],
       },
       {
         to: "/workflows",

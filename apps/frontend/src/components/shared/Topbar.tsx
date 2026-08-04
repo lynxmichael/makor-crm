@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, LogOut, Menu, Search, Loader2, ShieldCheck } from "lucide-react";
+import { Bell, LogOut, Menu, Search, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -13,12 +13,14 @@ import { useUiStore } from "@/store/ui.store";
 import { formatRelative, initials } from "@/lib/format";
 import { panelVariants } from "@/lib/motion";
 import { useDebounced } from "@/hooks/use-debounced";
+import { AiAssistantModal } from "@/features/ai/AiAssistantModal";
 
 export function Topbar() {
   const navigate = useNavigate();
   const setMobileNav = useUiStore((s) => s.setMobileNav);
 
   const [query, setQuery] = useState("");
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [panel, setPanel] = useState<"search" | "notifications" | "account" | null>(null);
   const containerRef = useRef<HTMLElement>(null);
 
@@ -67,6 +69,21 @@ export function Topbar() {
           setPanel(null);
         }}
       />
+
+      {/* Assistant de rédaction — accessible depuis n'importe quel écran.
+          Il ne s'affichait auparavant qu'à l'intérieur des éditeurs de devis
+          et de contrat, donc invisible tant qu'on n'y était pas entré. */}
+      <button
+        type="button"
+        onClick={() => setAssistantOpen(true)}
+        title="Assistant de rédaction"
+        aria-label="Assistant de rédaction"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate transition-colors hover:bg-wire/10 hover:text-wire"
+      >
+        <Sparkles className="h-4.5 w-4.5" />
+      </button>
+
+      <AiAssistantModal open={assistantOpen} onClose={() => setAssistantOpen(false)} />
 
       <div className="ml-auto flex items-center gap-1">
         <Notifications

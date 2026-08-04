@@ -102,6 +102,7 @@ export const prospectsConfig: ModuleConfig = {
   emptyDetail: "Créez votre premier prospect pour alimenter le pipeline commercial.",
   deleteWarning:
     "Les rendez-vous et opportunités rattachés à ce prospect seront également supprimés.",
+  panels: { entityType: "LEAD", comments: true },
   toasts: { created: "Prospect créé", updated: "Prospect mis à jour", deleted: "Prospect supprimé" },
 };
 
@@ -144,16 +145,71 @@ export const contractsConfig: ModuleConfig = {
   ],
   fields: [
     { key: "title", label: "Objet du contrat", required: true },
-    { key: "customerId", label: "Identifiant client", required: true, hint: "Sélecteur client à venir." },
+    {
+      key: "customerId",
+      label: "Client",
+      type: "reference",
+      reference: { resource: "customers" },
+      required: true,
+    },
     { key: "amount", label: "Montant (FCFA)", type: "money", required: true },
     { key: "startDate", label: "Date de début", type: "date", required: true },
     { key: "endDate", label: "Date de fin", type: "date", hint: "Laisser vide pour une durée indéterminée." },
-    { key: "status", label: "Statut", type: "select", options: CONTRACT_STATUSES },
     { key: "description", label: "Description", type: "textarea" },
   ],
+  // `status` volontairement absent des champs : `CreateContractDto` ne
+  // l'accepte pas — un contrat naît en brouillon et son statut évolue par
+  // les actions du cycle de vie, pas par saisie directe.
   emptyTitle: "Aucun contrat",
   emptyDetail: "Les contrats sont généralement issus d'un bon de commande signé.",
   deleteWarning: "Les factures rattachées à ce contrat perdront leur lien.",
+  rowActions: [
+    {
+      path: "/contracts/:id/mark-signed",
+      label: "Marquer comme signé",
+      icon: "check",
+      tone: "signal",
+      visibleWhen: ["DRAFT"],
+      confirmBody:
+        "Vous confirmez avoir reçu le contrat signé par le client. Le contrat passe alors en actif.",
+      successMessage: "Contrat marqué comme signé",
+    },
+    {
+      path: "/contracts/:id/suspend",
+      label: "Suspendre",
+      icon: "pause",
+      tone: "amber",
+      visibleWhen: ["ACTIVE"],
+      confirmBody:
+        "Les prestations sont interrompues sans rompre l'engagement. Le contrat pourra être réactivé.",
+      successMessage: "Contrat suspendu",
+    },
+    {
+      path: "/contracts/:id/terminate",
+      label: "Résilier",
+      icon: "stop",
+      tone: "alert",
+      visibleWhen: ["ACTIVE", "SUSPENDED"],
+      confirmBody:
+        "La résiliation met fin à l'engagement. Les factures déjà émises restent dues.",
+      successMessage: "Contrat résilié",
+    },
+  ],
+  sendAction: {
+    path: "/contracts/:id/send",
+    label: "Envoyer au client",
+    confirmTitle: "Envoyer le contrat au client ?",
+    confirmBody:
+      "Le contrat part par e-mail à l'adresse enregistrée sur la fiche client, avec le PDF en pièce jointe.",
+    successMessage: "Contrat envoyé au client",
+  },
+  panels: {
+    entityType: "CONTRACT",
+    comments: true,
+    signature: true,
+    aiTask: "CONTRACT_BODY",
+    aiTarget: "description",
+  },
   toasts: { created: "Contrat créé", updated: "Contrat mis à jour", deleted: "Contrat supprimé" },
 };
 
@@ -213,14 +269,28 @@ export const paymentsConfig: ModuleConfig = {
     { key: "status", label: "Statut", type: "status" },
   ],
   fields: [
-    { key: "invoiceId", label: "Identifiant facture", required: true },
-    { key: "customerId", label: "Identifiant client", required: true },
+    {
+      key: "invoiceId",
+      label: "Facture",
+      type: "reference",
+      reference: { resource: "invoices" },
+      required: true,
+    },
+    {
+      key: "customerId",
+      label: "Client",
+      type: "reference",
+      reference: { resource: "customers" },
+      required: true,
+    },
     { key: "amount", label: "Montant (FCFA)", type: "money", required: true },
     { key: "method", label: "Moyen de paiement", type: "select", options: PAYMENT_METHODS, required: true },
     { key: "status", label: "Statut", type: "select", options: PAYMENT_STATUSES },
-    { key: "transactionId", label: "Identifiant de transaction" },
+    { key: "reference", label: "Référence du versement" },
+    { key: "provider", label: "Prestataire", hint: "Wave, Orange Money, banque…" },
     { key: "paidAt", label: "Date d'encaissement", type: "date" },
   ],
+  injectOnCreate: { createdById: "currentUserId" },
   emptyTitle: "Aucun encaissement",
   emptyDetail: "Les encaissements se rattachent à une facture émise.",
   toasts: {
@@ -260,11 +330,19 @@ export const senderIdConfig: ModuleConfig = {
   ],
   fields: [
     { key: "name", label: "Sender ID demandé", required: true, hint: "11 caractères alphanumériques maximum." },
-    { key: "customerId", label: "Identifiant client", required: true },
+    {
+      key: "customerId",
+      label: "Client",
+      type: "reference",
+      reference: { resource: "customers" },
+      required: true,
+    },
     { key: "partner", label: "Opérateur partenaire" },
-    { key: "status", label: "Statut", type: "select", options: SENDER_ID_STATUSES },
     { key: "notes", label: "Notes", type: "textarea" },
   ],
+  // `status` retiré du formulaire : l'approbation et le rejet passent par
+  // `PATCH /sender-id/:id/approve|reject`, qui horodatent la décision et
+  // tracent son auteur — ce qu'une saisie libre ne ferait pas.
   emptyTitle: "Aucune demande de Sender ID",
   emptyDetail: "Les demandes sont soumises aux opérateurs pour validation.",
   toasts: { created: "Demande créée", updated: "Demande mise à jour", deleted: "Demande supprimée" },
@@ -317,10 +395,20 @@ export const agendaConfig: ModuleConfig = {
     { key: "type", label: "Type", type: "select", options: ACTIVITY_TYPES, required: true },
     { key: "dueDate", label: "Date", type: "date" },
     { key: "location", label: "Lieu" },
-    { key: "customerId", label: "Identifiant client" },
+    {
+      key: "customerId",
+      label: "Client",
+      type: "reference",
+      reference: { resource: "customers" },
+    },
     { key: "status", label: "Statut", type: "select", options: ACTIVITY_STATUSES },
     { key: "description", label: "Description", type: "textarea" },
   ],
+  // `CreateActivityDto` exige `assignedToId` sans que ce soit une question à
+  // poser : on planifie son propre agenda.
+  injectOnCreate: { assignedToId: "currentUserId" },
+  // L'annulation d'un rendez-vous exige un motif saisi : elle passe par sa
+  // propre modale (`CancelActivityModal`), pas par une action de ligne.
   emptyTitle: "Aucune activité planifiée",
   emptyDetail: "Planifiez vos rendez-vous, appels et relances depuis cet écran.",
   toasts: {
@@ -368,6 +456,7 @@ export const documentsConfig: ModuleConfig = {
   // pas dans le formulaire générique, d'où la lecture seule ici.
   fields: [],
   readOnly: true,
+  statsPanel: { path: "/documents/:id/stats" },
   emptyTitle: "Aucun document",
   emptyDetail: "Les documents déposés depuis les fiches client apparaîtront ici.",
 };

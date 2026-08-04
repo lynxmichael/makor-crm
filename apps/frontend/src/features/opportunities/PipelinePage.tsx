@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { GripVertical, Loader2, Target, TrendingUp } from "lucide-react";
+import { ClipboardList, GripVertical, Loader2, Plus, Settings2, Target, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState } from "@/components/shared/DataState";
 
 import { DealQualificationModal } from "./DealQualificationModal";
+import { PipelineStagesModal } from "./PipelineStagesModal";
+import { DealFormModal } from "./DealFormModal";
 import { http } from "@/services/api";
 import { QK } from "@/config/constants";
+import { useAuthStore } from "@/store/auth.store";
 import { formatMoney, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -42,6 +46,9 @@ export function PipelinePage() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [hoveredStage, setHoveredStage] = useState<string | null>(null);
   const [qualifying, setQualifying] = useState<Row | null>(null);
+  const [stagesOpen, setStagesOpen] = useState(false);
+  const [dealFormOpen, setDealFormOpen] = useState(false);
+  const isSuperAdmin = useAuthStore((s) => s.user?.role?.name === "SUPER_ADMIN");
 
   const query = useQuery({
     queryKey: [...QK.deals, "board"],
@@ -94,6 +101,18 @@ export function PipelinePage() {
           </p>
         </div>
 
+        <Button onClick={() => setDealFormOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Nouvelle opportunité
+        </Button>
+
+        {isSuperAdmin && (
+          <Button variant="secondary" onClick={() => setStagesOpen(true)}>
+            <Settings2 className="h-4 w-4" />
+            Étapes du pipeline
+          </Button>
+        )}
+
         {!query.isPending && totalPipeline > 0 && (
           <div className="rounded-xl border border-line bg-surface px-4 py-2.5">
             <p className="text-xs text-slate">Valeur du pipeline</p>
@@ -116,7 +135,7 @@ export function PipelinePage() {
         <EmptyState
           icon={Target}
           title="Aucune étape de pipeline"
-          detail="Le Super administrateur doit d'abord définir les étapes du pipeline dans les paramètres."
+          detail="Le Super administrateur doit d'abord définir les étapes du pipeline avec le bouton « Étapes du pipeline »."
         />
       ) : (
         <div className="scrollbar-thin flex gap-4 overflow-x-auto pb-3">
@@ -179,10 +198,6 @@ export function PipelinePage() {
                             setDragging(null);
                             setHoveredStage(null);
                           }}
-                          // Le clic ouvre la grille de qualification ; le
-                          // glisser reste prioritaire, `onClick` ne se
-                          // déclenche pas à l'issue d'un déplacement.
-                          onClick={() => setQualifying(deal)}
                           className={cn(
                             "group cursor-grab rounded-lg border border-line bg-surface p-3 shadow-e1 transition-shadow active:cursor-grabbing",
                             isDragged ? "opacity-40" : "hover:shadow-e2",
@@ -232,6 +247,20 @@ export function PipelinePage() {
                               )}
                             </span>
                           </div>
+
+                          {/* Bouton explicite plutôt qu'un clic sur la carte :
+                              sur un élément `draggable`, le navigateur
+                              interprète l'appui comme le début d'un glisser et
+                              n'émet pas de clic. */}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="mt-2 w-full"
+                            onClick={() => setQualifying(deal)}
+                          >
+                            <ClipboardList className="h-3.5 w-3.5" />
+                            Qualifier
+                          </Button>
                         </motion.article>
                       );
                     })
@@ -244,6 +273,10 @@ export function PipelinePage() {
       )}
 
       <DealQualificationModal deal={qualifying} onClose={() => setQualifying(null)} />
+
+      <PipelineStagesModal open={stagesOpen} onClose={() => setStagesOpen(false)} />
+
+      <DealFormModal open={dealFormOpen} onClose={() => setDealFormOpen(false)} />
 
       {moveStage.isPending && (
         <p className="flex items-center gap-2 text-xs text-slate">

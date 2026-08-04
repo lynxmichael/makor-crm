@@ -172,6 +172,7 @@ model User {
   workflows         Workflow[]         @relation("WorkflowCreatedBy")
   commissions       Commission[]       @relation("CommissionBeneficiary")
   commissionPlans   CommissionPlan[]   @relation("CommissionPlanUser")
+  documentEvents    DocumentEvent[]    @relation("DocumentEventUser")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -253,6 +254,8 @@ model Customer {
   @@index([country])
   @@index([status])
   apiKeys ApiKey[]
+  @@index([assignedToId])
+
 }
 
 model Contact {
@@ -457,6 +460,12 @@ model Activity {
 
   reportSentAt DateTime?
 
+  /// Justification obligatoire dès qu'une activité passe en CANCELLED
+  /// (demande du 31/07). Sans motif, le service refuse la transition.
+  cancelledAt        DateTime?
+  cancellationReason CancellationReason?
+  cancellationNote   String?
+
   leadId String?
   lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
@@ -551,7 +560,7 @@ model Quote {
 
   customerId String
   documents  Document[]
-  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   dealId String?
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
@@ -567,6 +576,8 @@ model Quote {
   @@index([customerId])
   @@index([dealId])
   @@index([status])
+  @@index([createdById])
+
 }
 
 model QuoteItem {
@@ -587,6 +598,8 @@ model QuoteItem {
   createdAt DateTime @default(now())
 
   @@index([quoteId])
+  @@index([productId])
+
 }
 
 enum PurchaseOrderStatus {
@@ -605,7 +618,7 @@ model PurchaseOrder {
   quote   Quote?  @relation(fields: [quoteId], references: [id], onDelete: SetNull)
 
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   amount        Decimal             @db.Decimal(14, 2)
   paymentMethod String?
@@ -627,6 +640,8 @@ model PurchaseOrder {
 
   @@index([customerId])
   @@index([status])
+  @@index([createdById])
+
 }
 
 model PurchaseOrderItem {
@@ -671,7 +686,7 @@ model Contract {
   status ContractStatus @default(DRAFT)
 
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   purchaseOrderId String?        @unique
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
@@ -686,6 +701,8 @@ model Contract {
 
   @@index([customerId])
   @@index([status])
+  @@index([createdById])
+
 }
 
 enum InvoiceStatus {
@@ -701,7 +718,7 @@ model Invoice {
   number String @unique
 
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   contractId String?
   contract   Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
@@ -724,6 +741,8 @@ model Invoice {
 
   @@index([customerId])
   @@index([status])
+  @@index([contractId])
+
 }
 
 model InvoiceItem {
@@ -744,6 +763,8 @@ model InvoiceItem {
   createdAt DateTime @default(now())
 
   @@index([invoiceId])
+  @@index([productId])
+
 }
 
 enum PaymentMethod {
@@ -787,10 +808,10 @@ model Payment {
   paidAt DateTime?
 
   invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
 
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
@@ -802,13 +823,15 @@ model Payment {
   @@index([customerId])
   @@index([status])
   @@index([method])
+  @@index([createdById])
+
 }
 
 model Recharge {
   id String @id @default(cuid())
 
   customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -907,6 +930,9 @@ model Campaign {
 
   @@index([status])
   @@index([customerId])
+  @@index([createdById])
+  @@index([productId])
+
 }
 
 enum CampaignRecipientStatus {
@@ -988,6 +1014,7 @@ model Document {
   @@index([dealId])
   @@index([quoteId])
   @@index([contractId])
+  events DocumentEvent[]
 }
 
 model Objective {
@@ -1334,6 +1361,8 @@ enum AiTaskType {
   CONTRACT_CLAUSE
   EMAIL_DRAFT
   MEETING_SUMMARY
+  CAMPAIGN_MESSAGE
+  CAMPAIGN_VARIANTS
 }
 
 /**
@@ -1508,6 +1537,8 @@ model ApiKey {
 
   @@index([customerId])
   @@index([isActive])
+  @@index([createdById])
+
 }
 
 /**
@@ -1616,6 +1647,8 @@ model SignatureRequest {
 
   @@index([entityType, entityId])
   @@index([status])
+  @@index([requestedById])
+
 }
 
 // ===========================================================================
@@ -1727,6 +1760,8 @@ model Commission {
   @@unique([sourceType, sourceId, userId])
   @@index([userId, period])
   @@index([status])
+  @@index([planId])
+
 }
 
 // ===========================================================================
@@ -1869,4 +1904,65 @@ model WorkflowRun {
 
   @@index([workflowId, createdAt])
   @@index([entityType, entityId])
+}
+
+// ===========================================================================
+// Évaluation des commerciaux (demande du 31/07/2026)
+// ===========================================================================
+
+/**
+ * Motif d'annulation d'un rendez-vous.
+ *
+ * Le CDC ne les liste pas ; ceux-ci couvrent les cas rencontrés en pratique.
+ * Le champ libre reste obligatoire quel que soit le motif : une catégorie
+ * seule ne dit pas ce qui s'est passé.
+ */
+enum CancellationReason {
+  CLIENT_INDISPONIBLE
+  CLIENT_REPORTE
+  CLIENT_DESISTE
+  COMMERCIAL_INDISPONIBLE
+  DOUBLON
+  AUTRE
+}
+
+// ===========================================================================
+// Statistiques documentaires (demande du 31/07/2026)
+// ===========================================================================
+
+enum DocumentEventType {
+  VIEWED
+  DOWNLOADED
+  SENT
+  PREVIEWED
+}
+
+/**
+ * Journal de consultation d'un document.
+ *
+ * Séparé de l'AuditLog, qui trace les actions sensibles : ici le volume est
+ * élevé et l'usage différent — savoir si un client a ouvert le devis qu'on
+ * lui a envoyé, et combien de fois.
+ */
+model DocumentEvent {
+  id String @id @default(cuid())
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  type DocumentEventType
+
+  /// Nul quand l'action vient du client, qui n'a pas de compte.
+  userId String?
+  user   User?   @relation("DocumentEventUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([documentId, createdAt])
+  @@index([type])
+  @@index([userId])
+
 }

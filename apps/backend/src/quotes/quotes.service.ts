@@ -94,14 +94,23 @@ export class QuotesService {
     });
   }
 
+  /**
+   * Liste des devis.
+   *
+   * `scopeToUserId` restreint aux devis des clients dont l'appelant est le
+   * chargé de compte. On passe par le client plutôt que par l'auteur du
+   * devis : un commercial doit voir toutes les propositions faites à ses
+   * clients, y compris celles rédigées par un collègue en son absence.
+   */
   async findAll(params: {
     page: number;
     limit: number;
     search?: string;
     status?: string;
     customerId?: string;
+    scopeToUserId?: string;
   }) {
-    const { page, limit, search, status, customerId } = params;
+    const { page, limit, search, status, customerId, scopeToUserId } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.QuoteWhereInput = {
@@ -117,6 +126,7 @@ export class QuotesService {
 
         status ? { status: status as any } : {},
         customerId ? { customerId } : {},
+        scopeToUserId ? { customer: { assignedToId: scopeToUserId } } : {},
       ],
     };
 
@@ -138,9 +148,10 @@ export class QuotesService {
     };
   }
 
-  async findOne(id: string) {
-    const quote = await this.prisma.quote.findUnique({
-      where: { id },
+  /** Comme pour la liste, le périmètre passe par le client rattaché. */
+  async findOne(id: string, scopeToUserId?: string) {
+    const quote = await this.prisma.quote.findFirst({
+      where: { id, ...(scopeToUserId ? { customer: { assignedToId: scopeToUserId } } : {}) },
       include: this.include,
     });
 
@@ -151,8 +162,8 @@ export class QuotesService {
     return quote;
   }
 
-  async update(id: string, dto: UpdateQuoteDto) {
-    const existing = await this.findOne(id);
+  async update(id: string, dto: UpdateQuoteDto, scopeToUserId?: string) {
+    const existing = await this.findOne(id, scopeToUserId);
 
     if (existing.status !== 'DRAFT') {
       throw new BadRequestException(
@@ -179,8 +190,8 @@ export class QuotesService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
     return this.prisma.quote.delete({ where: { id } });
   }
 

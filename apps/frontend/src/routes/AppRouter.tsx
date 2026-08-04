@@ -33,6 +33,7 @@ import { ApiKeysPage } from "@/features/api-keys/ApiKeysPage";
 import { CommissionsPage } from "@/features/commissions/CommissionsPage";
 import { WorkflowsPage } from "@/features/workflows/WorkflowsPage";
 import { ScoringPage } from "@/features/scoring/ScoringPage";
+import { EvaluationPage } from "@/features/evaluation/EvaluationPage";
 
 /**
  * Table de routage unique de l'application.
@@ -84,6 +85,7 @@ export function AppRouter() {
             <Route path="commissions" element={<CommissionsPage />} />
             <Route path="workflows" element={<WorkflowsPage />} />
             <Route path="priorites" element={<ScoringPage />} />
+            <Route path="evaluation" element={<EvaluationPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>

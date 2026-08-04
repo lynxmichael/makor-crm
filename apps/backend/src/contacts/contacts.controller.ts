@@ -13,6 +13,8 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 import { ContactsService } from './contacts.service';
 
@@ -22,11 +24,12 @@ import { UpdateContactDto } from './dto/update-contact.dto';
 @ApiTags('Contacts')
 @ApiBearerAuth()
 @Controller('contacts')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
   @Post()
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Créer un contact',
   })
@@ -61,6 +64,7 @@ export class ContactsController {
   }
 
   @Patch(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Modifier un contact',
   })
@@ -69,6 +73,7 @@ export class ContactsController {
   }
 
   @Delete(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({
     summary: 'Supprimer un contact',
   })

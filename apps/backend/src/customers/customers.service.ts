@@ -41,7 +41,17 @@ export class CustomersService {
     });
   }
 
-  async findAll(filter: FilterCustomerDto) {
+  /**
+   * Portefeuille clients.
+   *
+   * `scopeToUserId` restreint la liste aux clients dont l'appelant est le
+   * chargé de compte. Appliqué au COMMERCIAL : sans cela, chacun voit et
+   * modifie le portefeuille de tous, ce que le CDC §7 ne prévoit pas.
+   *
+   * Les autres profils gardent la vue complète — un superviseur doit voir
+   * son équipe, un financier doit facturer n'importe quel client.
+   */
+  async findAll(filter: FilterCustomerDto, scopeToUserId?: string) {
     const {
       page = 1,
       limit = 10,
@@ -50,7 +60,7 @@ export class CustomersService {
       status,
     } = filter;
 
-    const where: any = {};
+    const where: any = scopeToUserId ? { assignedToId: scopeToUserId } : {};
 
     if (search) {
       where.OR = [
@@ -117,11 +127,22 @@ export class CustomersService {
     };
   }
 
-  async findOne(id: string) {
+  /**
+   * Fiche client.
+   *
+   * `scopeToUserId` s'applique ici aussi : filtrer la liste sans filtrer
+   * l'accès unitaire ne protège rien — il suffirait de deviner ou de
+   * relever un identifiant pour ouvrir la fiche d'un collègue.
+   *
+   * Un client hors périmètre renvoie 404, pas 403 : répondre « interdit »
+   * confirmerait son existence.
+   */
+  async findOne(id: string, scopeToUserId?: string) {
     const customer =
-      await this.prisma.customer.findUnique({
+      await this.prisma.customer.findFirst({
         where: {
           id,
+          ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}),
         },
 
         include: {
@@ -141,8 +162,9 @@ export class CustomersService {
   async update(
     id: string,
     dto: UpdateCustomerDto,
+  scopeToUserId?: string,
   ) {
-    await this.findOne(id);
+    await this.findOne(id, scopeToUserId);
 
     const {
       assignedToId,
@@ -173,8 +195,8 @@ export class CustomersService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.customer.delete({
       where: {

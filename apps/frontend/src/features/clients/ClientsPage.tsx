@@ -11,6 +11,7 @@ import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataS
 
 import { CustomerFormModal } from "./CustomerFormModal";
 import { CustomerTimeline } from "@/features/communications/CustomerTimeline";
+import { CommentThread } from "@/features/collaboration/CommentThread";
 import { CUSTOMER_STATUS_LABELS, CUSTOMER_STATUS_TONES } from "./customer-status";
 
 import { customersService } from "@/services/resources";
@@ -343,7 +344,16 @@ export function ClientsPage() {
         description="Tous les échanges avec ce client, du plus récent au plus ancien."
         className="max-w-3xl"
       >
-        {timelineFor && <CustomerTimeline customerId={timelineFor.id} />}
+        {timelineFor && (
+          <div className="space-y-4">
+            <CustomerTimeline customerId={timelineFor.id} />
+            <CommentThread
+              entityType="CUSTOMER"
+              entityId={timelineFor.id}
+              emptyDetail="Notez ici ce qui ne tient pas dans une fiche : contexte, historique, points d'attention."
+            />
+          </div>
+        )}
       </Modal>
 
       <Modal

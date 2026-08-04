@@ -120,9 +120,9 @@ export class DealsService {
     }));
   }
 
-  async findOne(id: string) {
-    const deal = await this.prisma.deal.findUnique({
-      where: { id },
+  async findOne(id: string, scopeToUserId?: string) {
+    const deal = await this.prisma.deal.findFirst({
+      where: { id, ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}) },
       include: {
         assignedTo: true,
         customer: true,
@@ -144,8 +144,8 @@ export class DealsService {
     return deal;
   }
 
-  async update(id: string, dto: UpdateDealDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateDealDto, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.deal.update({
       where: { id },
@@ -177,8 +177,8 @@ export class DealsService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.deal.delete({ where: { id } });
   }

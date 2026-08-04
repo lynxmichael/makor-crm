@@ -33,9 +33,9 @@ export class UsersController {
   ) {}
 
   @Post()
-  @Roles('SUPER_ADMIN')
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
+  create(@Body() dto: CreateUserDto, @CurrentUser() actor: any) {
+    return this.usersService.create(dto, actor?.role?.name);
   }
 
   /**
@@ -68,9 +68,9 @@ export class UsersController {
    * trace nominative.
    */
   @Patch(':id/two-factor/reset')
-  @Roles('SUPER_ADMIN')
+  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
   resetTwoFactor(@Param('id') id: string, @CurrentUser() actor: any) {
-    return this.usersService.resetTwoFactorAsAdmin(id, actor.id);
+    return this.usersService.resetTwoFactorAsAdmin(id, actor.id, actor?.role?.name);
   }
 
   @Get()
@@ -96,18 +96,18 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN')
+  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
   update(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
     @CurrentUser() actor: any,
   ) {
-    return this.usersService.update(id, dto, actor?.id);
+    return this.usersService.update(id, dto, actor?.id, actor?.role?.name);
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
+  remove(@Param('id') id: string, @CurrentUser() actor: any) {
+    return this.usersService.remove(id, actor?.role?.name);
   }
 }
