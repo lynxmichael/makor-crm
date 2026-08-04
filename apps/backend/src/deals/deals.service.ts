@@ -27,7 +27,7 @@ export class DealsService {
   async create(dto: CreateDealDto) {
     const stageId = dto.stageId ?? (await this.pipelineStagesService.getDefaultStage()).id;
 
-    return this.prisma.deal.create({
+    const created = await this.prisma.deal.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -50,6 +50,22 @@ export class DealsService {
         stage: true,
       },
     });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'DEAL_CREATED',
+      entityType: 'DEAL',
+      entityId: created.id,
+      actorId: created.assignedToId,
+      payload: {
+        title: created.title,
+        amount: Number(created.amount),
+        probability: created.probability,
+        stageName: created.stage?.name,
+      },
+    });
+
+    return created;
+
   }
 
   async findAll(params: {

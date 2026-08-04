@@ -487,6 +487,10 @@ model Activity {
   @@index([leadId])
   @@index([customerId])
   @@index([dealId])
+
+  /// Horodatage de la dernière alerte de retard émise. Empêche de
+  /// réémettre chaque matin pour la même pièce (OverdueWatcherService).
+  notifiedOverdueAt DateTime?
 }
 
 model Product {
@@ -743,6 +747,10 @@ model Invoice {
   @@index([status])
   @@index([contractId])
 
+
+  /// Horodatage de la dernière alerte de retard émise. Empêche de
+  /// réémettre chaque matin pour la même pièce (OverdueWatcherService).
+  notifiedOverdueAt DateTime?
 }
 
 model InvoiceItem {

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -23,6 +24,7 @@ export class QuotesService {
     private readonly pdfService: PdfService,
     private readonly mailService: MailService,
     private readonly auditService: AuditService,
+    private readonly events: EventEmitter2,
   ) {}
 
   private readonly include = {
@@ -270,6 +272,20 @@ export class QuotesService {
       userId,
     });
 
+    this.events.emit('workflow.trigger', {
+      trigger: 'QUOTE_SENT',
+      entityType: 'QUOTE',
+      entityId: id,
+      actorId: userId,
+      payload: {
+        number: quote.number,
+        title: quote.title,
+        total: Number(quote.total),
+        customerName: quote.customer?.companyName,
+        customerEmail: quote.customer?.email,
+      },
+    });
+
     return updated;
   }
 
@@ -282,11 +298,25 @@ export class QuotesService {
       );
     }
 
-    return this.prisma.quote.update({
+    const updated = await this.prisma.quote.update({
       where: { id },
       data: { status: 'ACCEPTED' },
       include: this.include,
     });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'QUOTE_ACCEPTED',
+      entityType: 'QUOTE',
+      entityId: id,
+      payload: {
+        number: updated.number,
+        title: updated.title,
+        total: Number(updated.total),
+        customerName: updated.customer?.companyName,
+      },
+    });
+
+    return updated;
   }
 
   async reject(id: string) {
@@ -298,11 +328,25 @@ export class QuotesService {
       );
     }
 
-    return this.prisma.quote.update({
+    const updated = await this.prisma.quote.update({
       where: { id },
       data: { status: 'REJECTED' },
       include: this.include,
     });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'QUOTE_REJECTED',
+      entityType: 'QUOTE',
+      entityId: id,
+      payload: {
+        number: updated.number,
+        title: updated.title,
+        total: Number(updated.total),
+        customerName: updated.customer?.companyName,
+      },
+    });
+
+    return updated;
   }
 
   /**

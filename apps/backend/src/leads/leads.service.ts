@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { Prisma } from '@prisma/client';
@@ -9,10 +10,12 @@ import { UpdateLeadDto } from './dto/update-lead.dto';
 
 @Injectable()
 export class LeadsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly events: EventEmitter2,
+  ) {}
 
-  create(dto: CreateLeadDto) {
-    return this.prisma.lead.create({
+  async create(dto: CreateLeadDto) {
+    const created = await this.prisma.lead.create({
       data: {
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -35,6 +38,22 @@ export class LeadsService {
 
       include: { assignedTo: true },
     });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'LEAD_CREATED',
+      entityType: 'LEAD',
+      entityId: created.id,
+      actorId: dto.assignedToId,
+      payload: {
+        firstName: created.firstName,
+        lastName: created.lastName,
+        company: created.company,
+        source: created.source,
+        value: Number(created.value ?? 0),
+      },
+    });
+
+    return created;
   }
 
   async findAll(params: {

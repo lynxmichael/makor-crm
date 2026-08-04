@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { SignableEntity, SignatureStatus } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { QuotesService } from '../quotes/quotes.service';
@@ -34,7 +35,9 @@ export class SignaturesService {
     private readonly quotes: QuotesService,
     private readonly purchaseOrders: PurchaseOrdersService,
     private readonly contracts: ContractsService,
-    @Inject(SIGNATURE_PROVIDER) private readonly provider: SignatureProvider,
+    @Inject(SIGNATURE_PROVIDER,
+    private readonly events: EventEmitter2,
+  ) private readonly provider: SignatureProvider,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -231,6 +234,18 @@ export class SignaturesService {
       userAgent,
     });
 
+    this.events.emit('workflow.trigger', {
+      trigger: 'SIGNATURE_SIGNED',
+      entityType: request.entityType,
+      entityId: request.entityId,
+      payload: {
+        signerName: request.signerName,
+        signerEmail: request.signerEmail,
+        signedAt: signed.signedAt,
+        requestId: request.id,
+      },
+    });
+
     return { id: signed.id, status: signed.status, signedAt: signed.signedAt };
   }
 
@@ -249,7 +264,7 @@ export class SignaturesService {
       ipAddress: ip,
     });
 
-    return this.prisma.signatureRequest.update({
+    const refused = await this.prisma.signatureRequest.update({
       where: { id: request.id },
       data: {
         status: SignatureStatus.REFUSED,
@@ -258,6 +273,20 @@ export class SignaturesService {
       },
       select: { id: true, status: true },
     });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'SIGNATURE_REFUSED',
+      entityType: request.entityType,
+      entityId: request.entityId,
+      payload: {
+        signerName: request.signerName,
+        signerEmail: request.signerEmail,
+        reason,
+        requestId: request.id,
+      },
+    });
+
+    return refused;
   }
 
   /** Certificat de preuve, consultable après signature. */

@@ -468,6 +468,17 @@ export class CampaignsService {
 
     this.events.emit('campaign.updated', { campaignId, stats });
 
+    this.events.emit('workflow.trigger', {
+      trigger: 'CAMPAIGN_FINISHED',
+      entityType: 'CAMPAIGN',
+      entityId: campaignId,
+      payload: {
+        processed: stats.processed,
+        failureRate: stats.failureRate,
+        anomaly,
+      },
+    });
+
     if (anomaly) {
       await this.alertAnomaly(campaignId, stats);
     }

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -23,6 +24,7 @@ export class ContractsService {
     private readonly settingsService: SettingsService,
     private readonly mailService: MailService,
     private readonly auditService: AuditService,
+    private readonly events: EventEmitter2,
   ) {}
 
   private readonly include = {
@@ -312,6 +314,21 @@ export class ContractsService {
       entityId: id,
       description: `Contrat ${contract.number} signé et activé`,
       userId,
+    });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'CONTRACT_ACTIVATED',
+      entityType: 'CONTRACT',
+      entityId: id,
+      actorId: userId,
+      payload: {
+        number: contract.number,
+        title: contract.title,
+        amount: Number(contract.amount),
+        customerName: contract.customer?.companyName,
+        startDate: contract.startDate,
+        endDate: contract.endDate,
+      },
     });
 
     return updated;

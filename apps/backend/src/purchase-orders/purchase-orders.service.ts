@@ -6,6 +6,7 @@ import {
 
 import { Prisma } from '@prisma/client';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuotesService } from '../quotes/quotes.service';
 import { PdfService } from '../common/pdf/pdf.service';
@@ -27,6 +28,7 @@ export class PurchaseOrdersService {
     private readonly settingsService: SettingsService,
     private readonly mailService: MailService,
     private readonly auditService: AuditService,
+    private readonly events: EventEmitter2,
   ) {}
 
   private readonly include = {
@@ -317,6 +319,18 @@ export class PurchaseOrdersService {
       entityId: id,
       description: `Bon de commande ${order.number} marqué comme signé`,
       userId,
+    });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'PURCHASE_ORDER_SIGNED',
+      entityType: 'PURCHASE_ORDER',
+      entityId: id,
+      actorId: userId,
+      payload: {
+        number: order.number,
+        amount: Number(order.amount),
+        customerName: order.customer?.companyName,
+      },
     });
 
     return updated;

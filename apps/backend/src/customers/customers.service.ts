@@ -3,6 +3,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -13,6 +14,7 @@ import { FilterCustomerDto } from './dto/filter-customer.dto';
 export class CustomersService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly events: EventEmitter2,
   ) {}
 
   async create(dto: CreateCustomerDto) {
@@ -21,7 +23,7 @@ export class CustomersService {
     const code =
       data.code ?? `CUST-${Date.now()}`;
 
-    return this.prisma.customer.create({
+    const created = await this.prisma.customer.create({
       data: {
         ...data,
         code,
@@ -39,6 +41,21 @@ export class CustomersService {
         assignedTo: true,
       },
     });
+
+    this.events.emit('workflow.trigger', {
+      trigger: 'CUSTOMER_CREATED',
+      entityType: 'CUSTOMER',
+      entityId: created.id,
+      actorId: assignedToId,
+      payload: {
+        companyName: created.companyName,
+        code: created.code,
+        sector: created.sector,
+        country: created.country,
+      },
+    });
+
+    return created;
   }
 
   /**

@@ -291,6 +291,20 @@ export class InvoicesService {
       userId,
     });
 
+    this.events.emit('workflow.trigger', {
+      trigger: 'INVOICE_SENT',
+      entityType: 'INVOICE',
+      entityId: id,
+      actorId: userId,
+      payload: {
+        number: invoice.number,
+        total: Number(invoice.total),
+        customerName: invoice.customer.companyName,
+        customerEmail: invoice.customer.email,
+        dueDate: invoice.dueDate,
+      },
+    });
+
     return updated;
   }
 

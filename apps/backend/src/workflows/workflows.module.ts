@@ -8,11 +8,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { WorkflowsController } from './workflows.controller';
 import { WorkflowsService } from './workflows.service';
 import { WorkflowEngineService } from './workflow-engine.service';
+import { OverdueWatcherService } from './overdue-watcher.service';
 
 @Module({
   imports: [PrismaModule, AuditModule, MailModule, NotificationsModule],
   controllers: [WorkflowsController],
-  providers: [WorkflowsService, WorkflowEngineService],
+  providers: [WorkflowsService, WorkflowEngineService, OverdueWatcherService],
   exports: [WorkflowsService],
 })
 export class WorkflowsModule {}
