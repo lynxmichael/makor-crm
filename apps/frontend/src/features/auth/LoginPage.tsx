@@ -1,110 +1,254 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Navigate, useNavigate } from "react-router-dom";
+import { z } from "zod";
+
+import makorLogo from "@/assets/makor-logo.png";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import makorLogo from "@/assets/makor-logo.png";
+import { firstAllowedPath } from "@/config/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { errorMessage } from "@/services/api";
+import { isTwoFactorChallenge } from "@/types/auth";
+
+const credentialsSchema = z.object({
+  email: z.email("Adresse e-mail invalide."),
+  password: z.string().min(1, "Le mot de passe est requis."),
+});
+
+const otpSchema = z.object({
+  // 6 chiffres pour un code TOTP, jusqu'à 10 caractères pour un code de
+  // secours — mêmes bornes que `TwoFactorLoginDto` côté backend.
+  code: z
+    .string()
+    .min(6, "Le code comporte au moins 6 caractères.")
+    .max(10, "Le code comporte au plus 10 caractères."),
+});
+
+type CredentialsForm = z.infer<typeof credentialsSchema>;
+type OtpForm = z.infer<typeof otpSchema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"credentials" | "otp">("credentials");
+  const { login, loginTwoFactor, isAuthenticated, role } = useAuth();
 
-  function handleCredentials(e: FormEvent) {
-    e.preventDefault();
-    setStep("otp");
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const credentialsForm = useForm<CredentialsForm>({
+    resolver: zodResolver(credentialsSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const otpForm = useForm<OtpForm>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { code: "" },
+  });
+
+  async function onCredentials(values: CredentialsForm) {
+    setServerError(null);
+    try {
+      const result = await login(values.email, values.password);
+
+      if (isTwoFactorChallenge(result)) {
+        setChallengeToken(result.challengeToken);
+        return;
+      }
+
+      navigate(firstAllowedPath(result.user.role.name), { replace: true });
+    } catch (error) {
+      setServerError(errorMessage(error, "Identifiants incorrects."));
+    }
   }
 
-  function handleOtp(e: FormEvent) {
-    e.preventDefault();
-    navigate("/");
+  async function onOtp(values: OtpForm) {
+    if (!challengeToken) return;
+    setServerError(null);
+    try {
+      const session = await loginTwoFactor(challengeToken, values.code.trim());
+      navigate(firstAllowedPath(session.user.role.name), { replace: true });
+    } catch (error) {
+      setServerError(errorMessage(error, "Code invalide ou expiré."));
+    }
   }
+
+  function backToCredentials() {
+    setChallengeToken(null);
+    setServerError(null);
+    otpForm.reset();
+  }
+
+  // Une session déjà ouverte ne repasse pas par la connexion.
+  if (isAuthenticated && role) {
+    return <Navigate to={firstAllowedPath(role)} replace />;
+  }
+
+  const step = challengeToken ? "otp" : "credentials";
+  const submitting =
+    credentialsForm.formState.isSubmitting || otpForm.formState.isSubmitting;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink px-4">
-      <div className="w-full max-w-sm">
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mb-8 flex flex-col items-center gap-3"
-        >
-          <img src={makorLogo} alt="Makor Telecoms" className="h-10 w-auto select-none" draggable={false} />
-          <span className="rounded-md border border-white/15 px-2 py-0.5 font-mono-tabular text-[10px] font-semibold uppercase tracking-widest text-white/50">
-            CRM · Group Telecom
-          </span>
-        </motion.div>
+    <div className="app-ambient relative flex min-h-screen items-center justify-center bg-bg px-4 py-10">
+      <div className="relative z-10 w-full max-w-md">
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <img src={makorLogo} alt="MAKOR Group Telecom" className="h-12 w-auto" />
+          <p className="text-xs uppercase tracking-[0.18em] text-muted">CRM Enterprise</p>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut", delay: 0.1 }}
-          className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-7 backdrop-blur"
-        >
-          <AnimatePresence mode="wait" initial={false}>
+        <div className="card p-8">
+          <AnimatePresence mode="wait">
             {step === "credentials" ? (
               <motion.form
                 key="credentials"
-                onSubmit={handleCredentials}
-                className="space-y-4"
-                initial={{ opacity: 0, x: -16 }}
+                initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.22 }}
+                onSubmit={credentialsForm.handleSubmit(onCredentials)}
+                noValidate
+                className="space-y-5"
               >
                 <div>
-                  <h1 className="font-display text-lg font-semibold text-white">Connexion</h1>
-                  <p className="mt-1 text-sm text-white/50">Accédez à votre espace commercial</p>
+                  <h1 className="font-display text-2xl font-extrabold text-text">Connexion</h1>
+                  <p className="mt-1 text-sm text-muted">
+                    Accédez à votre espace MAKOR CRM.
+                  </p>
                 </div>
+
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-white/60">Adresse e-mail</label>
-                  <Input type="email" placeholder="prenom.nom@makorgroup.com" required className="bg-white/5 text-white placeholder:text-white/30" />
+                  <label htmlFor="email" className="text-sm font-medium text-text">
+                    Adresse e-mail
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="username"
+                    autoFocus
+                    placeholder="prenom.nom@makor.ci"
+                    aria-invalid={Boolean(credentialsForm.formState.errors.email)}
+                    {...credentialsForm.register("email")}
+                  />
+                  {credentialsForm.formState.errors.email && (
+                    <p className="text-xs text-danger">
+                      {credentialsForm.formState.errors.email.message}
+                    </p>
+                  )}
                 </div>
+
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-white/60">Mot de passe</label>
-                  <Input type="password" placeholder="••••••••" required className="bg-white/5 text-white placeholder:text-white/30" />
+                  <label htmlFor="password" className="text-sm font-medium text-text">
+                    Mot de passe
+                  </label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    aria-invalid={Boolean(credentialsForm.formState.errors.password)}
+                    {...credentialsForm.register("password")}
+                  />
+                  {credentialsForm.formState.errors.password && (
+                    <p className="text-xs text-danger">
+                      {credentialsForm.formState.errors.password.message}
+                    </p>
+                  )}
                 </div>
-                <Button type="submit" className="w-full">
-                  Continuer
+
+                {serverError && (
+                  <p
+                    role="alert"
+                    className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger"
+                  >
+                    {serverError}
+                  </p>
+                )}
+
+                <Button type="submit" disabled={submitting} className="w-full">
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Se connecter
                 </Button>
               </motion.form>
             ) : (
               <motion.form
                 key="otp"
-                onSubmit={handleOtp}
-                className="space-y-4"
-                initial={{ opacity: 0, x: 16 }}
+                initial={{ opacity: 0, x: 12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 16 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
+                exit={{ opacity: 0, x: 12 }}
+                transition={{ duration: 0.22 }}
+                onSubmit={otpForm.handleSubmit(onOtp)}
+                noValidate
+                className="space-y-5"
               >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-wire" />
-                  <h1 className="font-display text-lg font-semibold text-white">Vérification en deux étapes</h1>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 rounded-control bg-primary-soft p-2 text-primary-dark">
+                    <ShieldCheck className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h1 className="font-display text-xl font-extrabold text-text">
+                      Vérification en deux étapes
+                    </h1>
+                    <p className="mt-1 text-sm text-muted">
+                      Saisissez le code à 6 chiffres affiché par votre application
+                      d'authentification, ou l'un de vos codes de secours.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-white/50">Entrez le code à 6 chiffres envoyé par SMS au +225 07 •• •• 44.</p>
-                <Input
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  required
-                  className="bg-white/5 text-center font-mono-tabular text-lg tracking-[0.5em] text-white placeholder:text-white/30"
-                />
-                <Button type="submit" className="w-full">
-                  Valider et se connecter
+
+                <div className="space-y-1.5">
+                  <label htmlFor="code" className="text-sm font-medium text-text">
+                    Code de vérification
+                  </label>
+                  <Input
+                    id="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    maxLength={10}
+                    placeholder="000000"
+                    className="text-center font-mono-tabular text-lg tracking-[0.4em]"
+                    aria-invalid={Boolean(otpForm.formState.errors.code)}
+                    {...otpForm.register("code")}
+                  />
+                  {otpForm.formState.errors.code && (
+                    <p className="text-xs text-danger">
+                      {otpForm.formState.errors.code.message}
+                    </p>
+                  )}
+                </div>
+
+                {serverError && (
+                  <p
+                    role="alert"
+                    className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger"
+                  >
+                    {serverError}
+                  </p>
+                )}
+
+                <Button type="submit" disabled={submitting} className="w-full">
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Vérifier
                 </Button>
+
                 <button
                   type="button"
-                  onClick={() => setStep("credentials")}
-                  className="w-full text-center text-xs text-white/40 hover:text-white/70"
+                  onClick={backToCredentials}
+                  className="flex w-full items-center justify-center gap-1.5 text-sm text-muted hover:text-primary-dark"
                 >
-                  Retour
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Revenir à l'identification
                 </button>
               </motion.form>
             )}
           </AnimatePresence>
-        </motion.div>
-        <p className="mt-6 text-center text-xs text-white/30">Démonstration — données fictives</p>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-muted">
+          MAKOR Group Telecom — usage interne
+        </p>
       </div>
     </div>
   );

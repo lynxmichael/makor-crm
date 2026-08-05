@@ -1,131 +1,71 @@
 import { NavLink } from "react-router-dom";
-import { motion } from "framer-motion";
+
 import makorLogo from "@/assets/makor-logo.png";
-import {
-  LayoutDashboard,
-  Building2,
-  UserPlus,
-  Target,
-  Radio,
-  FileText,
-  ClipboardList,
-  FileSignature,
-  Receipt,
-  Wallet,
-  Fingerprint,
-  Calendar,
-  FolderOpen,
-  BarChart3,
-  ShieldCheck,
-  Settings,
-  type LucideIcon,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { navigationForRole } from "@/config/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
-interface NavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-const groups: NavGroup[] = [
-  { label: "Vue d'ensemble", items: [{ to: "/", label: "Tableau de bord", icon: LayoutDashboard }] },
-  {
-    label: "Commercial",
-    items: [
-      { to: "/clients", label: "Clients", icon: Building2 },
-      { to: "/prospects", label: "Prospects", icon: UserPlus },
-      { to: "/opportunities", label: "Pipeline", icon: Target },
-      { to: "/quotes", label: "Devis", icon: FileText },
-      { to: "/purchase-orders", label: "Bons de commande", icon: ClipboardList },
-      { to: "/contracts", label: "Contrats", icon: FileSignature },
-      { to: "/agenda", label: "Agenda", icon: Calendar },
-    ],
-  },
-  {
-    label: "Opérations",
-    items: [
-      { to: "/campaigns", label: "Campagnes", icon: Radio },
-      { to: "/sender-id", label: "Sender ID", icon: Fingerprint },
-      { to: "/documents", label: "Documents", icon: FolderOpen },
-    ],
-  },
-  {
-    label: "Finance",
-    items: [
-      { to: "/invoicing", label: "Facturation", icon: Receipt },
-      { to: "/payments", label: "Encaissements", icon: Wallet },
-    ],
-  },
-  {
-    label: "Pilotage",
-    items: [
-      { to: "/reports", label: "Rapports", icon: BarChart3 },
-      { to: "/audit", label: "Audit", icon: ShieldCheck },
-    ],
-  },
-  { label: "Système", items: [{ to: "/settings", label: "Paramètres", icon: Settings }] },
-];
-
+/**
+ * Barre latérale conditionnée par rôle.
+ *
+ * Les modules et leurs rôles autorisés viennent de `config/navigation.ts`,
+ * transcription des `data-roles` de la maquette. L'apparence — dégradé,
+ * liseré orange de l'élément actif, décalage au survol — vient des classes
+ * `sidebar-surface` et `navitem` portées dans `index.css`.
+ */
 export function Sidebar() {
+  const { role } = useAuth();
+
+  if (!role) return null;
+
+  const groups = navigationForRole(role);
+
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col bg-ink text-white/90">
-      <div className="flex items-center gap-2.5 px-5 py-6">
-        <img src={makorLogo} alt="Makor Telecoms" className="h-7 w-auto select-none" draggable={false} />
-        <span className="rounded-md border border-white/15 px-1.5 py-0.5 font-mono-tabular text-[10px] font-semibold uppercase tracking-widest text-white/50">
-          CRM
-        </span>
+    <aside
+      className="sidebar-surface flex h-screen w-64 shrink-0 flex-col text-sidebar-text"
+      aria-label="Navigation principale"
+    >
+      <div className="flex items-center gap-3 px-5 py-6">
+        <img
+          src={makorLogo}
+          alt="MAKOR Group Telecom"
+          className="h-8 w-auto select-none"
+          draggable={false}
+        />
+        <div>
+          <p className="font-display text-sm font-extrabold tracking-[0.04em] text-white">
+            MAKOR CRM
+          </p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+            CRM Enterprise
+          </p>
+        </div>
       </div>
 
-      <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 pb-6">
+      <nav className="scrollbar-thin flex-1 overflow-y-auto pb-6" aria-label="Modules">
         {groups.map((group) => (
-          <div key={group.label} className="mb-5">
-            <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-white/35">
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
-              {group.items.map(({ to, label, icon: Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={to === "/"}
-                  className={({ isActive }) =>
-                    cn(
-                      "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      isActive ? "text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && (
-                        <motion.span
-                          layoutId="sidebar-active-pill"
-                          className="absolute inset-0 rounded-lg bg-white/10"
-                          transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                        />
-                      )}
-                      <Icon className="relative z-10 h-4 w-4 shrink-0" />
-                      <span className="relative z-10">{label}</span>
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </div>
+          <div key={group.label}>
+            <p className="navgroup-label">{group.label}</p>
+            {group.modules.map(({ id, path, label, icon: Icon, badge }) => (
+              <NavLink key={id} to={path} end={path === "/"} className="navitem">
+                <Icon aria-hidden />
+                <span className="flex-1 truncate">{label}</span>
+                {badge && (
+                  <span className="rounded-full bg-white/12 px-1.5 py-0.5 text-[9.5px] font-semibold text-white/70">
+                    {badge}
+                  </span>
+                )}
+              </NavLink>
+            ))}
           </div>
         ))}
       </nav>
 
       <div className="border-t border-white/10 px-5 py-4">
-        <div className="flex items-center gap-2 text-[11px] text-white/40">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal" />
-          Passerelle SMS/WhatsApp connectée
-        </div>
+        <p className="text-[10px] leading-relaxed text-white/45">
+          MAKOR CRM — v0.1
+          <br />
+          Usage interne
+        </p>
       </div>
     </aside>
   );

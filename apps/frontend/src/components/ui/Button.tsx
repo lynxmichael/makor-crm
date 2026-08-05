@@ -9,15 +9,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size;
 }
 
+// `btn`, `btn-primary` et `btn-ghost` viennent de la maquette (index.css,
+// @layer components) : dégradé orange, léger soulèvement au survol, halo au
+// survol de l'action principale.
 const variantClasses: Record<Variant, string> = {
-  primary: "bg-wire text-white hover:bg-wire-dim",
-  secondary: "bg-surface text-ink border border-line hover:bg-paper",
-  ghost: "text-ink hover:bg-paper",
-  danger: "bg-alert text-white hover:bg-alert/90",
+  primary: "btn-primary",
+  secondary: "bg-surface text-text border border-border hover:bg-bg",
+  ghost: "btn-ghost text-text",
+  danger: "bg-danger text-white hover:bg-danger/90",
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm",
+  sm: "h-8 px-3 text-xs",
   md: "h-10 px-4 text-sm",
 };
 
@@ -26,15 +29,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-[background-color,transform] duration-150 active:scale-[0.97]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wire focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "btn whitespace-nowrap",
+        // Pas de `pointer-events-none` : une action refusée doit conserver
+        // son infobulle, qui dit pourquoi elle l'est.
+        "disabled:cursor-not-allowed disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],
-        className
+        className,
       )}
       {...props}
     />
-  )
+  ),
 );
 Button.displayName = "Button";

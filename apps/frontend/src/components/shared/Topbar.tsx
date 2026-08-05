@@ -1,8 +1,21 @@
+import { Input } from "@/components/ui/Input";
+import { ROLE_LABELS } from "@/config/roles";
+import { mockCampaigns, mockClients, mockOpportunities } from "@/data/mock";
+import { useAuth } from "@/hooks/useAuth";
+import { fullName, initials } from "@/types/auth";
+import {
+  Bell,
+  Building2,
+  CheckCircle2,
+  FileSignature,
+  LogOut,
+  Radio,
+  Search,
+  Target,
+  TriangleAlert,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Search, Building2, Target, Radio, TriangleAlert, CheckCircle2, FileSignature } from "lucide-react";
-import { Input } from "@/components/ui/Input";
-import { mockClients, mockOpportunities, mockCampaigns } from "@/data/mock";
 
 interface NotificationItem {
   id: string;
@@ -22,6 +35,7 @@ const initialNotifications: NotificationItem[] = [
 
 export function Topbar() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -63,12 +77,12 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-surface px-6">
-      <div ref={searchRef} className="relative w-full max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate" />
+    <header className="topbar flex h-16 shrink-0 items-center justify-between gap-4 px-6">
+      <div ref={searchRef} className="relative w-full max-w-xl">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <Input
           placeholder="Rechercher un client, un devis, une opportunité…"
-          className="pl-9"
+          className="pl-9 bg-surface text-text placeholder:text-muted"
           value={query}
           onFocus={() => setSearchOpen(true)}
           onChange={(e) => {
@@ -77,54 +91,54 @@ export function Topbar() {
           }}
         />
         {searchOpen && query.trim() && (
-          <div className="absolute left-0 top-11 z-40 w-full rounded-xl border border-line bg-surface shadow-lg">
+          <div className="absolute left-0 top-12 z-40 w-full rounded-3xl border border-border bg-surface shadow-lg">
             {!hasResults ? (
-              <p className="px-4 py-6 text-center text-sm text-slate">Aucun résultat pour « {query} »</p>
+              <p className="px-4 py-6 text-center text-sm text-muted">Aucun résultat pour « {query} »</p>
             ) : (
               <div className="max-h-80 overflow-y-auto py-2">
                 {results.clients.length > 0 && (
-                  <div className="px-2 pb-1">
-                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate">Clients</p>
+                  <div className="px-3 pb-1">
+                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Clients</p>
                     {results.clients.map((c) => (
                       <button
                         key={c.id}
                         onClick={() => goTo("/clients")}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm hover:bg-paper"
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm text-text hover:bg-paper"
                       >
-                        <Building2 className="h-4 w-4 text-slate" />
-                        <span className="text-ink">{c.name}</span>
-                        <span className="ml-auto text-xs text-slate">{c.sector}</span>
+                        <Building2 className="h-4 w-4 text-muted" />
+                        <span className="truncate">{c.name}</span>
+                        <span className="ml-auto text-xs text-muted">{c.sector}</span>
                       </button>
                     ))}
                   </div>
                 )}
                 {results.opportunities.length > 0 && (
-                  <div className="px-2 pb-1">
-                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate">Pipeline</p>
+                  <div className="px-3 pb-1">
+                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Pipeline</p>
                     {results.opportunities.map((o) => (
                       <button
                         key={o.id}
-                        onClick={() => goTo("/opportunities")}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm hover:bg-paper"
+                        onClick={() => goTo("/pipeline")}
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm text-text hover:bg-paper"
                       >
-                        <Target className="h-4 w-4 text-slate" />
-                        <span className="text-ink">{o.clientName}</span>
-                        <span className="ml-auto text-xs text-slate">{o.product}</span>
+                        <Target className="h-4 w-4 text-muted" />
+                        <span className="truncate">{o.clientName}</span>
+                        <span className="ml-auto text-xs text-muted">{o.product}</span>
                       </button>
                     ))}
                   </div>
                 )}
                 {results.campaigns.length > 0 && (
-                  <div className="px-2 pb-1">
-                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate">Campagnes</p>
+                  <div className="px-3 pb-1">
+                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Campagnes</p>
                     {results.campaigns.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => goTo("/campaigns")}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm hover:bg-paper"
+                        onClick={() => goTo("/campagnes")}
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm text-text hover:bg-paper"
                       >
-                        <Radio className="h-4 w-4 text-slate" />
-                        <span className="text-ink">{c.name}</span>
+                        <Radio className="h-4 w-4 text-muted" />
+                        <span className="truncate">{c.name}</span>
                       </button>
                     ))}
                   </div>
@@ -141,20 +155,20 @@ export function Topbar() {
             type="button"
             aria-label="Notifications"
             onClick={() => setNotifOpen((v) => !v)}
-            className="relative rounded-full p-2 text-slate transition-colors hover:bg-paper hover:text-ink"
+            className="relative rounded-full p-2 text-muted transition-colors hover:bg-paper hover:text-text"
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-pulse text-[9px] font-semibold text-white">
+              <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-semibold text-white">
                 {unreadCount}
               </span>
             )}
           </button>
           {notifOpen && (
-            <div className="absolute right-0 top-11 z-40 w-80 rounded-xl border border-line bg-surface shadow-lg">
-              <div className="flex items-center justify-between border-b border-line px-4 py-3">
-                <p className="text-sm font-semibold text-ink">Notifications</p>
-                <button onClick={markAllRead} className="text-xs font-medium text-wire hover:text-wire-dim">
+            <div className="absolute right-0 top-11 z-40 w-80 rounded-3xl border border-border bg-surface shadow-lg">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <p className="text-sm font-semibold text-text">Notifications</p>
+                <button onClick={markAllRead} className="text-xs font-medium text-primary hover:text-primary-dark">
                   Tout marquer comme lu
                 </button>
               </div>
@@ -167,15 +181,15 @@ export function Topbar() {
                       onClick={() =>
                         setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)))
                       }
-                      className="flex w-full items-start gap-3 border-b border-line px-4 py-3 text-left last:border-0 hover:bg-paper"
+                      className="flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-0 hover:bg-paper"
                     >
-                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-wire" />
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-ink">{n.title}</p>
-                        <p className="truncate text-xs text-slate">{n.detail}</p>
-                        <p className="mt-0.5 text-[11px] text-slate/70">{n.time}</p>
+                        <p className="text-sm font-semibold text-text">{n.title}</p>
+                        <p className="truncate text-xs text-muted">{n.detail}</p>
+                        <p className="mt-0.5 text-[11px] text-muted/80">{n.time}</p>
                       </div>
-                      {!n.read && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pulse" />}
+                      {!n.read && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
                     </button>
                   );
                 })}
@@ -184,15 +198,28 @@ export function Topbar() {
           )}
         </div>
 
-        <div className="flex items-center gap-2.5 border-l border-line pl-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-wire/10 font-display text-sm font-semibold text-wire">
-            AK
+        {user && (
+          <div className="flex items-center gap-3 border-l border-border pl-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft font-display text-sm font-semibold text-primary-dark">
+              {initials(user)}
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-semibold text-text">{fullName(user)}</p>
+              <p className="text-xs text-muted">{ROLE_LABELS[user.role.name]} · MAKOR</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Se déconnecter"
+              title="Se déconnecter"
+              onClick={() => {
+                void logout().then(() => navigate("/login", { replace: true }));
+              }}
+              className="rounded-full p-2 text-muted transition-colors hover:bg-primary-soft hover:text-primary-dark"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-          <div className="leading-tight">
-            <p className="text-sm font-medium text-ink">Aïcha Koné</p>
-            <p className="text-xs text-slate">Admin ventes</p>
-          </div>
-        </div>
+        )}
       </div>
     </header>
   );
