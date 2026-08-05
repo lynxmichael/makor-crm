@@ -440,11 +440,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         <div class="lg-demo">
           <div class="lg-demo-t">Démonstration — entrer avec un profil</div>
           <div class="lg-roles">
-            <button class="lg-role" onclick="lgAs('superadmin','Awa Diomandé','Super Admin')">Super Admin</button>
-            <button class="lg-role" onclick="lgAs('adminventes','Kouamé Yao','Admin ventes')">Admin ventes</button>
-            <button class="lg-role" onclick="lgAs('superviseur','Moussa Traoré','Superviseur')">Superviseur</button>
-            <button class="lg-role" onclick="lgAs('commercial','Fatou Kane','Commercial')">Commercial</button>
-            <button class="lg-role" onclick="lgAs('manager','Aïcha Konaté','Manager')" style="grid-column:1/-1">Manager — Facturation</button>
+            <button class="lg-role" onclick="lgAs('superadmin','Michael Koffi','Super Admin')">Super Admin</button>
+            <button class="lg-role" onclick="lgAs('adminventes','Eulalie','Admin ventes')">Admin ventes</button>
+            <button class="lg-role" onclick="lgAs('superviseur','Stéphane','Superviseur commercial')">Superviseur commercial</button>
+            <button class="lg-role" onclick="lgAs('commercial','Sery','Commercial')">Commercial</button>
+            <button class="lg-role" onclick="lgAs('finance','Diby Cader','Finance')" style="grid-column:1/-1">Finance — Comptabilité</button>
           </div>
         </div>
       </div>
@@ -479,7 +479,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
     </div>
     <nav id="nav" aria-label="Modules">
       <div class="navgroup-label">Pilotage</div>
-      <div class="navitem active" data-view="dashboard" data-roles="superadmin,adminventes,superviseur,commercial,manager">
+      <div class="navitem active" data-view="dashboard" data-roles="superadmin,adminventes,superviseur,commercial,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
         Dashboard
       </div>
@@ -492,7 +492,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.5 2.8-6 6-6s6 2.5 6 6"/><path d="M19 8v5M16.5 10.5h5"/></svg>
         Prospects
       </div>
-      <div class="navitem" data-view="customers" data-roles="superadmin,adminventes,superviseur,commercial,manager">
+      <div class="navitem" data-view="customers" data-roles="superadmin,adminventes,superviseur,commercial,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V6l8-3 8 3v15"/><path d="M9 21v-6h6v6M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
         Clients
       </div>
@@ -501,36 +501,36 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a2 2 0 002 2h1l3 5V4L6 9H5a2 2 0 00-2 2z"/><path d="M15 8a4 4 0 010 8M18 5a8 8 0 010 14"/></svg>
         Campagnes
       </div>
-      <div class="navitem" data-view="deals-chain" data-roles="superadmin,adminventes,superviseur,commercial,manager">
+      <div class="navitem" data-view="deals-chain" data-roles="superadmin,adminventes,superviseur,commercial,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H4v6M15 21h5v-6M4 4l7 7M20 20l-7-7"/></svg>
         Devis · BC · Contrats
       </div>
-      <div class="navitem" data-view="agenda" data-roles="superadmin,adminventes,superviseur,commercial,manager">
+      <div class="navitem" data-view="agenda" data-roles="superadmin,adminventes,superviseur,commercial,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
         Agenda
       </div>
-      <div class="navitem" data-view="senderid" data-roles="superadmin,adminventes,manager">
+      <div class="navitem" data-view="senderid" data-roles="superadmin,adminventes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 2a4.5 4.5 0 11-6.36 6.36L3 16.5V21h4.5l8.14-8.14A4.5 4.5 0 1017.5 2z"/></svg>
         Sender ID
       </div>
-      <div class="navitem" data-view="documents" data-roles="superadmin,adminventes,superviseur,commercial,manager">
+      <div class="navitem" data-view="documents" data-roles="superadmin,adminventes,superviseur,commercial,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
         Documents
       </div>
-      <div class="navitem" data-view="invoices" data-roles="superadmin,adminventes,manager">
+      <div class="navitem" data-view="invoices" data-roles="superadmin,adminventes,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l3 3v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
         Facturation & Encaissements
       </div>
-      <div class="navitem" data-view="messaging" data-roles="superadmin,adminventes,superviseur,commercial,manager">
+      <div class="navitem" data-view="messaging" data-roles="superadmin,adminventes,superviseur,commercial,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
         Messagerie <span class="badge b-scheduled" style="margin-left:auto;font-size:9.5px;">V2</span>
       </div>
       <div class="navgroup-label">Pilotage & contrôle</div>
-      <div class="navitem" data-view="reports" data-roles="superadmin,adminventes,superviseur,manager">
+      <div class="navitem" data-view="reports" data-roles="superadmin,adminventes,superviseur,finance">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
         Reporting
       </div>
-      <div class="navitem" data-view="audit" data-roles="superadmin,manager">
+      <div class="navitem" data-view="audit" data-roles="superadmin">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
         Audit
       </div>
@@ -559,15 +559,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
           <select id="role-switch" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12.5px;font-family:'Inter';background:var(--surface);">
             <option value="superadmin">Super Admin</option>
             <option value="adminventes">Admin ventes</option>
-            <option value="superviseur">Superviseur</option>
+            <option value="superviseur">Superviseur commercial</option>
             <option value="commercial" selected>Commercial</option>
-            <option value="manager">Manager</option>
+            <option value="finance">Finance</option>
           </select>
         </div>
         <div class="bell"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><div class="dot"></div></div>
         <div class="profile">
-          <div class="avatar" id="profile-avatar">FK</div>
-          <div class="who"><div class="n" id="profile-name">Fatou Kane</div><div class="r" id="profile-role">Commercial · MAKOR</div></div>
+          <div class="avatar" id="profile-avatar">SE</div>
+          <div class="who"><div class="n" id="profile-name">Sery</div><div class="r" id="profile-role">Commercial · MAKOR</div></div>
         </div>
       </div>
     </div>
@@ -603,19 +603,19 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
             <div class="kcol-head"><span class="t">Prospection</span><span class="count">4</span></div>
             <div class="kcol-total">18,2M FCFA</div>
             <div class="kcol-body" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="dropCard(event,this)">
-              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">SONATEL Business</div><div class="val">6,4M FCFA</div><div class="meta"><span class="prob">Prob. 20%</span><span class="avatar-sm">FK</span></div></div>
+              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">SONATEL Business</div><div class="val">6,4M FCFA</div><div class="meta"><span class="prob">Prob. 20%</span><span class="avatar-sm">SE</span></div></div>
               <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Jumia Côte d'Ivoire</div><div class="val">3,1M FCFA</div><div class="meta"><span class="prob">Prob. 15%</span><span class="avatar-sm">MK</span></div></div>
               <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Bank of Africa Sénégal</div><div class="val">5,8M FCFA</div><div class="meta"><span class="prob">Prob. 25%</span><span class="avatar-sm">AT</span></div></div>
-              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Prosuma Group</div><div class="val">2,9M FCFA</div><div class="meta"><span class="prob">Prob. 10%</span><span class="avatar-sm">ID</span></div></div>
+              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Prosuma Group</div><div class="val">2,9M FCFA</div><div class="meta"><span class="prob">Prob. 10%</span><span class="avatar-sm">ST</span></div></div>
             </div>
           </div>
           <div class="kcol" data-stage="Business Case">
             <div class="kcol-head"><span class="t">Business Case</span><span class="count">3</span></div>
             <div class="kcol-total">13,9M FCFA</div>
             <div class="kcol-body" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="dropCard(event,this)">
-              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Groupe Bolloré Africa Logistics</div><div class="val">7,2M FCFA</div><div class="meta"><span class="prob">Prob. 40%</span><span class="avatar-sm">FK</span></div></div>
+              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Groupe Bolloré Africa Logistics</div><div class="val">7,2M FCFA</div><div class="meta"><span class="prob">Prob. 40%</span><span class="avatar-sm">SE</span></div></div>
               <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Ecobank CI</div><div class="val">4,3M FCFA</div><div class="meta"><span class="prob">Prob. 35%</span><span class="avatar-sm">AT</span></div></div>
-              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">CFAO Retail CI</div><div class="val">2,4M FCFA</div><div class="meta"><span class="prob">Prob. 30%</span><span class="avatar-sm">FK</span></div></div>
+              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">CFAO Retail CI</div><div class="val">2,4M FCFA</div><div class="meta"><span class="prob">Prob. 30%</span><span class="avatar-sm">SE</span></div></div>
             </div>
           </div>
           <div class="kcol" data-stage="Bon de commande">
@@ -623,14 +623,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
             <div class="kcol-total">9,6M FCFA</div>
             <div class="kcol-body" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="dropCard(event,this)">
               <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Wave Mobile Money</div><div class="val">6,1M FCFA</div><div class="meta"><span class="prob">Prob. 65%</span><span class="avatar-sm">MK</span></div></div>
-              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">MTN Sénégal Distribution</div><div class="val">3,5M FCFA</div><div class="meta"><span class="prob">Prob. 60%</span><span class="avatar-sm">ID</span></div></div>
+              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">MTN Sénégal Distribution</div><div class="val">3,5M FCFA</div><div class="meta"><span class="prob">Prob. 60%</span><span class="avatar-sm">ST</span></div></div>
             </div>
           </div>
           <div class="kcol" data-stage="Négociation">
             <div class="kcol-head"><span class="t">Négociation</span><span class="count">3</span></div>
             <div class="kcol-total">24,8M FCFA</div>
             <div class="kcol-body" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="dropCard(event,this)">
-              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Orange CI Entreprises</div><div class="val">14,2M FCFA</div><div class="meta"><span class="prob">Prob. 80%</span><span class="avatar-sm">FK</span></div></div>
+              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">Orange CI Entreprises</div><div class="val">14,2M FCFA</div><div class="meta"><span class="prob">Prob. 80%</span><span class="avatar-sm">SE</span></div></div>
               <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">SIFCA Group</div><div class="val">6,3M FCFA</div><div class="meta"><span class="prob">Prob. 70%</span><span class="avatar-sm">AT</span></div></div>
               <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">NSIA Banque</div><div class="val">4,3M FCFA</div><div class="meta"><span class="prob">Prob. 75%</span><span class="avatar-sm">MK</span></div></div>
             </div>
@@ -639,7 +639,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
             <div class="kcol-head"><span class="t">Closing</span><span class="count">1</span></div>
             <div class="kcol-total">7,1M FCFA</div>
             <div class="kcol-body" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="dropCard(event,this)">
-              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">CIE — Compagnie Ivoirienne d'Électricité</div><div class="val">7,1M FCFA</div><div class="meta"><span class="prob">Prob. 95%</span><span class="avatar-sm">FK</span></div></div>
+              <div class="kcard" draggable="true" ondragstart="dragCard(event)"><div class="co">CIE — Compagnie Ivoirienne d'Électricité</div><div class="val">7,1M FCFA</div><div class="meta"><span class="prob">Prob. 95%</span><span class="avatar-sm">SE</span></div></div>
             </div>
           </div>
           <div class="addcol" onclick="alert('Ajouter une nouvelle étape au pipeline (personnalisable par le Super Admin)')">+ Ajouter une étape</div>
@@ -660,11 +660,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         <table class="datagrid" id="leads-table">
           <tr><th>Entreprise</th><th>Contact</th><th>Secteur</th><th>Source</th><th>Statut</th><th>Assigné à</th><th></th></tr>
           <tr><td class="link-cell" onclick="openModal('lead-convert')">Distripharm CI</td><td>Yao Kouassi</td><td>Santé</td><td>Site web</td><td><span class="badge b-new">Nouveau</span></td><td><span class="avatar-sm">MK</span>Moussa Koné</td><td><button class="btn btn-ghost btn-sm" onclick="openModal('lead-convert')">Convertir</button></td></tr>
-          <tr><td class="link-cell" onclick="openModal('lead-convert')">Groupe Ivoire Assurances</td><td>Aminata Cissé</td><td>Assurance</td><td>Salon Africa Tech</td><td><span class="badge b-qualified">Qualifié</span></td><td><span class="avatar-sm">FK</span>Fatou Kane</td><td><button class="btn btn-ghost btn-sm" onclick="openModal('lead-convert')">Convertir</button></td></tr>
+          <tr><td class="link-cell" onclick="openModal('lead-convert')">Groupe Ivoire Assurances</td><td>Aminata Cissé</td><td>Assurance</td><td>Salon Africa Tech</td><td><span class="badge b-qualified">Qualifié</span></td><td><span class="avatar-sm">SE</span>Sery</td><td><button class="btn btn-ghost btn-sm" onclick="openModal('lead-convert')">Convertir</button></td></tr>
           <tr><td>Petro Ivoire</td><td>Jean-Marc Ehouman</td><td>Énergie</td><td>Recommandation</td><td><span class="badge b-converted">Converti</span></td><td><span class="avatar-sm">AT</span>Aïcha Traoré</td><td><button class="btn btn-ghost btn-sm" disabled>Converti</button></td></tr>
-          <tr><td>Sifca Distribution</td><td>Paul N'Guessan</td><td>Agro-industrie</td><td>LinkedIn</td><td><span class="badge b-qualified">Qualifié</span></td><td><span class="avatar-sm">ID</span>Ibrahima Diallo</td><td><button class="btn btn-ghost btn-sm" onclick="openModal('lead-convert')">Convertir</button></td></tr>
+          <tr><td>Sifca Distribution</td><td>Paul N'Guessan</td><td>Agro-industrie</td><td>LinkedIn</td><td><span class="badge b-qualified">Qualifié</span></td><td><span class="avatar-sm">ST</span>Stéphane</td><td><button class="btn btn-ghost btn-sm" onclick="openModal('lead-convert')">Convertir</button></td></tr>
           <tr><td>Uniwax</td><td>Fatoumata Bamba</td><td>Textile</td><td>Site web</td><td><span class="badge b-lost">Perdu</span></td><td><span class="avatar-sm">MK</span>Moussa Koné</td><td><button class="btn btn-ghost btn-sm" disabled>—</button></td></tr>
-          <tr><td>Biao CI</td><td>Kouadio Serge</td><td>Banque</td><td>Salon Africa Tech</td><td><span class="badge b-new">Nouveau</span></td><td><span class="avatar-sm">FK</span>Fatou Kane</td><td><button class="btn btn-ghost btn-sm" onclick="openModal('lead-convert')">Convertir</button></td></tr>
+          <tr><td>Biao CI</td><td>Kouadio Serge</td><td>Banque</td><td>Salon Africa Tech</td><td><span class="badge b-new">Nouveau</span></td><td><span class="avatar-sm">SE</span>Sery</td><td><button class="btn btn-ghost btn-sm" onclick="openModal('lead-convert')">Convertir</button></td></tr>
         </table>
         <div class="pagi"><div>Affichage 1–6 sur 58</div><div class="pages"><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div>
       </section>
@@ -682,11 +682,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         </div>
         <table class="datagrid" id="customers-table">
           <tr><th>Entreprise</th><th>Secteur</th><th>Pays</th><th>Statut</th><th>CA cumulé</th><th>Chargé de compte</th><th></th></tr>
-          <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">Orange CI Entreprises</td><td>Télécom</td><td>Côte d'Ivoire</td><td><span class="badge b-active">Actif</span></td><td>84,2M FCFA</td><td><span class="avatar-sm">FK</span>Fatou Kane</td><td>→</td></tr>
+          <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">Orange CI Entreprises</td><td>Télécom</td><td>Côte d'Ivoire</td><td><span class="badge b-active">Actif</span></td><td>84,2M FCFA</td><td><span class="avatar-sm">SE</span>Sery</td><td>→</td></tr>
           <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">SONATEL Business</td><td>Télécom</td><td>Sénégal</td><td><span class="badge b-active">Actif</span></td><td>61,7M FCFA</td><td><span class="avatar-sm">AT</span>Aïcha Traoré</td><td>→</td></tr>
-          <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">Ecobank Côte d'Ivoire</td><td>Banque</td><td>Côte d'Ivoire</td><td><span class="badge b-active">Actif</span></td><td>38,4M FCFA</td><td><span class="avatar-sm">FK</span>Fatou Kane</td><td>→</td></tr>
+          <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">Ecobank Côte d'Ivoire</td><td>Banque</td><td>Côte d'Ivoire</td><td><span class="badge b-active">Actif</span></td><td>38,4M FCFA</td><td><span class="avatar-sm">SE</span>Sery</td><td>→</td></tr>
           <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">Wave Mobile Money</td><td>Fintech</td><td>Sénégal</td><td><span class="badge b-inactive">Prospect</span></td><td>0 FCFA</td><td><span class="avatar-sm">MK</span>Moussa Koné</td><td>→</td></tr>
-          <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">CFAO Retail CI</td><td>Distribution</td><td>Côte d'Ivoire</td><td><span class="badge b-active">Actif</span></td><td>19,1M FCFA</td><td><span class="avatar-sm">ID</span>Ibrahima Diallo</td><td>→</td></tr>
+          <tr onclick="openCustomer()" style="cursor:pointer"><td class="link-cell">CFAO Retail CI</td><td>Distribution</td><td>Côte d'Ivoire</td><td><span class="badge b-active">Actif</span></td><td>19,1M FCFA</td><td><span class="avatar-sm">ST</span>Stéphane</td><td>→</td></tr>
         </table>
         <div class="pagi"><div>Affichage 1–5 sur 214</div><div class="pages"><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div>
       </section>
@@ -720,7 +720,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
               <div><div class="f-label">Pays</div><div class="f-val">Côte d'Ivoire</div></div>
               <div><div class="f-label">Adresse</div><div class="f-val">Plateau, Abidjan</div></div>
               <div><div class="f-label">Site web</div><div class="f-val">orange.ci</div></div>
-              <div><div class="f-label">Chargé de compte</div><div class="f-val">Fatou Kane</div></div>
+              <div><div class="f-label">Chargé de compte</div><div class="f-val">Sery</div></div>
               <div><div class="f-label">CA cumulé</div><div class="f-val">84,2M FCFA</div></div>
               <div><div class="f-label">Produits actifs</div><div class="f-val">API SMS, OTP, Sender ID</div></div>
               <div><div class="f-label">Statut</div><div class="f-val"><span class="badge b-active">Actif</span></div></div>
@@ -858,8 +858,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
             <div class="settings-panel active" id="s-users">
               <table class="datagrid">
                 <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Département</th><th>Statut</th></tr>
-                <tr><td><span class="avatar-sm">FK</span>Fatou Kane</td><td>f.kane@makor.com</td><td>Commercial</td><td>Ventes</td><td><span class="badge b-active">Actif</span></td></tr>
-                <tr><td><span class="avatar-sm">ID</span>Ibrahima Diallo</td><td>i.diallo@makor.com</td><td>Superviseur</td><td>Ventes</td><td><span class="badge b-active">Actif</span></td></tr>
+                <tr><td><span class="avatar-sm">SE</span>Sery</td><td>f.kane@makor.com</td><td>Commercial</td><td>Ventes</td><td><span class="badge b-active">Actif</span></td></tr>
+                <tr><td><span class="avatar-sm">ST</span>Stéphane</td><td>i.diallo@makor.com</td><td>Superviseur commercial</td><td>Ventes</td><td><span class="badge b-active">Actif</span></td></tr>
                 <tr><td><span class="avatar-sm">AT</span>Aïcha Traoré</td><td>a.traore@makor.com</td><td>Commercial</td><td>Ventes</td><td><span class="badge b-active">Actif</span></td></tr>
                 <tr><td><span class="avatar-sm">MK</span>Moussa Koné</td><td>m.kone@makor.com</td><td>Admin ventes</td><td>Direction</td><td><span class="badge b-active">Actif</span></td></tr>
               </table>
@@ -869,9 +869,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
                 <tr><th>Rôle</th><th>Description</th><th>Utilisateurs</th></tr>
                 <tr><td>Super Admin</td><td>Accès complet, configuration système</td><td>1</td></tr>
                 <tr><td>Admin ventes</td><td>Gestion des équipes et des objectifs</td><td>2</td></tr>
-                <tr><td>Superviseur</td><td>Supervision d'une équipe commerciale</td><td>3</td></tr>
+                <tr><td>Superviseur commercial</td><td>Supervision d'une équipe commerciale</td><td>3</td></tr>
                 <tr><td>Commercial</td><td>Gestion de son propre portefeuille</td><td>14</td></tr>
-                <tr><td>Manager</td><td>Reporting et validation</td><td>4</td></tr>
+                <tr><td>Finance</td><td>Facturation et encaissements</td><td>2</td></tr>
               </table>
             </div>
             <div class="settings-panel" id="s-products" style="display:none">
@@ -921,8 +921,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         </div>
         <table class="datagrid">
           <tr><th>Document</th><th>Type</th><th>Client</th><th>Ajouté par</th><th>Date</th></tr>
-          <tr><td class="link-cell">Contrat CTR-2026-0093.pdf</td><td>Contrat</td><td>Orange CI Entreprises</td><td>Fatou Kane</td><td>18 juil. 2026</td></tr>
-          <tr><td class="link-cell">Devis DEV-2026-0412.pdf</td><td>Devis</td><td>Orange CI Entreprises</td><td>Fatou Kane</td><td>09 juil. 2026</td></tr>
+          <tr><td class="link-cell">Contrat CTR-2026-0093.pdf</td><td>Contrat</td><td>Orange CI Entreprises</td><td>Sery</td><td>18 juil. 2026</td></tr>
+          <tr><td class="link-cell">Devis DEV-2026-0412.pdf</td><td>Devis</td><td>Orange CI Entreprises</td><td>Sery</td><td>09 juil. 2026</td></tr>
           <tr><td class="link-cell">BC-2026-0187_signe.pdf</td><td>Bon de commande</td><td>Orange CI Entreprises</td><td>Serge Aka (client)</td><td>18 juil. 2026</td></tr>
         </table>
       </section>
@@ -935,9 +935,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         </div>
         <table class="datagrid">
           <tr><th>Nom d'expéditeur</th><th>Client</th><th>Pays</th><th>Demandé par</th><th>Statut</th><th></th></tr>
-          <tr><td>ORANGE-CI</td><td>Orange CI Entreprises</td><td>Côte d'Ivoire</td><td>Fatou Kane</td><td><span class="badge b-active">Approuvé</span></td><td>—</td></tr>
+          <tr><td>ORANGE-CI</td><td>Orange CI Entreprises</td><td>Côte d'Ivoire</td><td>Sery</td><td><span class="badge b-active">Approuvé</span></td><td>—</td></tr>
           <tr><td>WAVE-MONEY</td><td>Wave Mobile Money</td><td>Sénégal</td><td>Moussa Koné</td><td><span class="badge b-new">En attente</span></td><td><button class="btn btn-ghost btn-sm">Approuver</button></td></tr>
-          <tr><td>ECOBANK</td><td>Ecobank Côte d'Ivoire</td><td>Côte d'Ivoire</td><td>Fatou Kane</td><td><span class="badge b-lost">Rejeté</span></td><td>—</td></tr>
+          <tr><td>ECOBANK</td><td>Ecobank Côte d'Ivoire</td><td>Côte d'Ivoire</td><td>Sery</td><td><span class="badge b-lost">Rejeté</span></td><td>—</td></tr>
         </table>
       </section>
 
@@ -969,8 +969,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
             <div class="page-head" style="margin-bottom:14px;"><h3>Quotas par commercial — juillet 2026</h3><button class="btn btn-ghost btn-sm" data-module="reporting" onclick="openModal('target-set')">Définir un quota</button></div>
             <table class="reptable">
               <tr><th>Commercial</th><th>Quota</th><th>Réalisé</th><th></th></tr>
-              <tr><td>Fatou Kane</td><td>50M FCFA</td><td>92%</td><td style="width:100px"><div class="progressbar"><div style="width:92%"></div></div></td></tr>
-              <tr><td>Ibrahima Diallo</td><td>45M FCFA</td><td>78%</td><td><div class="progressbar"><div style="width:78%"></div></div></td></tr>
+              <tr><td>Sery</td><td>50M FCFA</td><td>92%</td><td style="width:100px"><div class="progressbar"><div style="width:92%"></div></div></td></tr>
+              <tr><td>Stéphane</td><td>45M FCFA</td><td>78%</td><td><div class="progressbar"><div style="width:78%"></div></div></td></tr>
               <tr><td>Aïcha Traoré</td><td>40M FCFA</td><td>65%</td><td><div class="progressbar"><div style="width:65%"></div></div></td></tr>
               <tr><td>Moussa Koné</td><td>35M FCFA</td><td>54%</td><td><div class="progressbar"><div style="width:54%"></div></div></td></tr>
             </table>
@@ -996,9 +996,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
         <table class="datagrid" id="audit-table">
           <tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Cible</th></tr>
           <tr><td>24/07/2026 09:12</td><td>Moussa Koné</td><td>Modification tarif</td><td>API SMS — Côte d'Ivoire</td></tr>
-          <tr><td>23/07/2026 17:40</td><td>Ibrahima Diallo</td><td>Changement d'étape</td><td>Deal Orange CI → Négociation</td></tr>
+          <tr><td>23/07/2026 17:40</td><td>Stéphane</td><td>Changement d'étape</td><td>Deal Orange CI → Négociation</td></tr>
           <tr><td>22/07/2026 11:05</td><td>Awa Sanogo</td><td>Création utilisateur</td><td>Compte "Sarah Bamba"</td></tr>
-          <tr><td>20/07/2026 08:30</td><td>Fatou Kane</td><td>Envoi campagne</td><td>Promo Rentrée Entreprises</td></tr>
+          <tr><td>20/07/2026 08:30</td><td>Sery</td><td>Envoi campagne</td><td>Promo Rentrée Entreprises</td></tr>
         </table>
       </section>
 
@@ -1052,7 +1052,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
     <div class="field"><label>Entreprise</label><input value="Groupe Ivoire Assurances"></div>
     <div class="field"><label>Pipeline cible</label><select><option>Pipeline commercial standard</option></select></div>
     <div class="field"><label>Étape de départ</label><select><option>Prospection</option><option>Business Case</option></select></div>
-    <div class="field"><label>Commercial assigné</label><select><option>Fatou Kane</option><option>Aïcha Traoré</option></select></div>
+    <div class="field"><label>Commercial assigné</label><select><option>Sery</option><option>Aïcha Traoré</option></select></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('lead-convert')">Annuler</button>
       <button class="btn btn-primary" onclick="closeModal('lead-convert'); toast('Lead converti en client + deal')">Convertir en client + deal</button>
@@ -1145,7 +1145,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
   <div class="modal">
     <h3>Définir un quota</h3>
     <div class="sub">Visible par Superviseur et Admin ventes.</div>
-    <div class="field"><label>Commercial</label><select><option>Fatou Kane</option><option>Ibrahima Diallo</option><option>Aïcha Traoré</option><option>Moussa Koné</option></select></div>
+    <div class="field"><label>Commercial</label><select><option>Sery</option><option>Stéphane</option><option>Aïcha Traoré</option><option>Moussa Koné</option></select></div>
     <div class="field"><label>Période</label><input type="month" value="2026-08"></div>
     <div class="field"><label>Quota (FCFA)</label><input type="number" placeholder="Ex : 50000000"></div>
     <div class="modal-actions">
@@ -1270,11 +1270,11 @@ function closeModal(id){ document.getElementById('modal-'+id).classList.remove('
 
 // ===== Gestion des rôles (RBAC démo) =====
 var roleProfiles = {
-  superadmin:  { name:"Awa Sanogo",     role:"Super Admin · MAKOR",   initials:"AS" },
-  adminventes: { name:"Moussa Koné",    role:"Admin ventes · MAKOR",  initials:"MK" },
-  superviseur: { name:"Ibrahima Diallo", role:"Superviseur · MAKOR",  initials:"ID" },
-  commercial:  { name:"Fatou Kane",     role:"Commercial · MAKOR",    initials:"FK" },
-  manager:     { name:"Koffi Yao",      role:"Manager · MAKOR",       initials:"KY" }
+  superadmin:  { name:"Michael Koffi",  role:"Super Admin · MAKOR",   initials:"MK" },
+  adminventes: { name:"Eulalie",        role:"Admin ventes · MAKOR",  initials:"EU" },
+  superviseur: { name:"Stéphane", role:"Superviseur · MAKOR",  initials:"ID" },
+  commercial:  { name:"Sery",     role:"Commercial · MAKOR",    initials:"SE" },
+  finance:     { name:"Diby Cader",     role:"Finance · MAKOR",      initials:"DC" }
 };
 
 // Matrice de droits — section 7 du CDC (Total / Lecture / Écriture / Aucun)
@@ -1283,7 +1283,7 @@ var permissionMatrix = {
   adminventes: { clients:'lecture',  pipeline:'lecture',  campaigns:'lecture',  facturation:'aucun', reporting:'total' },
   superviseur: { clients:'lecture',  pipeline:'lecture',  campaigns:'lecture',  facturation:'aucun', reporting:'ecriture' },
   commercial:  { clients:'ecriture', pipeline:'ecriture', campaigns:'ecriture', facturation:'aucun', reporting:'lecture' },
-  manager:     { clients:'lecture',  pipeline:'lecture',  campaigns:'aucun',    facturation:'total', reporting:'lecture' }
+  finance:     { clients:'lecture',  pipeline:'lecture',  campaigns:'aucun',    facturation:'total', reporting:'lecture' }
 };
 
 function applyPermissions(role){
@@ -1302,7 +1302,7 @@ function dashboardHTML(role){
   var bars = '<div class="bars"><div class="bar-col"><div class="bar" style="height:52%"></div><div class="bar-label">Févr.</div></div><div class="bar-col"><div class="bar" style="height:61%"></div><div class="bar-label">Mars</div></div><div class="bar-col"><div class="bar" style="height:48%"></div><div class="bar-label">Avr.</div></div><div class="bar-col"><div class="bar" style="height:73%"></div><div class="bar-label">Mai</div></div><div class="bar-col"><div class="bar" style="height:66%"></div><div class="bar-label">Juin</div></div><div class="bar-col"><div class="bar" style="height:95%"></div><div class="bar-label">Juil.</div></div></div>';
   var donut = '<div class="donut-wrap"><div class="donut" style="background:conic-gradient(var(--primary) 0 42%, var(--accent) 42% 68%, #C4B5FD 68% 85%, #E4E6F0 85% 100%)"></div><div class="donut-legend"><div><span class="dot-sw" style="background:var(--primary)"></span>Côte d\'Ivoire — 42%</div><div><span class="dot-sw" style="background:var(--accent)"></span>Sénégal — 26%</div><div><span class="dot-sw" style="background:#C4B5FD"></span>Bénin — 17%</div><div><span class="dot-sw" style="background:#E4E6F0"></span>Autres — 15%</div></div></div>';
   var pipelineBars = '<div class="stagebar-row"><div class="name">Prospection</div><div class="track"><div style="width:38%"></div></div><div class="amt">18,2M</div></div><div class="stagebar-row"><div class="name">Business Case</div><div class="track"><div style="width:29%"></div></div><div class="amt">13,9M</div></div><div class="stagebar-row"><div class="name">Bon de commande</div><div class="track"><div style="width:20%"></div></div><div class="amt">9,6M</div></div><div class="stagebar-row"><div class="name">Négociation</div><div class="track"><div style="width:52%"></div></div><div class="amt">24,8M</div></div><div class="stagebar-row"><div class="name">Closing</div><div class="track"><div style="width:15%"></div></div><div class="amt">7,1M</div></div>';
-  var objectifsFull = '<h3>Objectifs par commercial</h3><div class="sub">Progression — juillet 2026</div><table class="reptable"><tr><th>#</th><th>Commercial</th><th>Réalisé</th><th></th></tr><tr><td><span class="rank">1</span></td><td>Fatou Kane</td><td>92%</td><td style="width:80px"><div class="progressbar"><div style="width:92%"></div></div></td></tr><tr><td><span class="rank">2</span></td><td>Ibrahima Diallo</td><td>78%</td><td><div class="progressbar"><div style="width:78%"></div></div></td></tr><tr><td><span class="rank">3</span></td><td>Aïcha Traoré</td><td>65%</td><td><div class="progressbar"><div style="width:65%"></div></div></td></tr><tr><td><span class="rank">4</span></td><td>Moussa Koné</td><td>54%</td><td><div class="progressbar"><div style="width:54%"></div></div></td></tr></table>';
+  var objectifsFull = '<h3>Objectifs par commercial</h3><div class="sub">Progression — juillet 2026</div><table class="reptable"><tr><th>#</th><th>Commercial</th><th>Réalisé</th><th></th></tr><tr><td><span class="rank">1</span></td><td>Sery</td><td>92%</td><td style="width:80px"><div class="progressbar"><div style="width:92%"></div></div></td></tr><tr><td><span class="rank">2</span></td><td>Stéphane</td><td>78%</td><td><div class="progressbar"><div style="width:78%"></div></div></td></tr><tr><td><span class="rank">3</span></td><td>Aïcha Traoré</td><td>65%</td><td><div class="progressbar"><div style="width:65%"></div></div></td></tr><tr><td><span class="rank">4</span></td><td>Moussa Koné</td><td>54%</td><td><div class="progressbar"><div style="width:54%"></div></div></td></tr></table>';
   var activites = '<h3>Activités du jour</h3><div class="sub">RDV et relances programmés</div><div class="activity-item"><div class="ic">📞</div><div><div class="t">Relance — SONATEL Business</div><div class="d">Suivi devis DEV-2026-0412</div></div><div class="time">09:30</div></div><div class="activity-item"><div class="ic">🤝</div><div><div class="t">RDV — Bolloré Africa Logistics</div><div class="d">Présentation offre API SMS</div></div><div class="time">11:00</div></div><div class="activity-item"><div class="ic">✉️</div><div><div class="t">Email — Wave Mobile Money</div><div class="d">Envoi grille tarifaire OTP</div></div><div class="time">14:15</div></div>';
 
   if(role === 'superadmin'){
@@ -1332,10 +1332,10 @@ function dashboardHTML(role){
       '<div class="card kpi"><div class="label">Propositions envoyées</div><div class="value">67</div><div style="font-size:11px;color:var(--muted);">SMS 28 · Email 24 · WhatsApp 15</div></div>' +
       '<div class="card kpi"><div class="label">BC envoyés / signés</div><div class="value">19 / 14</div></div>' +
       '<div class="card kpi"><div class="label">Ventes du mois</div><div class="value">27</div></div></div>' +
-      '<div class="card"><h3>Statistiques par commercial</h3><table class="reptable"><tr><th>Commercial</th><th>RDV</th><th>Propositions</th><th>Ventes</th></tr><tr><td>Fatou Kane</td><td>14</td><td>22</td><td>9</td></tr><tr><td>Aïcha Traoré</td><td>11</td><td>18</td><td>7</td></tr><tr><td>Moussa Koné</td><td>9</td><td>15</td><td>6</td></tr></table></div>' +
+      '<div class="card"><h3>Statistiques par commercial</h3><table class="reptable"><tr><th>Commercial</th><th>RDV</th><th>Propositions</th><th>Ventes</th></tr><tr><td>Sery</td><td>14</td><td>22</td><td>9</td></tr><tr><td>Aïcha Traoré</td><td>11</td><td>18</td><td>7</td></tr><tr><td>Moussa Koné</td><td>9</td><td>15</td><td>6</td></tr></table></div>' +
       '<div class="row2" style="margin-top:16px;"><div class="card"><h3>Valeur du pipeline par étape</h3>'+pipelineBars+'</div><div class="card">'+objectifsFull+'</div></div>';
   }
-  if(role === 'manager'){
+  if(role === 'finance'){
     return '<div class="kpi-grid">' +
       '<div class="card kpi"><div class="label">Factures envoyées</div><div class="value">18</div></div>' +
       '<div class="card kpi"><div class="label">Encaissements du mois</div><div class="value">11,3M FCFA</div></div>' +
@@ -1350,20 +1350,20 @@ function dashboardHTML(role){
     '<div class="card kpi"><div class="label">Mon objectif du mois</div><div class="value">71%</div><div class="progressbar"><div style="width:71%"></div></div></div>' +
     '<div class="card kpi"><div class="label">Mes deals en cours</div><div class="value">37</div></div>' +
     '<div class="card kpi"><div class="label">Mes visites (mois)</div><div class="value">14</div></div></div>' +
-    '<div class="row2"><div class="card"><h3>Mon pipeline par étape</h3>'+pipelineBars+'</div><div class="card"><h3>Mon objectif</h3><div class="sub">Progression — juillet 2026</div><p style="font-size:26px;font-weight:800;font-family:Manrope;margin:10px 0 6px;">92%</p><div class="progressbar"><div style="width:92%"></div></div><div style="font-size:11.5px;color:var(--muted);margin-top:8px;">Vous ne voyez que votre propre score — la vue équipe est réservée aux managers et administrateurs.</div></div></div>' +
+    '<div class="row2"><div class="card"><h3>Mon pipeline par étape</h3>'+pipelineBars+'</div><div class="card"><h3>Mon objectif</h3><div class="sub">Progression — juillet 2026</div><p style="font-size:26px;font-weight:800;font-family:Manrope;margin:10px 0 6px;">92%</p><div class="progressbar"><div style="width:92%"></div></div><div style="font-size:11.5px;color:var(--muted);margin-top:8px;">Vous ne voyez que votre propre score — la vue d\'équipe est réservée au Superviseur et à l\'Admin ventes.</div></div></div>' +
     '<div class="card">'+activites+'</div>';
 }
 
 var dashGreetings = {
-  superadmin:"Bonjour Awa 👋", adminventes:"Bonjour Moussa 👋", superviseur:"Bonjour Ibrahima 👋",
-  commercial:"Bonjour Fatou 👋", manager:"Bonjour Koffi 👋"
+  superadmin:"Bonjour Michael 👋", adminventes:"Bonjour Eulalie 👋", superviseur:"Bonjour Stéphane 👋",
+  commercial:"Bonjour Sery 👋", finance:"Bonjour Diby 👋"
 };
 var dashSubs = {
   superadmin:"Vue consolidée de tous les profils — vendredi 24 juillet 2026",
   adminventes:"Pilotage des ventes et qualité du pipeline",
   superviseur:"Supervision de l'équipe commerciale",
   commercial:"Voici la performance de votre portefeuille",
-  manager:"Facturation, encaissements et agenda du jour"
+  finance:"Facturation, encaissements et recouvrement"
 };
 
 function renderDashboard(role){
@@ -1787,8 +1787,8 @@ function dashboardHTML(role){
     '<div class="stagebar-row"><div class="name">Contrat</div><div class="track"><div style="width:15%"></div></div><div class="amt">7,1M</div></div>';
 
   var objectifs = '<table class="reptable"><tr><th>#</th><th>Commercial</th><th>Réalisé</th><th></th></tr>'+
-    '<tr><td><span class="rank">1</span></td><td>Fatou Kane</td><td><b>92%</b></td><td style="width:90px"><div class="progressbar"><div style="width:92%"></div></div></td></tr>'+
-    '<tr><td><span class="rank">2</span></td><td>Ibrahima Diallo</td><td><b>78%</b></td><td><div class="progressbar"><div style="width:78%"></div></div></td></tr>'+
+    '<tr><td><span class="rank">1</span></td><td>Sery</td><td><b>92%</b></td><td style="width:90px"><div class="progressbar"><div style="width:92%"></div></div></td></tr>'+
+    '<tr><td><span class="rank">2</span></td><td>Stéphane</td><td><b>78%</b></td><td><div class="progressbar"><div style="width:78%"></div></div></td></tr>'+
     '<tr><td><span class="rank">3</span></td><td>Aïcha Traoré</td><td><b>65%</b></td><td><div class="progressbar"><div style="width:65%"></div></div></td></tr>'+
     '<tr><td><span class="rank">4</span></td><td>Moussa Koné</td><td><b>54%</b></td><td><div class="progressbar"><div style="width:54%"></div></div></td></tr></table>';
 
@@ -1851,7 +1851,7 @@ function dashboardHTML(role){
       '<div class="row2">'+
         card('Objectifs par commercial','Progression — juillet 2026',objectifs)+
         card('Commentaires sur les pipelines','Réservé Admin ventes et Super Admin',
-          '<div class="activity-item"><div class="ic">💬</div><div><div class="t">Pipeline de Fatou Kane</div><div class="d">« Deal Orange CI à relancer avant le 5 août »</div></div><div class="time">Hier</div></div>'+
+          '<div class="activity-item"><div class="ic">💬</div><div><div class="t">Pipeline de Sery</div><div class="d">« Deal Orange CI à relancer avant le 5 août »</div></div><div class="time">Hier</div></div>'+
           '<div class="activity-item"><div class="ic">💬</div><div><div class="t">Pipeline de Moussa Koné</div><div class="d">« Trop d\'opportunités bloquées en Proposition »</div></div><div class="time">2 j.</div></div>'+
           '<button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="toast(\'Zone de commentaire — fonctionnelle en développement\')">+ Ajouter un commentaire</button>')+'</div>';
   }
@@ -1868,15 +1868,15 @@ function dashboardHTML(role){
           chartDonut({data:[{n:'SMS',v:28,c:CH.or},{n:'Email',v:24,c:CH.nv2},
             {n:'WhatsApp',v:15,c:CH.gr}],c1:'67',c2:'propositions'}))+
         card('Ventes par produit et par commercial','Juillet 2026',
-          chartBars({labels:['Fatou','Ibrahima','Aïcha','Moussa'],series:[
+          chartBars({labels:['Sery','Stéphane','Aïcha','Moussa'],series:[
             {n:'SMS Marketing',c:CH.or,data:[5,4,3,2]},
             {n:'OTP',c:CH.nv2,data:[2,3,2,2]},
             {n:'WhatsApp',c:CH.vi,data:[2,1,2,2]}]}))+'</div>'+
       '<div class="row2">'+
         card('Activité par commercial','Période : juillet 2026',
           '<table class="reptable"><tr><th>Commercial</th><th>RDV</th><th>Propos.</th><th>BC</th><th>Ventes</th></tr>'+
-          '<tr><td>Fatou Kane</td><td>14</td><td>22</td><td>7</td><td><b>9</b></td></tr>'+
-          '<tr><td>Ibrahima Diallo</td><td>12</td><td>19</td><td>5</td><td><b>8</b></td></tr>'+
+          '<tr><td>Sery</td><td>14</td><td>22</td><td>7</td><td><b>9</b></td></tr>'+
+          '<tr><td>Stéphane</td><td>12</td><td>19</td><td>5</td><td><b>8</b></td></tr>'+
           '<tr><td>Aïcha Traoré</td><td>11</td><td>18</td><td>4</td><td><b>7</b></td></tr>'+
           '<tr><td>Moussa Koné</td><td>9</td><td>15</td><td>3</td><td><b>6</b></td></tr></table>')+
         card('Objectifs de l\'équipe','Progression — juillet 2026',objectifs)+'</div>'+
@@ -1886,8 +1886,8 @@ function dashboardHTML(role){
           {n:'Ventes',c:CH.or,data:[19,21,20,24,23,27]}],h:170}));
   }
 
-  /* ---------- MANAGER ---------- */
-  if(role === 'manager'){
+  /* ---------- FINANCE ---------- */
+  if(role === 'finance'){
     return '<div class="kpi-grid">'+
       kpi('Factures envoyées','18','ce mois','',true,[12,14,13,16,15,18])+
       kpi('Encaissements','11,3M','FCFA','↑ 9,2%',true,[7.9,8.6,8.2,9.8,10.3,11.3])+
@@ -2119,7 +2119,7 @@ function vAgenda(){
   '<div class="card" style="margin-top:16px;"><h3>Aujourd\'hui — vendredi 24 juillet</h3>'+
   '<div class="sub">Compte rendu envoyé automatiquement au client après chaque rendez-vous (§4.12)</div>'+
   '<div class="activity-item"><div class="ic">🤝</div><div><div class="t">11:00 — RDV Bolloré Africa Logistics</div>'+
-  '<div class="d">Présentation de l\'offre API SMS · Fatou Kane</div></div>'+
+  '<div class="d">Présentation de l\'offre API SMS · Sery</div></div>'+
   '<button class="btn btn-ghost btn-sm" onclick="toast(\'Compte rendu envoyé par email au client\')">Envoyer le CR</button></div>'+
   '<div class="activity-item"><div class="ic">💰</div><div><div class="t">Relance impayé — Ecobank CI</div>'+
   '<div class="d">FAC-2026-0512 · 2,4M FCFA · 12 jours de retard</div></div>'+
@@ -2158,10 +2158,10 @@ function vDocuments(){
   '<div class="card" style="margin-top:18px;"><h3>Rattachement automatique</h3>'+
   '<div class="sub">Chaque document est lié à sa fiche client, opportunité ou commande (§4.13)</div>'+
   '<table class="datagrid"><tr><th>Document</th><th>Type</th><th>Rattaché à</th><th>Ajouté par</th><th>Date</th></tr>'+
-  '<tr><td class="link-cell">Contrat CTR-2026-0093.pdf</td><td>Contrat</td><td>Orange CI Entreprises</td><td>Fatou Kane</td><td>22 juil. 2026</td></tr>'+
+  '<tr><td class="link-cell">Contrat CTR-2026-0093.pdf</td><td>Contrat</td><td>Orange CI Entreprises</td><td>Sery</td><td>22 juil. 2026</td></tr>'+
   '<tr><td class="link-cell">Facture FAC-2026-0512.pdf</td><td>Facture</td><td>Ecobank CI</td><td>Aïcha Konaté</td><td>20 juil. 2026</td></tr>'+
   '<tr><td class="link-cell">Devis DEV-2026-0431.pdf</td><td>Devis</td><td>Wave Mobile Money</td><td>Moussa Koné</td><td>18 juil. 2026</td></tr>'+
-  '<tr><td class="link-cell">BC-2026-0287.pdf</td><td>Bon de commande</td><td>SONATEL Business</td><td>Fatou Kane</td><td>15 juil. 2026</td></tr></table></div>';
+  '<tr><td class="link-cell">BC-2026-0287.pdf</td><td>Bon de commande</td><td>SONATEL Business</td><td>Sery</td><td>15 juil. 2026</td></tr></table></div>';
 }
 
 /* ---------- SENDER ID ---------- */
@@ -2196,22 +2196,22 @@ function vSenderId(){
   '<select><option>Tous les statuts</option><option>Actif</option><option>En traitement</option><option>Rejeté</option></select>'+
   '<select><option>Tous les pays</option><option>Côte d\'Ivoire</option><option>Sénégal</option><option>Bénin</option></select></div>'+
   '<table class="datagrid"><tr><th>Identifiant</th><th>Client</th><th>Pays</th><th>Demandé par</th><th>Statut</th><th>Action</th></tr>'+
-  '<tr><td><b>ORANGE-CI</b></td><td>Orange CI Entreprises</td><td>Côte d\'Ivoire</td><td>Fatou Kane</td><td><span class="badge b-active">Actif</span></td><td>—</td></tr>'+
+  '<tr><td><b>ORANGE-CI</b></td><td>Orange CI Entreprises</td><td>Côte d\'Ivoire</td><td>Sery</td><td><span class="badge b-active">Actif</span></td><td>—</td></tr>'+
   '<tr><td><b>WAVE-MONEY</b></td><td>Wave Mobile Money</td><td>Sénégal</td><td>Moussa Koné</td><td><span class="badge b-sent">En traitement</span></td><td>'+(sa?'<button class="btn btn-ghost btn-sm" onclick="toast(\'Demande approuvée\')">Approuver</button>':'—')+'</td></tr>'+
   '<tr><td><b>ECOBANK</b></td><td>Ecobank CI</td><td>Côte d\'Ivoire</td><td>Aïcha Konaté</td><td><span class="badge b-sent">En traitement</span></td><td>'+(sa?'<button class="btn btn-ghost btn-sm" onclick="toast(\'Demande approuvée\')">Approuver</button>':'—')+'</td></tr>'+
-  '<tr><td><b>SONATEL-B</b></td><td>SONATEL Business</td><td>Sénégal</td><td>Fatou Kane</td><td><span class="badge b-active">Actif</span></td><td>—</td></tr>'+
-  '<tr><td><b>BOLLORE-AF</b></td><td>Bolloré Africa Logistics</td><td>Côte d\'Ivoire</td><td>Ibrahima Diallo</td><td><span class="badge b-overdue">Rejeté</span></td><td><button class="btn btn-ghost btn-sm" onclick="toast(\'Motif : identifiant trop long — 11 caractères maximum\')">Motif</button></td></tr></table></div>';
+  '<tr><td><b>SONATEL-B</b></td><td>SONATEL Business</td><td>Sénégal</td><td>Sery</td><td><span class="badge b-active">Actif</span></td><td>—</td></tr>'+
+  '<tr><td><b>BOLLORE-AF</b></td><td>Bolloré Africa Logistics</td><td>Côte d\'Ivoire</td><td>Stéphane</td><td><span class="badge b-overdue">Rejeté</span></td><td><button class="btn btn-ghost btn-sm" onclick="toast(\'Motif : identifiant trop long — 11 caractères maximum\')">Motif</button></td></tr></table></div>';
 }
 
 /* ---------- AUDIT ---------- */
 function vAudit(){
   var L=[['24/07/2026 09:12','Moussa Koné','Modification tarif','API SMS — Côte d\'Ivoire','h','10 → 12 FCFA'],
-    ['23/07/2026 17:40','Ibrahima Diallo','Changement d\'étape','Opportunité Orange CI','l','Proposition → Bon de commande'],
+    ['23/07/2026 17:40','Stéphane','Changement d\'étape','Opportunité Orange CI','l','Proposition → Bon de commande'],
     ['23/07/2026 14:22','Awa Diomandé','Approbation Sender ID','SONATEL-B','m','Validé pour le Sénégal'],
     ['22/07/2026 11:05','Awa Diomandé','Création utilisateur','Compte « Sarah Bamba »','h','Rôle : Commercial'],
     ['22/07/2026 08:47','Aïcha Konaté','Émission facture','FAC-2026-0518 · 3,8M FCFA','m','SONATEL Business'],
-    ['21/07/2026 16:30','Fatou Kane','Envoi campagne','Promo rentrée — 48 200 contacts','m','SMS Marketing'],
-    ['20/07/2026 08:30','Awa Diomandé','Modification permissions','Rôle Manager','h','+ Créer bon de commande'],
+    ['21/07/2026 16:30','Sery','Envoi campagne','Promo rentrée — 48 200 contacts','m','SMS Marketing'],
+    ['20/07/2026 08:30','Awa Diomandé','Modification permissions','Rôle Finance','h','+ Créer bon de commande'],
     ['19/07/2026 15:12','Moussa Koné','Suppression prospect','Groupe Bernabé','h','Doublon signalé']];
   return head('Journal d\'audit','Traçabilité des actions sensibles — consultation réservée au Super Admin')+
   '<div class="mini-kpi">'+mk('Entrées ce mois','1 284')+mk('Actions critiques','37','#DC2626')+
@@ -2223,7 +2223,7 @@ function vAudit(){
   '<span class="chip">Permissions</span><span class="chip">Tarifs</span><span class="chip">Facturation</span>'+
   '<span class="chip">Suppressions</span></div>'+
   '<div class="card"><div class="toolbar"><input placeholder="Rechercher un utilisateur, une action, une cible…">'+
-  '<select><option>Tous les utilisateurs</option><option>Awa Diomandé</option><option>Fatou Kane</option><option>Moussa Koné</option></select>'+
+  '<select><option>Tous les utilisateurs</option><option>Awa Diomandé</option><option>Sery</option><option>Moussa Koné</option></select>'+
   '<select><option>30 derniers jours</option><option>7 derniers jours</option><option>12 derniers mois</option></select>'+
   '<button class="btn btn-ghost btn-sm" onclick="toast(\'Export CSV du journal généré\')">⬇ Exporter</button></div>'+
   '<table class="datagrid"><tr><th>Horodatage</th><th>Utilisateur</th><th>Action</th><th>Cible</th><th>Gravité</th><th>Détail</th></tr>'+
@@ -2291,7 +2291,7 @@ function vNotifications(){
         var it=document.createElement('div');
         it.className='navitem';
         it.setAttribute('data-view','notifications');
-        it.setAttribute('data-roles','superadmin,adminventes,superviseur,commercial,manager');
+        it.setAttribute('data-roles','superadmin,adminventes,superviseur,commercial,finance');
         it.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+
           '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>'+
           '<path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notifications'+
@@ -2394,14 +2394,14 @@ function vNotifications(){
 /* ============ PASSE 4 — parcours de bout en bout ============ */
 var JOURNEY = [
   {ic:'🎯',t:'Prospect qualifié',b:'Wave Mobile Money',v:'leads',ok:1,
-   d:'20 mai 2026 · Fatou Kane · Source : recommandation Orange CI',
+   d:'20 mai 2026 · Sery · Source : recommandation Orange CI',
    f:[['Secteur','Fintech'],['Décideur','A. Sy — DSI'],['Pays','Sénégal']]},
   {ic:'🤝',t:'Rendez-vous réalisé',b:'Présentation du catalogue OTP',v:'agenda',ok:1,
    d:'28 mai 2026 · 14h00 · Compte rendu envoyé au client par email',
    f:[['Durée','1 h 20'],['Participants','3'],['Besoin exprimé','100 000 OTP / mois']]},
   {ic:'📈',t:'Opportunité créée',b:'OTP Sécurité — Wave Mobile Money',v:'pipeline',ok:1,
    d:'29 mai 2026 · Étape canonique : Proposition · Probabilité 70%',
-   f:[['Valeur estimée','1,0M FCFA'],['Produit','OTP Sécurité'],['Commercial','Fatou Kane']]},
+   f:[['Valeur estimée','1,0M FCFA'],['Produit','OTP Sécurité'],['Commercial','Sery']]},
   {ic:'📋',t:'Devis émis et accepté',b:'DEV-2026-0431',v:'deals-chain',ok:1,
    d:'12 juin 2026 · Texte commercial rédigé avec assistance IA, validé manuellement (D6)',
    f:[['Montant HT','1 000 000 FCFA'],['TVA 18%','180 000 FCFA'],['Statut','Accepté le 18 juin']]},
@@ -2428,7 +2428,7 @@ function vJourney(){
     '<div><b>42 j.</b><span>Cycle de vente</span></div>'+
     '<div><b>'+done+' / 8</b><span>Étapes franchies</span></div>'+
     '<div><b>OTP</b><span>Produit vendu</span></div>'+
-    '<div><b>Fatou Kane</b><span>Commercial</span></div></div></div>'+
+    '<div><b>Sery</b><span>Commercial</span></div></div></div>'+
     '<div class="alert-bar ok"><span class="ic">🧭</span><div><b>Lecture de ce parcours</b><br>'+
     'Chaque étape correspond à un module du CRM. Cliquez sur une carte pour ouvrir l\'écran '+
     'où l\'action a réellement lieu. Les étapes canoniques du pipeline sont celles du §4.6 du cahier des charges.</div></div>';
@@ -2458,13 +2458,13 @@ function jgo(v){ if(typeof showView==='function'){ showView(v); window.scrollTo(
 
 /* ---------- Visite guidée ---------- */
 var TOUR = [
-  {v:'login',t:'Connexion sécurisée',d:'Identification par e-mail, puis double authentification à six chiffres — obligatoire pour les profils Super Admin, Admin ventes et Manager.'},
+  {v:'login',t:'Connexion sécurisée',d:'Identification par e-mail, puis double authentification à six chiffres — obligatoire pour les profils Super Admin, Admin ventes et Finance.'},
   {v:'dashboard',t:'Un tableau de bord par métier',d:'Cinq profils, cinq vues différentes. Changez de rôle en haut à droite : les indicateurs, les graphiques et le menu se reconstruisent entièrement.'},
   {v:'leads',t:'Qualification du prospect',d:'Secteur, décideur, canal d\'acquisition. Wave Mobile Money est entré ici le 20 mai, par recommandation d\'Orange CI.'},
   {v:'pipeline',t:'Pipeline commercial',d:'Six étapes canoniques du cahier des charges. Glissez une carte d\'une colonne à l\'autre — le passage est refusé si le prérequis documentaire manque.'},
   {v:'deals-chain',t:'Devis, bon de commande, contrat',d:'La chaîne s\'enchaîne sans ressaisie : le devis accepté devient bon de commande, le bon de commande signé génère le contrat.'},
   {v:'campaigns',t:'Pilotage technique des campagnes',d:'Envoi réel via la passerelle, suivi de délivrabilité par opérateur, et détection automatique des anomalies — ici un blocage MTN Sénégal.'},
-  {v:'invoices',t:'Facturation et encaissements',d:'Périmètre du Manager. Émission, relance, rapprochement des règlements avec les factures.'},
+  {v:'invoices',t:'Facturation et encaissements',d:'Périmètre de Finance. Émission, relance, rapprochement des règlements avec les factures.'},
   {v:'notifications',t:'Alertes multi-canal',d:'Anomalie de campagne, deal bloqué, facture en retard — notifiés par e-mail, SMS ou WhatsApp selon la configuration.'},
   {v:'reports',t:'Reporting et exports',d:'Volumes, chiffre d\'affaires et marges par produit, pays, secteur et client. Export PDF, Excel et CSV.'},
   {v:'audit',t:'Traçabilité',d:'Journal inaltérable des actions sensibles, consultable par le seul Super Admin. Conservation vingt-quatre mois.'},
@@ -2510,7 +2510,7 @@ function tourNext(){ if(tourI===TOUR.length-1) tourEnd(); else tourGo(tourI+1); 
         lbl.className='navgroup-label'; lbl.textContent='Démonstration';
         var it=document.createElement('div');
         it.className='navitem'; it.setAttribute('data-view','journey');
-        it.setAttribute('data-roles','superadmin,adminventes,superviseur,commercial,manager');
+        it.setAttribute('data-roles','superadmin,adminventes,superviseur,commercial,finance');
         it.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+
           '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'+
           ' Parcours d\'une affaire';
@@ -2536,6 +2536,416 @@ function tourNext(){ if(tourI===TOUR.length-1) tourEnd(); else tourGo(tourI+1); 
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',build);
   else build();
+})();
+</script>
+
+<style id="makor-p5">
+/* ===== Ressources de formation ===== */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:16px;}
+.rcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  cursor:pointer;transition:all .28s var(--ease);display:flex;flex-direction:column;}
+.rcard:hover{transform:translateY(-4px);box-shadow:var(--sh-2);border-color:var(--primary);}
+.rthumb{height:112px;display:flex;align-items:center;justify-content:center;font-size:34px;position:relative;}
+.rthumb .dur{position:absolute;bottom:8px;right:9px;background:rgba(0,27,46,.82);color:#fff;
+  font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;}
+.rthumb .play{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:#001B2E;
+  box-shadow:0 3px 10px rgba(0,0,0,.2);}
+.rbody{padding:14px 15px;flex:1;display:flex;flex-direction:column;}
+.rcat{font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;
+  color:var(--primary-dark);margin-bottom:5px;}
+.rtitle{font-size:13.5px;font-weight:700;line-height:1.35;margin-bottom:5px;}
+.rdesc{font-size:12px;color:var(--muted);line-height:1.5;flex:1;}
+.rfoot{display:flex;align-items:center;justify-content:space-between;margin-top:11px;
+  padding-top:10px;border-top:1px solid var(--border);}
+.rprog{height:5px;background:#EDF0F7;border-radius:99px;overflow:hidden;margin-top:9px;}
+.rprog div{height:100%;background:linear-gradient(90deg,var(--primary),#FFC061);border-radius:99px;
+  transition:width .8s var(--ease);}
+.oblig{background:#FEE2E2;color:#991B1B;font-size:9.5px;font-weight:800;padding:2px 7px;
+  border-radius:99px;text-transform:uppercase;letter-spacing:.05em;}
+/* Quiz */
+.quiz-q{background:#FAFBFE;border:1px solid var(--border);border-radius:13px;padding:15px 17px;margin-bottom:12px;}
+.quiz-q .q{font-weight:600;font-size:13.5px;margin-bottom:11px;}
+.quiz-o{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid var(--border);
+  border-radius:9px;margin-bottom:7px;cursor:pointer;font-size:13px;background:#fff;
+  transition:all .2s var(--ease);}
+.quiz-o:hover{border-color:var(--primary);background:var(--primary-soft);}
+.quiz-o.ok{border-color:#16A34A;background:#F0FDF4;color:#15803D;font-weight:600;}
+.quiz-o.ko{border-color:#DC2626;background:#FEF2F2;color:#991B1B;}
+.quiz-o .mk{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:11px;}
+/* ===== Équipe ===== */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:15px;}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;
+  cursor:pointer;transition:all .28s var(--ease);text-align:center;}
+.tcard:hover{transform:translateY(-4px);box-shadow:var(--sh-2);border-color:var(--primary);}
+.tav{width:56px;height:56px;border-radius:50%;margin:0 auto 11px;display:flex;align-items:center;
+  justify-content:center;font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;color:#fff;
+  background:linear-gradient(135deg,#00304F,#0A6FA8);}
+.tname{font-weight:700;font-size:14.5px;}
+.trole{font-size:11.5px;color:var(--muted);margin-bottom:12px;}
+.tstats{display:flex;justify-content:space-around;padding-top:12px;border-top:1px solid var(--border);}
+.tstats b{display:block;font-family:'Manrope',sans-serif;font-size:17px;font-weight:800;}
+.tstats span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+/* Score */
+.score-ring{position:relative;width:132px;height:132px;margin:0 auto;}
+.score-ring .v{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;}
+.score-ring .n{font-family:'Manrope',sans-serif;font-size:33px;font-weight:800;line-height:1;}
+.score-ring .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+.axis-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.axis-row:last-child{border:none;}
+.axis-n{flex:1;font-size:13px;font-weight:600;}
+.axis-w{font-size:10.5px;color:var(--muted);background:#F1F4FA;padding:2px 7px;border-radius:99px;font-weight:700;}
+.axis-b{width:96px;height:7px;background:#EDF0F7;border-radius:99px;overflow:hidden;}
+.axis-b div{height:100%;border-radius:99px;transition:width .9s var(--ease);}
+.axis-v{width:42px;text-align:right;font-weight:800;font-family:'Manrope',sans-serif;font-size:14px;}
+/* Commentaires */
+.cmt{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--border);}
+.cmt .av{width:34px;height:34px;border-radius:50%;background:#00304F;color:#fff;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.cmt .who{font-weight:700;font-size:13px;}
+.cmt .when{font-size:11px;color:var(--muted);}
+.cmt .txt{font-size:13px;line-height:1.55;margin-top:4px;}
+.cmt-box{border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-top:14px;}
+.cmt-box textarea{width:100%;border:none;outline:none;resize:vertical;min-height:62px;
+  font-family:'Inter',sans-serif;font-size:13px;background:transparent;}
+</style>
+
+<script id="makor-p5-js">
+/* ================= PASSE 5 — Ressources · Équipe · Évaluation · Frais ================= */
+var ROLE = function(){ var s=document.getElementById('role-switch'); return (s&&s.value)||'commercial'; };
+
+/* ---------- RESSOURCES ---------- */
+var RES = [
+ {t:"Bienvenue chez MAKOR Group Telecom",c:"Entreprise",ty:"video",d:"7 min",p:100,o:1,
+  x:"Histoire, organisation, marchés et pays desservis. Le socle pour tout nouvel arrivant.",bg:"#DBEAFE",ic:"🏢"},
+ {t:"Nos six produits expliqués simplement",c:"Produit",ty:"video",d:"12 min",p:100,o:1,
+  x:"SMS Marketing, OTP, API SMS, WhatsApp, Voice et Sender ID — à quoi sert chacun, pour quel client.",bg:"#FEF3C7",ic:"📦"},
+ {t:"Les pays où nous opérons",c:"Entreprise",ty:"pdf",d:"6 pages",p:100,o:1,
+  x:"Côte d'Ivoire, Sénégal, Bénin, Mali, Burkina. Opérateurs partenaires et spécificités locales.",bg:"#DBEAFE",ic:"🌍"},
+ {t:"Qualifier un prospect en dix minutes",c:"Technique de vente",ty:"video",d:"9 min",p:65,o:0,
+  x:"La méthode des quatre questions. Cas réel : comment Wave Mobile Money est entré en portefeuille.",bg:"#DCFCE7",ic:"🎯"},
+ {t:"Conclure : lever les trois objections classiques",c:"Closing",ty:"video",d:"14 min",p:30,o:0,
+  x:"« C'est trop cher », « on verra plus tard », « je dois en parler ». Par Moussa Koné.",bg:"#F3E8FF",ic:"🤝"},
+ {t:"Construire une grille tarifaire qui tient",c:"Technique de vente",ty:"pdf",d:"11 pages",p:0,o:0,
+  x:"Marge par produit et par pays, seuils de remise, ce qui se négocie et ce qui ne se négocie pas.",bg:"#DCFCE7",ic:"💰"},
+ {t:"Sender ID : ce que l'opérateur accepte",c:"Réglementation",ty:"pdf",d:"8 pages",p:0,o:1,
+  x:"Règles de nommage, délais de validation, motifs de rejet les plus fréquents.",bg:"#FEE2E2",ic:"📶"},
+ {t:"Lire un taux de délivrabilité",c:"Produit",ty:"video",d:"8 min",p:0,o:0,
+  x:"Ce qu'un taux de 82% veut vraiment dire, et quand alerter le client avant qu'il n'appelle.",bg:"#FEF3C7",ic:"📊"},
+ {t:"Utiliser le CRM au quotidien",c:"Outils",ty:"video",d:"18 min",p:0,o:1,
+  x:"Du prospect à l'encaissement, tous les écrans, dans l'ordre.",bg:"#E0E7FF",ic:"🖥️"}
+];
+
+function vRessources(){
+  var sa = ROLE()==='superadmin';
+  var oblig = RES.filter(function(r){return r.o;});
+  var done  = oblig.filter(function(r){return r.p===100;}).length;
+  var pct   = Math.round(done/oblig.length*100);
+
+  var head_ = head('Ressources','Formation, produits et procédures — montez en compétences à votre rythme',
+    sa ? '<button class="btn btn-primary" onclick="openModal(\'res-add\')">+ Publier une ressource</button>'
+       : '<button class="btn btn-primary" onclick="toast(\'Votre proposition part en validation chez le Super Admin\')">+ Proposer un contenu</button>');
+
+  var banner = sa
+    ? '<div class="alert-bar warn"><span class="ic">📥</span><div><b>3 propositions en attente de validation</b><br>'+
+      'Moussa Koné — « Négocier avec un grand compte » · Aïcha Traoré — « Fiche produit Voice » · Stéphane — « Objections tarifaires ». '+
+      '<a href="#" onclick="toast(\'File de validation ouverte\');return false" style="color:inherit;font-weight:700;">Examiner →</a></div></div>'
+    : '<div class="alert-bar ok"><span class="ic">🎓</span><div><b>Votre progression : '+pct+'% du contenu obligatoire</b><br>'+
+      done+' ressources terminées sur '+oblig.length+'. La formation compte pour 15% de votre évaluation.</div></div>';
+
+  var cards = RES.map(function(r,i){
+    var thumb = r.ty==='video'
+      ? '<div class="rthumb" style="background:'+r.bg+'"><div class="play">▶</div><span class="dur">'+r.d+'</span></div>'
+      : '<div class="rthumb" style="background:'+r.bg+'">'+r.ic+'<span class="dur">'+r.d+'</span></div>';
+    var etat = r.p===100 ? '<span class="badge b-active">✓ Terminé</span>'
+             : r.p>0     ? '<span class="badge b-sent">En cours</span>'
+                         : '<span class="badge b-new">À faire</span>';
+    return '<div class="rcard" onclick="openRes('+i+')">'+thumb+'<div class="rbody">'+
+      '<div class="rcat">'+r.c+(r.o?' · <span class="oblig">Obligatoire</span>':'')+'</div>'+
+      '<div class="rtitle">'+r.t+'</div><div class="rdesc">'+r.x+'</div>'+
+      '<div class="rprog"><div style="width:'+r.p+'%"></div></div>'+
+      '<div class="rfoot">'+etat+'<span style="font-size:11.5px;color:var(--muted);">'+
+      (r.ty==='video'?'🎬 Vidéo':'📄 Document')+'</span></div></div></div>';
+  }).join('');
+
+  return head_ + banner +
+    '<div class="mini-kpi">'+mk('Ressources publiées',String(RES.length))+
+      mk('Obligatoires',String(oblig.length))+
+      mk('Votre progression',pct+'%',pct>=80?'#16A34A':'#F39304')+
+      mk(sa?'En attente de validation':'Temps de formation',sa?'3':'2 h 14')+'</div>'+
+    '<div class="chips"><span class="chip on">Toutes</span><span class="chip">Obligatoires</span>'+
+    '<span class="chip">Entreprise</span><span class="chip">Produit</span>'+
+    '<span class="chip">Technique de vente</span><span class="chip">Closing</span>'+
+    '<span class="chip">Réglementation</span><span class="chip">Outils</span></div>'+
+    '<div class="rgrid">'+cards+'</div>';
+}
+
+function openRes(i){
+  var r=RES[i];
+  var m=document.getElementById('modal-res-view');
+  if(!m){
+    m=document.createElement('div'); m.className='modal-backdrop'; m.id='modal-res-view';
+    m.onclick=function(e){ if(e.target===m) m.classList.remove('active'); };
+    document.body.appendChild(m);
+  }
+  m.innerHTML='<div class="modal" style="max-width:660px;max-height:86vh;overflow:auto;" onclick="event.stopPropagation()">'+
+    '<div class="modal-head"><h3>'+r.t+'</h3>'+
+    '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'modal-res-view\').classList.remove(\'active\')">✕</button></div>'+
+    '<div class="modal-body">'+
+    '<div class="rthumb" style="background:'+r.bg+';height:170px;border-radius:14px;margin-bottom:16px;">'+
+      (r.ty==='video'?'<div class="play" style="width:56px;height:56px;font-size:20px;">▶</div>':r.ic)+
+      '<span class="dur">'+r.d+'</span></div>'+
+    '<div class="rcat">'+r.c+(r.o?' · <span class="oblig">Obligatoire</span>':'')+'</div>'+
+    '<p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:8px 0 18px;">'+r.x+'</p>'+
+    '<div class="rprog" style="height:7px;"><div style="width:'+r.p+'%"></div></div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-top:6px;">Progression : '+r.p+'%</div>'+
+    (r.p===100
+      ? '<div class="alert-bar ok" style="margin-top:18px;"><span class="ic">✅</span><div><b>Ressource validée</b><br>Questionnaire réussi — 5 bonnes réponses sur 5. <a href="#" onclick="toast(\'Vos réponses restent consultables\');return false" style="color:inherit;font-weight:700;">Revoir mes réponses →</a></div></div>'
+      : '<div style="display:flex;gap:10px;margin-top:18px;">'+
+        '<button class="btn btn-primary" style="flex:1;" onclick="toast(\'Lecture en cours…\')">▶ '+(r.ty==='video'?'Regarder':'Ouvrir')+'</button>'+
+        '<button class="btn btn-secondary" style="flex:1;" onclick="openQuiz()">J\'ai terminé — passer au questionnaire</button></div>')+
+    '</div></div>';
+  m.classList.add('active');
+}
+
+/* ---------- QUIZ ---------- */
+var QUIZ = [
+ {q:"Un client sénégalais veut sécuriser les connexions à son application bancaire. Quel produit lui proposez-vous ?",
+  o:["SMS Marketing","OTP","Voice","Sender ID"],a:1},
+ {q:"Une campagne affiche 82% de délivrabilité sur MTN Sénégal alors que la moyenne est de 97%. Que faites-vous en premier ?",
+  o:["J'attends la fin de la campagne","Je préviens le client avant qu'il n'appelle","Je relance l'envoi depuis le début","Je change de Sender ID"],a:1},
+ {q:"Combien de pays MAKOR dessert-il aujourd'hui ?",
+  o:["Trois","Cinq","Huit","Douze"],a:1},
+ {q:"Un Sender ID de 14 caractères est soumis à l'opérateur. Que se passe-t-il ?",
+  o:["Il est accepté","Il est rejeté — 11 caractères maximum","Il est tronqué automatiquement","Il passe en validation manuelle"],a:1},
+ {q:"Quelle étape du pipeline précède immédiatement le Bon de commande ?",
+  o:["Prospect","RDV","Proposition","Contrat"],a:2}
+];
+function openQuiz(){
+  var m=document.getElementById('modal-res-view');
+  m.innerHTML='<div class="modal" style="max-width:660px;max-height:86vh;overflow:auto;" onclick="event.stopPropagation()">'+
+    '<div class="modal-head"><h3>Questionnaire de validation</h3>'+
+    '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'modal-res-view\').classList.remove(\'active\')">✕</button></div>'+
+    '<div class="modal-body">'+
+    '<div class="alert-bar ok" style="margin-bottom:16px;"><span class="ic">💡</span><div>'+
+    'Cinq questions, une seule bonne réponse par question. <b>Rejouable autant de fois que vous voulez, sans pénalité.</b> '+
+    'L\'objectif est de vérifier votre compréhension, pas de vous noter.</div></div>'+
+    QUIZ.map(function(q,i){
+      return '<div class="quiz-q"><div class="q">'+(i+1)+'. '+q.q+'</div>'+
+        q.o.map(function(o,j){
+          return '<div class="quiz-o" onclick="answer(this,'+(j===q.a?1:0)+')">'+
+            '<span class="mk">'+String.fromCharCode(65+j)+'</span>'+o+'</div>';}).join('')+'</div>';
+    }).join('')+
+    '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="toast(\'Questionnaire validé — ressource marquée comme terminée\');document.getElementById(\'modal-res-view\').classList.remove(\'active\')">Valider mes réponses</button>'+
+    '</div></div>';
+}
+function answer(el,ok){
+  var p=el.parentNode;
+  p.querySelectorAll('.quiz-o').forEach(function(x){x.classList.remove('ok','ko');});
+  el.classList.add(ok?'ok':'ko');
+  el.querySelector('.mk').textContent = ok?'✓':'✕';
+}
+
+/* ---------- ÉQUIPE + ÉVALUATION ---------- */
+var TEAM = [
+ {n:"Sery",id:"SE",ca:"8,4M",fr:"420k",net:"7,98M",deals:37,score:78,
+  ax:[{n:"Résultat",w:40,v:92},{n:"Activité",w:25,v:84},{n:"Qualité du pipeline",w:20,v:71},{n:"Formation",w:15,v:33}]},
+ {n:"Moussa Koné",id:"MK",ca:"6,9M",fr:"310k",net:"6,59M",deals:29,score:71,
+  ax:[{n:"Résultat",w:40,v:78},{n:"Activité",w:25,v:76},{n:"Qualité du pipeline",w:20,v:64},{n:"Formation",w:15,v:50}]},
+ {n:"Aïcha Traoré",id:"AT",ca:"5,4M",fr:"260k",net:"5,14M",deals:24,score:66,
+  ax:[{n:"Résultat",w:40,v:65},{n:"Activité",w:25,v:72},{n:"Qualité du pipeline",w:20,v:58},{n:"Formation",w:15,v:78}]},
+ {n:"Kouadio Serge",id:"KS",ca:"4,1M",fr:"180k",net:"3,92M",deals:18,score:59,
+  ax:[{n:"Résultat",w:40,v:54},{n:"Activité",w:25,v:61},{n:"Qualité du pipeline",w:20,v:55},{n:"Formation",w:15,v:89}]}
+];
+function ring(v){
+  var R=58,C=2*Math.PI*R,off=C*(1-v/100);
+  var col = v>=75?'#16A34A' : v>=60?'#F39304' : '#DC2626';
+  return '<div class="score-ring"><svg viewBox="0 0 132 132" style="transform:rotate(-90deg)">'+
+    '<circle cx="66" cy="66" r="'+R+'" fill="none" stroke="#EDF0F7" stroke-width="10"/>'+
+    '<circle cx="66" cy="66" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="10" stroke-linecap="round" '+
+    'stroke-dasharray="'+C+'" stroke-dashoffset="'+C+'">'+
+    '<animate attributeName="stroke-dashoffset" from="'+C+'" to="'+off+'" dur="1.1s" begin="0.25s" fill="freeze" '+
+    'calcMode="spline" keySplines="0.22 1 0.36 1"/></circle></svg>'+
+    '<div class="v"><div class="n" style="color:'+col+'">'+v+'</div><div class="l">sur 100</div></div></div>';
+}
+function axes(list){
+  return list.map(function(a){
+    var col = a.v>=75?'#16A34A' : a.v>=60?'#F39304' : '#DC2626';
+    return '<div class="axis-row"><span class="axis-n">'+a.n+'</span><span class="axis-w">'+a.w+'%</span>'+
+      '<div class="axis-b"><div style="width:'+a.v+'%;background:'+col+'"></div></div>'+
+      '<span class="axis-v" style="color:'+col+'">'+a.v+'</span></div>';
+  }).join('');
+}
+function vEquipe(){
+  return head('Équipe commerciale','Portefeuilles, performances et accompagnement')+
+  '<div class="mini-kpi">'+mk('Commerciaux actifs','4')+mk("Chiffre d'affaires cumulé",'24,8M','#16A34A')+
+    mk('Frais engagés','1,17M')+mk('Contribution nette','23,63M','#16A34A')+'</div>'+
+  '<div class="alert-bar ok"><span class="ic">💡</span><div><b>La contribution nette</b><br>'+
+  "C'est le chiffre d'affaires généré moins les frais engagés. C'est lui qui mesure ce que chaque commercial rapporte réellement.</div></div>"+
+  '<div class="tgrid">'+TEAM.map(function(t,i){
+    return '<div class="tcard" onclick="openFiche('+i+')"><div class="tav">'+t.id+'</div>'+
+      '<div class="tname">'+t.n+'</div><div class="trole">Commercial · MAKOR</div>'+
+      '<div class="tstats"><div><b>'+t.ca+'</b><span>CA</span></div>'+
+      '<div><b>'+t.deals+'</b><span>Deals</span></div>'+
+      '<div><b style="color:'+(t.score>=75?'#16A34A':t.score>=60?'#F39304':'#DC2626')+'">'+t.score+'</b><span>Score</span></div></div></div>';
+  }).join('')+'</div>'+
+  '<div class="card" style="margin-top:18px;"><h3>Chiffre d\'affaires et frais par commercial</h3>'+
+  '<div class="sub">Juillet 2026 — la contribution nette est la différence entre les deux</div>'+
+  chartBars({labels:TEAM.map(function(t){return t.n.split(' ')[0];}),u:' FCFA',series:[
+    {n:"Chiffre d'affaires",c:CH.gr,data:[8.4e6,6.9e6,5.4e6,4.1e6]},
+    {n:'Frais engagés',c:CH.rd,data:[420e3,310e3,260e3,180e3]}]})+'</div>';
+}
+function openFiche(i){
+  var t=TEAM[i];
+  var m=document.getElementById('modal-fiche');
+  if(!m){ m=document.createElement('div'); m.className='modal-backdrop'; m.id='modal-fiche';
+    m.onclick=function(e){ if(e.target===m) m.classList.remove('active'); };
+    document.body.appendChild(m); }
+  m.innerHTML='<div class="modal" style="max-width:780px;max-height:88vh;overflow:auto;" onclick="event.stopPropagation()">'+
+   '<div class="modal-head"><h3>'+t.n+' — Commercial</h3>'+
+   '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'modal-fiche\').classList.remove(\'active\')">✕</button></div>'+
+   '<div class="modal-body">'+
+   '<div class="mini-kpi">'+mk("Chiffre d'affaires",t.ca,'#16A34A')+mk('Frais engagés',t.fr,'#DC2626')+
+     mk('Contribution nette',t.net,'#16A34A')+mk('Opportunités',String(t.deals))+'</div>'+
+   '<div class="row2" style="grid-template-columns:auto 1fr;gap:26px;align-items:center;margin:6px 0 18px;">'+
+     ring(t.score)+'<div>'+axes(t.ax)+
+     '<div style="font-size:11.5px;color:var(--muted);margin-top:12px;">'+
+     'Pondération réglable par le Super Admin dans le Paramétrage.</div></div></div>'+
+   '<div class="card" style="box-shadow:none;border-radius:13px;"><h3>Commentaires</h3>'+
+   '<div class="sub">Visibles par '+t.n+' sur son tableau de bord</div>'+
+   '<div class="cmt"><div class="av">ST</div><div style="flex:1;">'+
+     '<div style="display:flex;justify-content:space-between;"><span class="who">Stéphane · Superviseur</span>'+
+     '<span class="when">Il y a 2 jours</span></div>'+
+     '<div class="txt">Beau travail sur Wave Mobile Money. Pense à relancer Ecobank, le devis date de trois semaines.</div>'+
+     '<button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="toast(\'Réponse envoyée\')">Répondre</button></div></div>'+
+   '<div class="cmt"><div class="av">EU</div><div style="flex:1;">'+
+     '<div style="display:flex;justify-content:space-between;"><span class="who">Eulalie · Admin ventes</span>'+
+     '<span class="when">La semaine dernière</span></div>'+
+     '<div class="txt">Ton taux de conversion progresse. Regarde la formation sur les objections tarifaires, elle devrait t\'aider sur les grands comptes.</div></div></div>'+
+   '<div class="cmt-box"><textarea placeholder="Écrire un commentaire — il sera visible par '+t.n+'…"></textarea>'+
+   '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">'+
+   '<span style="font-size:11px;color:var(--muted);">Modifiable pendant une heure, ensuite figé et tracé dans le journal d\'audit.</span>'+
+   '<button class="btn btn-primary btn-sm" onclick="toast(\'Commentaire publié — '+t.n+' en est notifié\')">Publier</button></div></div>'+
+   '</div></div></div>';
+  m.classList.add('active');
+}
+
+/* ---------- NOTES DE FRAIS ---------- */
+function vFrais(){
+  var r=ROLE(), sup=(r==='superviseur'||r==='superadmin'), fin=(r==='finance');
+  var act = sup ? '<button class="btn btn-primary btn-sm" onclick="toast(\'Frais validé — transmis à Finance\')">Valider</button> <button class="btn btn-ghost btn-sm" onclick="toast(\'Frais refusé — motif demandé\')">Refuser</button>'
+          : fin ? '<button class="btn btn-primary btn-sm" onclick="toast(\'Remboursement enregistré\')">Rembourser</button>'
+                : '<span class="badge b-sent">En attente de validation</span>';
+  var L=[['28/07','Déplacement','Abidjan → Yamoussoukro','Orange CI','45 000','soumis'],
+    ['26/07','Restauration client','Déjeuner — DSI Ecobank','Ecobank CI','32 000','soumis'],
+    ['24/07','Carburant','Plein — tournée Sud','—','25 000','valide'],
+    ['22/07','Échantillons','Cartes SIM de démonstration','Wave Mobile Money','18 000','valide'],
+    ['19/07','Communications','Forfait données juillet','—','15 000','rembourse'],
+    ['15/07','Déplacement','Abidjan → Dakar (Sonatel)','SONATEL Business','285 000','rembourse']];
+  var badge={soumis:'<span class="badge b-sent">Soumis</span>',
+    valide:'<span class="badge b-active">Validé</span>',
+    rembourse:'<span class="badge b-active">Remboursé</span>'};
+  return head('Notes de frais','Frais engagés, validation et remboursement',
+    '<button class="btn btn-primary" onclick="openModal(\'campaign-create\')">+ Nouvelle note de frais</button>')+
+  '<div class="mini-kpi">'+mk('Frais du mois','420 000','#DC2626')+mk('En attente','2','#F39304')+
+    mk('Remboursés','300 000')+mk('Contribution nette','7,98M','#16A34A')+'</div>'+
+  (sup ? '<div class="alert-bar warn"><span class="ic">📋</span><div><b>2 notes de frais attendent votre validation</b><br>'+
+    'Sery — déplacement Yamoussoukro (45 000 FCFA) et restauration client Ecobank (32 000 FCFA).</div></div>'
+       : '<div class="alert-bar ok"><span class="ic">ℹ️</span><div><b>Pas de justificatif obligatoire</b><br>'+
+    'Le contexte local ne permet pas toujours d\'obtenir un reçu — un taxi, par exemple. La déclaration suffit, la validation est humaine.</div></div>')+
+  '<div class="card"><div class="toolbar"><input placeholder="Rechercher un frais, un client…">'+
+  '<select><option>Toutes les catégories</option><option>Déplacement</option><option>Carburant</option>'+
+  '<option>Restauration client</option><option>Échantillons</option><option>Communications</option></select>'+
+  '<select><option>Tous les statuts</option><option>Soumis</option><option>Validé</option><option>Remboursé</option></select></div>'+
+  '<table class="datagrid"><tr><th>Date</th><th>Catégorie</th><th>Objet</th><th>Rattaché à</th><th>Montant</th><th>Statut</th><th>Action</th></tr>'+
+  L.map(function(x){
+    return '<tr><td>'+x[0]+'</td><td>'+x[1]+'</td><td class="link-cell">'+x[2]+'</td><td>'+x[3]+'</td>'+
+      '<td><b>'+x[4]+' FCFA</b></td><td>'+badge[x[5]]+'</td><td>'+(x[5]==='soumis'?act:'—')+'</td></tr>';
+  }).join('')+'</table></div>'+
+  '<div class="card" style="margin-top:16px;"><h3>Frais par catégorie</h3><div class="sub">Juillet 2026</div>'+
+  chartDonut({data:[{n:'Déplacement',v:330,c:CH.or},{n:'Restauration client',v:32,c:CH.nv2},
+    {n:'Carburant',v:25,c:CH.vi},{n:'Échantillons',v:18,c:CH.gr},
+    {n:'Communications',v:15,c:CH.gy}],c1:'420k',c2:'FCFA'})+'</div>';
+}
+
+/* ---------- ÉVALUATION dans le tableau de bord du commercial ---------- */
+function blocEvaluation(){
+  var t=TEAM[0];
+  return '<div class="row2" style="margin-top:16px;">'+
+   card('Mon évaluation','Note du mois — visible de moi, de mon superviseur et de l\'Admin ventes',
+     '<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;">'+ring(t.score)+
+     '<div style="flex:1;min-width:230px;">'+axes(t.ax)+'</div></div>'+
+     '<div style="font-size:11.5px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'+
+     'Vous ne voyez que votre propre note. Il n\'y a pas de classement public.</div>')+
+   card('Commentaires reçus','De votre superviseur et de l\'Admin ventes',
+     '<div class="cmt"><div class="av">ST</div><div style="flex:1;">'+
+     '<div style="display:flex;justify-content:space-between;"><span class="who">Stéphane · Superviseur</span>'+
+     '<span class="when">Il y a 2 jours</span></div>'+
+     '<div class="txt">Beau travail sur Wave Mobile Money. Pense à relancer Ecobank, le devis date de trois semaines.</div>'+
+     '<button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="toast(\'Réponse envoyée à Stéphane\')">Répondre</button></div></div>'+
+     '<div class="cmt" style="border:none;"><div class="av">EU</div><div style="flex:1;">'+
+     '<div style="display:flex;justify-content:space-between;"><span class="who">Eulalie · Admin ventes</span>'+
+     '<span class="when">La semaine dernière</span></div>'+
+     '<div class="txt">Ton taux de conversion progresse. Regarde la formation sur les objections tarifaires.</div></div></div>')+
+   '</div>'+
+   card('Ma formation','15% de mon évaluation — 3 ressources obligatoires terminées sur 5',
+     '<div class="rprog" style="height:9px;"><div style="width:60%"></div></div>'+
+     '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12.5px;">'+
+     '<span style="color:var(--muted);">60% du contenu obligatoire</span>'+
+     '<a href="#" onclick="showView(\'ressources\');return false" style="color:var(--primary-dark);font-weight:700;text-decoration:none;">Continuer ma formation →</a></div>',
+     ' style="margin-top:16px;"');
+}
+
+/* ---------- Installation passe 5 ---------- */
+(function(){
+  var MODULES = [
+    {id:'ressources', label:'Ressources', roles:'superadmin,adminventes,superviseur,commercial,finance',
+     icon:'<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>',
+     fn:function(){return vRessources();}, group:'Formation'},
+    {id:'equipe', label:'Équipe', roles:'superadmin,adminventes,superviseur',
+     icon:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>',
+     fn:function(){return vEquipe();}, group:'Pilotage & contrôle'},
+    {id:'frais', label:'Notes de frais', roles:'superadmin,adminventes,superviseur,commercial,finance',
+     icon:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+     fn:function(){return vFrais();}, group:'Commercial'}
+  ];
+
+  function build(){
+    var main=document.getElementById('main-content'), nav=document.getElementById('nav');
+    MODULES.forEach(function(m){
+      if(!document.getElementById('v-'+m.id) && main){
+        var s=document.createElement('section'); s.className='view'; s.id='v-'+m.id; main.appendChild(s);
+      }
+      if(nav && !nav.querySelector('[data-view="'+m.id+'"]')){
+        var it=document.createElement('div');
+        it.className='navitem'; it.setAttribute('data-view',m.id); it.setAttribute('data-roles',m.roles);
+        it.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+m.icon+'</svg> '+m.label;
+        nav.appendChild(it);
+        it.addEventListener('click',function(){ showView(m.id); });
+      }
+      var el=document.getElementById('v-'+m.id);
+      if(el){ try{ el.innerHTML=m.fn(); }catch(e){ console.warn(m.id,e); } }
+    });
+
+    /* Évaluation dans le tableau de bord du commercial */
+    if(ROLE()==='commercial'){
+      var b=document.getElementById('dash-body');
+      if(b && b.innerHTML.indexOf('Mon évaluation')===-1){
+        try{ b.insertAdjacentHTML('beforeend', blocEvaluation()); }catch(e){}
+      }
+    }
+    if(typeof applyPermissions==='function') applyPermissions(ROLE());
+  }
+
+  function hook(){
+    var sel=document.getElementById('role-switch');
+    if(sel) sel.addEventListener('change', function(){ setTimeout(build,60); });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){ build(); hook(); });
+  } else { build(); hook(); }
 })();
 </script>
 
