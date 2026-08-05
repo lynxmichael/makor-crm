@@ -191,7 +191,13 @@ le sort des modèles `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse`.
 
 ## Décisions actées — 31 juillet 2026
 
-### D13 — Répartition du travail entre deux postes
+### ~~D13 — Répartition du travail entre deux postes~~ — **ANNULÉE par D17 (05/08/2026)**
+
+> ⚠️ **D13 ne s'applique plus.** Elle découpait une application unique en deux périmètres ; aucun des
+> deux postes ne l'a tenue, et il existe aujourd'hui **deux applications complètes sur deux branches**.
+> Voir D17. Le texte ci-dessous est conservé pour mémoire.
+>
+> **Ce qui survit de D13 :** les branches préfixées `kouassi/`, et l'interdiction de pousser sur `main`.
 
 Accord du 30/07 avec **lynxmichael**, propriétaire du dépôt.
 
@@ -275,10 +281,11 @@ autorité sur la forme, pas sur le fond.
 Deux arbitrages rendus à l'ouverture de l'étape 1 (fondations).
 
 **1. D13 est levée pour ce chantier.** `apps/backend/` entre dans le périmètre du poste Kouassi, le
-temps de fermer la faille d'authentification et d'appliquer le renommage de rôle. La clause de D13 sur
-la méthode reste entière : branches `kouassi/`, **pull request systématique, jamais de push direct sur
-`main`**. La levée est ponctuelle et bornée à ces deux chantiers — le reste d'`apps/backend/` demeure
-le périmètre de lynxmichael, **à qui il faut signaler ce recouvrement avant d'ouvrir la PR.**
+temps de fermer la faille d'authentification et d'appliquer le renommage de rôle.
+
+> **Dépassé le jour même par D17** : `apps/backend/` sur la branche `kouassi/` n'est plus une levée
+> ponctuelle, c'est le périmètre permanent de cette branche. Il n'y a plus de recouvrement à signaler,
+> puisqu'il n'y a plus de périmètre partagé — il y a deux applications.
 
 **2. Le cinquième rôle s'appelle `FINANCE`**, en base comme dans l'interface. Le CDC §7 l'appelle
 « Manager » ; la maquette validée par la direction dit « Finance », plus fidèle au périmètre réel
@@ -321,6 +328,39 @@ Notes de frais).
 migration `init` supprime `Customer.companyId`, et la migration `add_company_…` la réintroduit dans
 `schema.prisma` sans jamais la recréer en SQL, ni sur `Customer`, ni sur `Lead`, ni sur `Campaign`.
 Et `npm run start:prod` pointe sur `dist/main` alors que `nest build` émet dans `dist/src/main.js`.
+
+### D17 — Deux applications distinctes. Aucun merge entre elles. D13 est annulée.
+
+> ⚠️ **Règle structurante. Elle prime sur D13 et sur tout ce qui précède en matière de périmètre.**
+
+Le constat qui l'impose : `origin/main` porte un **frontend complet écrit par lynxmichael** — 82
+fichiers sous `apps/frontend/src/` absents de la branche `kouassi/`, dont le socle shadcn, les modules
+Clés d'API, Commissions, Évaluation, Assistant IA, et les services `api`/`collab`/`realtime`. Son
+commit `4af5427` s'intitule « version finale de l'application ». D13 attribuait pourtant
+`apps/frontend/` au poste Kouassi. **D13 n'a été tenue par aucun des deux postes** et cesse de
+s'appliquer.
+
+**Ce ne sont plus deux périmètres d'une même application, ce sont deux applications.**
+
+| | Contenu | Porté par |
+| --- | --- | --- |
+| `kouassi/frontend-build` | **Application complète — `apps/frontend/` ET `apps/backend/`** | Kouassi |
+| `main` | **Application complète** | lynxmichael |
+
+**Conséquences, à respecter sans exception :**
+
+- **Aucun `git merge` ni `git rebase` entre les deux lignes.** Ni dans un sens, ni dans l'autre. Un
+  merge a été tenté le 05/08 : **32 fichiers en conflit**, dont tout le socle frontend. Il a été
+  annulé. Ne pas recommencer.
+- **Ne rien reprendre de `main`** — pas de cherry-pick, pas de copie de fichier, pas d'alignement
+  « pour rester cohérent ».
+- **Ne rien pousser vers `main`.** L'application de lynxmichael ne se touche pas.
+- **`apps/backend/` sur la branche `kouassi/` appartient à cette branche.** Le signalement au lieu de
+  la correction, qu'imposait D13, ne s'applique plus ici.
+- Un écart entre les deux applications **n'est pas un défaut à corriger**. C'est la situation voulue.
+
+Les sources de vérité communes restent le **CDC** et **`design/makor-crm-maquette.html`** : les deux
+applications répondent au même cahier des charges, elles n'ont pas à se ressembler dans le code.
 
 ---
 

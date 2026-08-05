@@ -143,9 +143,13 @@ Où `origin/main` l'est : 82 fichiers de modules métier, et un socle shadcn abo
 (`@Query('page')`, `@Query('limit')`), absente de cette branche. Les quatre autres contrôleurs
 n'ont aucune différence fonctionnelle entre les deux versions — seulement le modèle de garde.
 
-**Décision : ne rien merger. L'arbitrage se fait avec lynxmichael avant toute réconciliation.** Il est
-propriétaire du dépôt, la question dépasse la technique, et D13 est à rediscuter puisqu'elle n'a été
-tenue par aucun des deux postes.
+**Arbitrage rendu le jour même — D17 : il n'y aura pas de réconciliation.** Ce ne sont plus deux
+périmètres d'une même application, ce sont **deux applications distinctes**. `kouassi/frontend-build`
+porte l'application complète de ce poste, frontend et backend ; `main` porte celle de lynxmichael.
+**Aucun merge, aucun cherry-pick, aucune reprise d'un côté vers l'autre.** D13 est annulée.
+
+Le tableau comparatif ci-dessus n'a donc plus vocation à départager quoi que ce soit : il reste comme
+trace de ce qui a été mesuré le 05/08. Un écart entre les deux applications n'est pas un défaut.
 
 Les cinq commits de la séance restent **locaux** : `origin/kouassi/frontend-build` est encore à
 `9afca0d`, rien n'a été poussé. `apps/backend/package-lock.json` est laissé hors commit — c'est un
