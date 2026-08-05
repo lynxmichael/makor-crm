@@ -112,11 +112,52 @@ autres — conforme à `TWO_FACTOR_MANDATORY_ROLES`. **Les cinq endpoints de tab
 4. **La maquette reste plus riche que l'implémentation** sur les graphiques SVG et la vue détail
    client — étapes 2 à 4.
 
+### Constat de fin de séance — deux frontends existent en parallèle
+
+**`origin/main` porte un frontend complet écrit par lynxmichael**, alors que D13 attribuait
+`apps/frontend/` au poste Kouassi. Son commit `4af5427` s'intitule « version finale de l'application ».
+
+Mesuré, pas supposé : **82 fichiers sous `apps/frontend/src/` existent sur `origin/main` et pas sur
+cette branche** — le jeu shadcn complet en minuscules (`button.tsx`, `dialog.tsx`, `sheet.tsx`,
+`sidebar.tsx`, `sonner.tsx`…), les modules Clés d'API, Commissions, Évaluation, Assistant IA,
+`TwoFactorSetupPage`, `ForgotPasswordPage`, les modales d'édition campagne / facture / client, et les
+services `api.ts` (241 l.), `collab.ts`, `realtime.ts`, `resources.ts`. Sa navigation est elle aussi
+conditionnée par rôle.
+
+**Un `git merge origin/main` produit 32 fichiers en conflit**, dont tout le socle : `LoginPage`,
+`api.ts`, `auth.ts`, `auth.store.ts`, `QueryProvider`, `index.css`, `AppLayout`, `main.tsx`, `App.tsx`,
+`Sidebar`, `Topbar`. Le renommage de casse `Button.tsx` → `button.tsx` y compte pour deux fichiers.
+**Le merge a été tenté puis annulé** (`git merge --abort`) : rien n'a été résolu, l'arbre est propre.
+
+Où cette branche est supérieure :
+
+| | cette branche | `origin/main` |
+| --- | --- | --- |
+| Garde d'authentification | global, **fermé par défaut**, `@Public()` explicite | contrôleur par contrôleur |
+| Tableaux de bord | **cinq, un par rôle** (CDC §4.1), sur les cinq endpoints | un seul `DashboardPage` |
+| Cinquième rôle | `FINANCE`, migration incluse | `MANAGER` |
+
+Où `origin/main` l'est : 82 fichiers de modules métier, et un socle shadcn abouti (D10).
+
+À ne pas perdre au moment de réconcilier : **lynxmichael a ajouté la pagination sur `/audit`**
+(`@Query('page')`, `@Query('limit')`), absente de cette branche. Les quatre autres contrôleurs
+n'ont aucune différence fonctionnelle entre les deux versions — seulement le modèle de garde.
+
+**Décision : ne rien merger. L'arbitrage se fait avec lynxmichael avant toute réconciliation.** Il est
+propriétaire du dépôt, la question dépasse la technique, et D13 est à rediscuter puisqu'elle n'a été
+tenue par aucun des deux postes.
+
+Les cinq commits de la séance restent **locaux** : `origin/kouassi/frontend-build` est encore à
+`9afca0d`, rien n'a été poussé. `apps/backend/package-lock.json` est laissé hors commit — c'est un
+artefact de `npm install` (élagage de `bcrypt`, `passport-local`, `uuid`, sans changement de
+`package.json`) et c'est un fichier du périmètre backend.
+
 ### Prochain chantier
 
-**Étape 2 — le Pipeline.** Kanban avec drag & drop, et blocage d'un déplacement dont le prérequis
-documentaire n'est pas satisfait, **avec la raison affichée à l'écran** (D5). Suppose l'évolution de
-schéma décrite en D4 : rattachement des étapes à un commercial et champ `canonicalStage` obligatoire.
+**Suspendu à l'arbitrage ci-dessus.** Si cette branche est retenue, l'étape 2 est le Pipeline : Kanban
+avec drag & drop, et blocage d'un déplacement dont le prérequis documentaire n'est pas satisfait,
+**avec la raison affichée à l'écran** (D5). Suppose l'évolution de schéma décrite en D4 : rattachement
+des étapes à un commercial et champ `canonicalStage` obligatoire.
 
 ---
 
