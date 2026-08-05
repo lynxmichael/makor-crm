@@ -5,14 +5,18 @@ const prisma = new PrismaClient();
 
 /**
  * Rôles internes attendus par le CDC (§1.3, §3) : Super Admin, Admin
- * ventes, Superviseur, Commercial, Manager.
+ * ventes, Superviseur, Commercial, Finance.
+ *
+ * Le CDC §7 nomme le cinquième rôle « Manager ». D16 retient **FINANCE**,
+ * le nom porté par la maquette validée par la direction, plus fidèle au
+ * périmètre réel : facturation, encaissements, recouvrement.
  */
 const ROLES = [
   { name: 'SUPER_ADMIN', description: 'Administration système complète' },
   { name: 'ADMIN_VENTES', description: 'Pilotage commercial, campagnes et catalogue' },
   { name: 'SUPERVISEUR', description: "Supervision d'une équipe commerciale" },
   { name: 'COMMERCIAL', description: 'Gestion du portefeuille client assigné' },
-  { name: 'MANAGER', description: 'Facturation et encaissements' },
+  { name: 'FINANCE', description: 'Facturation, encaissements et recouvrement' },
 ] as const;
 
 /** Un "module" de permission par grande fonction du CRM (CDC §3 :
@@ -38,9 +42,12 @@ const ROLE_MODULES: Record<string, readonly string[]> = {
     'customers', 'leads', 'deals', 'pipeline', 'activities', 'products',
     'quotes', 'purchase_orders', 'contracts', 'documents', 'dashboard',
   ],
-  MANAGER: [
-    'customers', 'invoices', 'payments', 'recharges', 'documents',
-    'dashboard', 'reporting',
+  // `purchase_orders` est délibérément présent : D8 acte que ce rôle crée
+  // des bons de commande, contre la ligne « Lecture » de la matrice §7 du
+  // CDC, jugée erronée sur ce point au profit du §4.1.
+  FINANCE: [
+    'customers', 'purchase_orders', 'invoices', 'payments', 'recharges',
+    'documents', 'dashboard', 'reporting',
   ],
 };
 
@@ -220,7 +227,7 @@ async function main() {
     { email: 'ventes@makor.ci', firstName: 'Admin', lastName: 'Ventes', role: 'ADMIN_VENTES' },
     { email: 'superviseur@makor.ci', firstName: 'Awa', lastName: 'Koné', role: 'SUPERVISEUR' },
     { email: 'commercial@makor.ci', firstName: 'Ibrahim', lastName: 'Traoré', role: 'COMMERCIAL' },
-    { email: 'manager@makor.ci', firstName: 'Fatou', lastName: 'Diabaté', role: 'MANAGER' },
+    { email: 'finance@makor.ci', firstName: 'Fatou', lastName: 'Diabaté', role: 'FINANCE' },
   ];
 
   for (const demo of demoUsers) {

@@ -31,7 +31,7 @@ const LOCK_MINUTES = 15;
  * (CDC §2.4, §8.2). Le backend ne bloque pas l'accès si elle n'est pas
  * encore configurée, mais le signale pour que le frontend impose sa
  * mise en place immédiate. */
-const TWO_FACTOR_MANDATORY_ROLES = ['SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER'];
+const TWO_FACTOR_MANDATORY_ROLES = ['SUPER_ADMIN', 'ADMIN_VENTES', 'FINANCE'];
 
 export interface RequestContext {
   ipAddress?: string;

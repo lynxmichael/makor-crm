@@ -101,11 +101,13 @@ export class DashboardController {
     return this.dashboardService.myPortfolio(user.id);
   }
 
+  // Le chemin reste `manager` : le renommage du rôle en FINANCE (D16) ne
+  // justifie pas une rupture d'API.
   @Get('manager')
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'FINANCE')
   @ApiOperation({
-    summary: 'Factures envoyées et encaissements (Manager)',
+    summary: 'Factures envoyées et encaissements (Finance)',
   })
   manager(@Query('from') from?: string, @Query('to') to?: string) {
     return this.dashboardService.manager(this.filters(from, to));

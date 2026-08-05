@@ -31,7 +31,7 @@ export class RechargesController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'FINANCE')
   @ApiOperation({ summary: 'Enregistrer un rechargement de crédit prépayé' })
   create(
     @Body() dto: CreateRechargeDto,
@@ -71,14 +71,14 @@ export class RechargesController {
 
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'FINANCE')
   update(@Param('id') id: string, @Body() dto: UpdateRechargeDto) {
     return this.rechargesService.update(id, dto);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'FINANCE')
   remove(@Param('id') id: string) {
     return this.rechargesService.remove(id);
   }

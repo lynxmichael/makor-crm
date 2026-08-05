@@ -20,7 +20,7 @@ import { ExportFormat } from './reporting.utils';
 @ApiBearerAuth()
 @Controller('reporting')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'MANAGER')
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'FINANCE')
 export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
