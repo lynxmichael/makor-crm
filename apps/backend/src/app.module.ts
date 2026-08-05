@@ -6,6 +6,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
 import { UsersModule } from './users/users.module';
@@ -107,6 +109,25 @@ import { CommonModule } from './common/common.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+
+    // D16 — l'authentification est le défaut, l'ouverture est explicite.
+    //
+    // Avant cette bascule, chaque contrôleur décidait seul de se protéger, et
+    // cinq avaient oublié de le faire : `audit`, `roles`, `permissions`,
+    // `role-permissions`, `departments`. Le journal d'audit exigé par le
+    // CDC §4.16 était lisible et effaçable par n'importe qui.
+    //
+    // L'ordre compte : `JwtAuthGuard` renseigne `request.user`, dont
+    // `RolesGuard` a besoin juste après. Une route ne s'ouvre qu'avec
+    // `@Public()`.
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

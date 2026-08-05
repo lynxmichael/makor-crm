@@ -28,6 +28,7 @@ import {
 } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { WebhookStatusDto } from './dto/webhook-status.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Campaigns')
 @Controller('campaigns')
@@ -44,6 +45,7 @@ export class CampaignsController {
    * partagé transmis en en-tête.
    */
   @Post('webhook/delivery-status')
+  @Public()
   @SkipThrottle()
   @ApiOperation({ summary: 'Callback de statut de livraison (passerelle)' })
   handleWebhook(

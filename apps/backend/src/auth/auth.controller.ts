@@ -14,6 +14,7 @@ import { AuthService, RequestContext } from './auth.service';
 
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { Public } from './decorators/public.decorator';
 
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -34,6 +35,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @Throttle({ default: { limit: 8, ttl: 60_000 } })
   @ApiOperation({
     summary:
@@ -49,6 +51,7 @@ export class AuthController {
   }
 
   @Post('login/2fa')
+  @Public()
   @Throttle({ default: { limit: 8, ttl: 60_000 } })
   @ApiOperation({ summary: 'Seconde étape de connexion (code TOTP ou code de secours)' })
   async loginTwoFactor(
@@ -60,6 +63,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   @ApiOperation({ summary: 'Renouveler la session à partir du refresh token' })
   async refresh(
     @Body() dto: RefreshTokenDto,
@@ -69,7 +73,10 @@ export class AuthController {
     return this.authService.refresh(dto, this.ctx(ip, userAgent));
   }
 
+  // Ouverte à dessein : la déconnexion doit rester possible avec un jeton
+  // d'accès déjà expiré. Le refresh token présenté fait office de preuve.
   @Post('logout')
+  @Public()
   @ApiOperation({ summary: 'Déconnexion de l’appareil courant' })
   async logout(@Body() dto: RefreshTokenDto) {
     return this.authService.logout(dto);
@@ -84,6 +91,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Demander un lien de réinitialisation de mot de passe' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -91,6 +99,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Public()
   @ApiOperation({ summary: 'Réinitialiser le mot de passe à partir du lien reçu par email' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
