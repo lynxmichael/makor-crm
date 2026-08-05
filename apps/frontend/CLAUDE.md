@@ -25,8 +25,8 @@
 
 ```bash
 npm run dev       # serveur de développement
-npm run build     # tsc -b && vite build  ← ÉCHOUE actuellement, voir ci-dessous
-npm run lint      # eslint                ← 3 erreurs, toutes dans du code mort
+npm run build     # tsc -b && vite build  ← vert depuis le 05/08
+npm run lint      # eslint                ← vert depuis le 05/08
 npm run preview   # prévisualisation du build
 ```
 
@@ -40,16 +40,16 @@ src/
   components/
     shared/     composants métier réutilisables (KpiCard, Sidebar, Topbar…)
     ui/         primitives de design system
-  config/       constantes, variables d'environnement, navigation   ← vides
+  config/       env, roles, navigation (18 modules), permissions
   data/         jeux de données de démonstration (à remplacer par l'API)
   features/     un dossier par domaine métier
   hooks/        hooks partagés
   layouts/      AppLayout (seul non vide)
   lib/          utilitaires (cn, formatteurs)
-  providers/    QueryProvider, AuthProvider, ThemeProvider           ← vides
-  routes/       AppRouter, ProtectedRoute, PublicRoute               ← vides
-  services/     clients API par domaine                              ← vides
-  store/        stores Zustand                                       ← vides
+  providers/    QueryProvider (ThemeProvider encore vide)
+  routes/       ProtectedRoute — session ET rôle
+  services/     api (axios + refresh), auth, dashboard
+  store/        auth.store.ts — session persistée (Zustand)
   types/        types partagés
 ```
 
@@ -80,21 +80,30 @@ Jamais de format anglo-saxon (`1,250,000` ou `97.4%`). **Ne pas redéfinir de fo
 
 ---
 
-## État réel du code — à connaître avant d'intervenir
+## État réel du code — mis à jour le 5 août 2026 (étape 1)
 
-Le dossier est une **maquette haute fidélité**, pas une application fonctionnelle.
+Les fondations sont posées : l'application s'authentifie vraiment, connaît le rôle de l'utilisateur et
+en tire les conséquences sur ce qu'elle affiche. Les écrans métier, eux, restent largement à écrire.
 
-1. **`npm run build` échoue.** Erreur unique : `tsconfig.app.json(3,5): error TS5101` — TypeScript 6.0.3 refuse `baseUrl`. La compilation s'arrête **avant tout type-check** ; `vite build` n'est jamais atteint. Correctif : supprimer `baseUrl` (`paths` fonctionne seul en `moduleResolution: bundler`) ou ajouter `"ignoreDeprecations": "6.0"`.
-2. **`strict` n'est pas activé** dans `tsconfig.app.json` — à corriger en même temps que le point 1, le coût est nul (zéro `any` aujourd'hui).
-3. **`npm run lint` échoue** — 3 erreurs, **toutes dans du code mort** : `ui/navigation-menu.tsx:166`, `ui/sidebar.tsx:722`, `hooks/use-mobile.ts:14`. Supprimer le code mort les résout.
-4. **18 fichiers sont vides** (0 octet) : tout `routes/`, `services/`, `store/`, `providers/`, `config/`, et 3 des 4 `layouts/`. **C'est le goulot d'étranglement du projet** — tout module fonctionnel en dépend.
-5. **`src/providers/ueryProvider.tsx`** — faute de frappe, à renommer `QueryProvider.tsx`.
-6. **Aucune authentification.** `LoginPage.tsx:13-21` : les champs ne sont reliés à aucun état, **aucune valeur n'est lue**, le code OTP n'est comparé à rien. Aucune route protégée, pas de JWT, aucune notion de rôle — le rôle affiché dans `Topbar.tsx:192-193` est écrit en dur.
-7. **Aucun appel API.** Tout vient de `src/data/mock.ts` et `src/data/reporting-juillet-2026.ts`.
-8. **Code mort : 1 705 lignes sur 2 004** dans `components/ui/`. Plus `src/App.css` (185 l., gabarit Vite) et `src/data/mock.ts:340-519` (~180 l.), importés nulle part.
-9. **15 dépendances jamais importées** — dont `axios`, `@tanstack/react-query`, `zustand`, `react-hook-form`, `zod`, `jwt-decode`, `date-fns`, `react-error-boundary`. Ce sont précisément celles nécessaires pour brancher l'API : installées en prévision, jamais utilisées.
-10. **11 des 16 modules sont des placeholders** générés par la fabrique `page()` dans `features/shared/placeholders.tsx` — tous rendent le même `ModuleListPage` sur données figées. Seules 5 pages sont réelles : Dashboard, Clients, Pipeline, Campagnes, Rapports.
-11. **Aucun test, aucune CI.**
+### Ce qui fonctionne
+
+1. **`npm run build` et `npm run lint` sont verts.** `strict` est activé.
+2. **Authentification réelle à deux écrans.** `LoginPage.tsx` — `react-hook-form` + `zod`, code à 6 chiffres, messages en français. Les jetons viennent de `POST /auth/login` et `POST /auth/login/2fa`.
+3. **Couche réseau.** `services/api.ts` : axios, Bearer automatique, et **renouvellement partagé** sur 401 — plusieurs requêtes simultanées ne consomment qu'un seul refresh token, qui est à usage unique.
+4. **Session persistée** dans `store/auth.store.ts` (Zustand + `persist`). `hooks/useAuth.ts` la lit ; les intercepteurs axios y accèdent hors de l'arbre React via `useAuthStore.getState()`.
+5. **RBAC.** `config/roles.ts` (5 rôles, point de passage unique vers les noms de la base), `config/navigation.ts` (18 modules et leurs rôles, transcrits de la maquette), `config/permissions.ts` (matrice §7 du CDC), `hooks/usePermission.ts` et `components/shared/Can.tsx`.
+6. **`ProtectedRoute` vérifie la session ET le rôle** : une URL saisie à la main sur un module interdit redirige vers le premier module autorisé.
+7. **Cinq tableaux de bord distincts**, un composant par rôle dans `features/dashboard/`, chacun branché sur son endpoint (`/dashboard/super-admin`, `/sales-admin`, `/supervisor`, `/my-portfolio`, `/manager`).
+8. **Jetons de la maquette** dans `index.css`, avec les classes de composants portées telles quelles.
+
+### Ce qui reste
+
+1. **Onze modules sur dix-huit sont des écrans d'attente.** Sept passent encore par la fabrique `page()` de `features/shared/placeholders.tsx` (données figées) ; quatre affichent honnêtement « module à venir » via `features/shared/ModulePlaceholder.tsx`. Seules 5 pages sont réelles : Dashboard, Clients, Pipeline, Campagnes, Rapports.
+2. **Les écrans métier tirent encore de `src/data/mock.ts`** — y compris la recherche globale de `Topbar`. Seuls les tableaux de bord et l'authentification appellent l'API.
+3. **Code mort dans `components/ui/`** — à reprendre au fil de la migration vers shadcn (D10).
+4. **`providers/ThemeProvider.tsx` est toujours vide**, et le mode sombre n'est pas déclaré.
+5. **Aucun test, aucune CI.**
+6. **En dessous de `md`, les tableaux ne basculent pas en cartes.** L'application reste inutilisable sur mobile (CDC §8.4).
 
 ---
 

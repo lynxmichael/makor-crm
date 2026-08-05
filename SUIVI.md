@@ -4,6 +4,122 @@ Une section par séance, la plus récente en haut. À compléter en fin de chaqu
 
 ---
 
+## 5 août 2026 — Étape 1 : la faille est fermée, les fondations sont posées
+
+### Fait
+
+**Chantier A — l'API est verrouillée.** Le défaut est inversé : `JwtAuthGuard` puis `RolesGuard` sont
+enregistrés en `APP_GUARD` dans `app.module.ts`, dans cet ordre (le premier renseigne `request.user`,
+dont le second a besoin). Toute route est authentifiée sans rien déclarer ; l'ouverture passe par le
+nouveau `@Public()` (`auth/decorators/public.decorator.ts`). Les cinq contrôleurs découverts par
+l'audit du 29/07 — `audit`, `roles`, `permissions`, `role-permissions`, `departments` — portent
+`@Roles('SUPER_ADMIN')`.
+
+**Deux routes auraient été cassées par la bascule, repérées avant :**
+
+- **`POST /campaigns/webhook/delivery-status`** — le callback de la passerelle SMS/WhatsApp
+  (CDC §2.2). Le prestataire n'a pas de session ; il s'authentifie par le secret partagé
+  `X-Webhook-Secret`. Un commentaire du code disait déjà « route volontairement hors JwtAuthGuard » :
+  elle a reçu `@Public()`.
+- **`GET /api/v1/`** — la bannière d'API, premier point interrogé pour vérifier qu'un déploiement
+  répond.
+
+`RolesGuard` a reçu un garde-fou : devenu global, il s'exécutait aussi sur les routes publiques où
+`request.user` est `undefined`, et `roles.includes(user.role.name)` y aurait levé un `TypeError`. Il
+rend maintenant un refus.
+
+**Chantier B — `MANAGER` → `FINANCE` (D16).** Bien moins coûteux que redouté : `Role.name` est une
+colonne texte, pas un enum Prisma. Une migration de données
+(`20260805094500_rename_manager_role_to_finance`), `prisma/seed.ts` en trois points, et cinq fichiers
+TypeScript. La route `/dashboard/manager` garde son chemin. Le compte de démonstration devient
+`finance@makor.ci`. `purchase_orders` a été ajouté aux modules de ce rôle, conformément à **D8**.
+
+**Chantier C — le build frontend était cassé, il est réparé.** Pas la panne documentée (`baseUrl`,
+résolue le 30/07) mais une nouvelle, introduite dans l'arbre de travail : `index.css` déclarait ses
+jetons dans `@theme` **sans l'espace de noms `--color-*`**, si bien que Tailwind v4 ne générait aucune
+utilitaire — `Cannot apply unknown utility class 'bg-paper'`. `index.css` est réécrit depuis le second
+bloc `:root` de la maquette (D14) : jetons dans le bon espace de noms, ombres, courbe d'animation et
+classes de composants (`sidebar-surface`, `navitem`, `topbar`, `card`, `kpi`, `btn`, `field`) portées
+telles quelles. **Deux jetons de la palette abandonnée ont été retirés** — `--accent: #0E7C86` (teal)
+et `--pulse: #FF6B4A` (corail). `--bg` est corrigé de `#F5F6FB` à `#F4F6FB`, valeur de la maquette.
+`index.html` charge Manrope + Inter à la place de Space Grotesk + IBM Plex.
+
+**Chantiers D à F — le frontend appelle vraiment l'API.** Client axios avec renouvellement partagé du
+jeton (une seule demande de refresh même quand trois requêtes se heurtent au même 401), store Zustand
+persisté, connexion à deux écrans avec `react-hook-form` + `zod`, `ProtectedRoute` qui vérifie la
+session **et** le rôle, 18 modules de navigation filtrés, matrice de droits, et cinq tableaux de bord
+distincts branchés sur leurs endpoints existants.
+
+**Trois fichiers supprimés, signalés :** `features/auth/TwoFactorPage.tsx` (le parcours 2FA vit
+désormais dans `LoginPage`), `providers/AuthProvider.tsx` (remplacé par le store Zustand),
+`providers/ueryProvider.tsx` (coquille, vide, remplacé par `QueryProvider.tsx`).
+
+### Vérifié — API réelle, Postgres 5433 et Redis démarrés
+
+- `nest build` backend : vert. `npm run build` et `npm run lint` frontend : verts.
+- `prisma migrate deploy` : la 20ᵉ migration (`rename_manager_role_to_finance`) s'applique.
+- `npm run seed` : les cinq comptes sont créés, dont **`FINANCE finance@makor.ci`**.
+
+**La faille est fermée, mesurée route par route.** Sans jeton : `audit`, `roles`,
+`role-permissions`, `departments`, `users`, `customers`, `invoices` rendent **401**, y compris
+`DELETE /audit/:id`. `health` rend 200.
+
+| Route | SUPER_ADMIN | COMMERCIAL | FINANCE | SUPERVISEUR |
+| --- | --- | --- | --- | --- |
+| `audit`, `roles`, `role-permissions`, `departments` | 200 | **403** | **403** | **403** |
+| `dashboard/super-admin` | 200 | 403 | 403 | 403 |
+| `dashboard/manager` | 200 | 403 | **200** | 403 |
+| `dashboard/my-portfolio` | 200 | 200 | 200 | 200 |
+
+`dashboard/manager` accessible au rôle `FINANCE` : le renommage fonctionne de bout en bout.
+`twoFactorSetupRequired` vaut `true` pour SUPER_ADMIN, ADMIN_VENTES et FINANCE, `false` pour les deux
+autres — conforme à `TWO_FACTOR_MANDATORY_ROLES`. **Les cinq endpoints de tableau de bord rendent 200.**
+
+### Deux corrections à l'audit du 29/07, établies à l'exécution
+
+1. **`PermissionsController` n'a jamais été exposé.** `permissions.module.ts` ne déclare que
+   `providers: [PermissionsService]` — **aucun tableau `controllers`**. La route `/permissions` rend
+   404 et n'a jamais existé. L'audit annonçait « cinq contrôleurs montés sans authentification » :
+   **ils étaient quatre**, le cinquième étant un fichier de contrôleur mort. Le `@Roles()` qu'il a reçu
+   est correct mais inerte tant qu'il n'est pas monté.
+2. **`AppController` n'est pas monté non plus** — `app.module.ts` n'a aucun tableau `controllers`. La
+   racine `/api/v1` rend 404. Le `@Public()` qui y a été posé est sans effet aujourd'hui, et juste le
+   jour où le contrôleur sera monté.
+
+### Défauts constatés hors périmètre — signalés, non corrigés (D13)
+
+1. **`GET /customers` rend 500 : dérive entre le schéma Prisma et la base.** La migration
+   `20260729103405_init` **supprime** `Customer.companyId` ; la migration
+   `20260729152741_add_company_offer_subscription_ticket_warehouse` réintroduit `companyId` dans
+   `schema.prisma` (l. 127, 204) mais **son SQL ne recrée la colonne ni sur `Customer`, ni sur `Lead`,
+   ni sur `Campaign`**. Colonnes réelles de `Customer` vérifiées en base : `companyId` est absente.
+   Seul `/customers` est touché — `leads`, `campaigns`, `deals`, `quotes`, `invoices`, `products`,
+   `contacts`, `activities` et les cinq tableaux de bord rendent 200. **Directement lié à la question
+   laissée ouverte par D12** : que fait-on de `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse` ?
+2. **`npm run start:prod` est cassé** : le script lance `node dist/main`, mais `prisma.config.ts` à la
+   racine du projet remonte le `rootDir` et `nest build` émet dans **`dist/src/main.js`**. Contourné
+   ici en lançant directement le bon chemin.
+
+### En suspens
+
+1. **Le parcours navigateur n'a pas été passé** — les extensions de pilotage de Chrome ne sont pas
+   installées. À faire à la main : `npm run dev` côté frontend, connexion des cinq comptes, contrôle
+   que la barre latérale change bien de contenu, que `/audit` saisi à la main en Commercial redirige,
+   et comparaison visuelle avec la maquette.
+2. **Signaler le recouvrement à lynxmichael avant la PR.** D16 lève D13 pour deux chantiers backend ;
+   il ne le sait pas encore. Lui signaler aussi les deux défauts ci-dessus.
+3. **Le décompte de D15 est corrigé : 18 modules, pas 15.** Quinze en HTML, trois injectés en passe 5.
+4. **La maquette reste plus riche que l'implémentation** sur les graphiques SVG et la vue détail
+   client — étapes 2 à 4.
+
+### Prochain chantier
+
+**Étape 2 — le Pipeline.** Kanban avec drag & drop, et blocage d'un déplacement dont le prérequis
+documentaire n'est pas satisfait, **avec la raison affichée à l'écran** (D5). Suppose l'évolution de
+schéma décrite en D4 : rattachement des étapes à un commercial et champ `canonicalStage` obligatoire.
+
+---
+
 ## 31 juillet 2026 — Répartition du travail, palette validée, maquette versionnée
 
 ### Fait

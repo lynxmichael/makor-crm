@@ -22,6 +22,9 @@ CRM interne de **MAKOR Group Telecom** (Afrique de l'Ouest), destiné à piloter
 | `DESIGN.md`               | Charte d'identité visuelle. **§2 et §3 périmés depuis D14** — la maquette prime sur eux.  |
 | `AUDIT.md`                | État des lieux au 29/07/2026 : matrice de cohérence, couverture, plan d'action  |
 | `SUIVI.md`                | Journal de bord des séances. À compléter à chaque fin de séance.                |
+| `docs/DOSSIER-PROJET.md`  | **Mémo de présentation** : le projet, les rôles, les modules, l'état réel, les questions qu'on posera et quoi répondre. Source unique de la présentation du **7 août 2026**. |
+| `docs/QUESTIONS-OUVERTES.md` | **Registre des décisions en attente** — chaque question, qui décide, pour quand, où elle en est. À relire avant toute réunion. |
+| `docs/MAQUETTE-PASSE-5.md` | Spécification d'exécution de la passe 5 de la maquette. **Appliquée à moitié** — voir D23. |
 | `apps/frontend/CLAUDE.md` | Conventions et état du frontend                                                 |
 | `apps/backend/CLAUDE.md`  | Conventions et état du backend                                                  |
 
@@ -32,6 +35,7 @@ CRM interne de **MAKOR Group Telecom** (Afrique de l'Ouest), destiné à piloter
 ```
 makor-crm/
 ├── CLAUDE.md · CDC-CRM-MAKOR-v3.md · DESIGN.md · AUDIT.md · SUIVI.md
+├── docs/                         Dossier de projet, questions ouvertes, spécifications de passe
 ├── design/
 │   └── makor-crm-maquette.html   Maquette validée — spécification du frontend (D15)
 └── apps/
@@ -261,6 +265,62 @@ Elle est **cohérente avec les décisions déjà actées** : « Messagerie » y 
 En cas d'écart entre la maquette et `DESIGN.md`, **la maquette l'emporte** — elle est validée, pas lui.
 En cas d'écart entre la maquette et le CDC sur une **règle métier**, le CDC l'emporte : la maquette fait
 autorité sur la forme, pas sur le fond.
+
+---
+
+## Décisions actées — 5 août 2026
+
+### D16 — Étape 1 : D13 levée pour le backend, et le cinquième rôle devient `FINANCE`
+
+Deux arbitrages rendus à l'ouverture de l'étape 1 (fondations).
+
+**1. D13 est levée pour ce chantier.** `apps/backend/` entre dans le périmètre du poste Kouassi, le
+temps de fermer la faille d'authentification et d'appliquer le renommage de rôle. La clause de D13 sur
+la méthode reste entière : branches `kouassi/`, **pull request systématique, jamais de push direct sur
+`main`**. La levée est ponctuelle et bornée à ces deux chantiers — le reste d'`apps/backend/` demeure
+le périmètre de lynxmichael, **à qui il faut signaler ce recouvrement avant d'ouvrir la PR.**
+
+**2. Le cinquième rôle s'appelle `FINANCE`**, en base comme dans l'interface. Le CDC §7 l'appelle
+« Manager » ; la maquette validée par la direction dit « Finance », plus fidèle au périmètre réel
+(facturation, encaissements, recouvrement). `Role.name` étant une **colonne texte et non un enum
+Prisma**, le renommage n'a coûté qu'une migration de données —
+`20260805094500_rename_manager_role_to_finance` — et cinq fichiers TypeScript. La route
+`GET /dashboard/manager` **garde son chemin** : renommer le rôle ne justifie pas une rupture d'API.
+
+**Ce que l'étape 1 a livré**
+
+- **La faille est fermée.** `JwtAuthGuard` et `RolesGuard` sont enregistrés en `APP_GUARD`
+  (`app.module.ts`) : **toute route est authentifiée par défaut**, l'ouverture passe par le nouveau
+  décorateur `@Public()`. Les cinq contrôleurs découverts — `audit`, `roles`, `permissions`,
+  `role-permissions`, `departments` — portent désormais `@Roles('SUPER_ADMIN')`.
+- **Quatre routes légitimement anonymes** ont été ouvertes explicitement : les endpoints de
+  `auth` (login, 2FA, refresh, logout, mot de passe oublié), `health`, la racine d'API, et
+  **`POST /campaigns/webhook/delivery-status`** — la passerelle SMS n'a pas de session utilisateur,
+  elle s'authentifie par le secret partagé `X-Webhook-Secret` (CDC §2.2).
+- **`RolesGuard` a reçu un garde-fou** : devenu global, il s'exécute aussi là où `request.user` est
+  absent. Il rend un refus, plus une erreur 500.
+- Frontend : jetons de la maquette, authentification réelle à deux écrans, RBAC sur la navigation et
+  les actions, cinq tableaux de bord distincts branchés sur leurs endpoints.
+
+**Vérifié en exécution**, base et API démarrées : sans jeton, les contrôleurs sensibles rendent 401
+(y compris `DELETE /audit/:id`) ; avec un jeton Commercial, Superviseur ou Finance, ils rendent 403 ;
+avec un jeton Super Admin, 200. `dashboard/manager` répond au rôle `FINANCE`. Détail des mesures dans
+`SUIVI.md`.
+
+**Deux corrections à l'audit du 29/07 :**
+
+- **Les contrôleurs ouverts étaient quatre, pas cinq.** `permissions.module.ts` ne déclare aucun
+  tableau `controllers` : `PermissionsController` n'a jamais été monté et `/permissions` rend 404.
+- **`AppController` n'est pas monté non plus** — `app.module.ts` n'a pas de tableau `controllers`.
+
+**Correction de décompte :** la maquette porte **18 modules** en barre latérale, pas 15 comme
+l'indiquait D15 — quinze déclarés en HTML plus trois injectés par la passe 5 (Ressources, Équipe,
+Notes de frais).
+
+**Deux défauts signalés hors périmètre, non corrigés (D13) :** `GET /customers` rend 500 — la
+migration `init` supprime `Customer.companyId`, et la migration `add_company_…` la réintroduit dans
+`schema.prisma` sans jamais la recréer en SQL, ni sur `Customer`, ni sur `Lead`, ni sur `Campaign`.
+Et `npm run start:prod` pointe sur `dist/main` alors que `nest build` émet dans `dist/src/main.js`.
 
 ---
 
