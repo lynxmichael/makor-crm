@@ -149,7 +149,9 @@ export class AuthService {
   // -------------------------------------------------------------------
 
   async login(dto: LoginDto, ctx: RequestContext = {}) {
-    const user = await this.usersService.findByEmail(dto.email);
+    // `...ForAuth` : l'empreinte du mot de passe est nécessaire ici pour la
+    // comparer, et nulle part ailleurs.
+    const user = await this.usersService.findByEmailForAuth(dto.email);
 
     if (!user) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
@@ -242,7 +244,8 @@ export class AuthService {
       throw new UnauthorizedException('Jeton de vérification invalide.');
     }
 
-    const user = await this.usersService.findById(payload.sub);
+    // Le secret TOTP est nécessaire pour valider le code saisi.
+    const user = await this.usersService.findByIdForAuth(payload.sub);
 
     let valid = false;
 
@@ -333,7 +336,8 @@ export class AuthService {
   // -------------------------------------------------------------------
 
   async forgotPassword(dto: ForgotPasswordDto) {
-    const user = await this.usersService.findByEmail(dto.email);
+    // `buildResetSecret` dérive le secret du lien de l'empreinte courante.
+    const user = await this.usersService.findByEmailForAuth(dto.email);
 
     // Réponse identique que le compte existe ou non, pour ne pas
     // permettre l'énumération d'adresses email.
@@ -363,7 +367,7 @@ export class AuthService {
       throw new BadRequestException('Lien de réinitialisation invalide.');
     }
 
-    const user = await this.usersService.findById(unverified.sub);
+    const user = await this.usersService.findByIdForAuth(unverified.sub);
 
     try {
       await this.jwtService.verifyAsync(dto.token, {
@@ -411,7 +415,7 @@ export class AuthService {
   }
 
   async enableTwoFactor(userId: string, dto: TwoFactorCodeDto) {
-    const user = await this.usersService.findById(userId);
+    const user = await this.usersService.findByIdForAuth(userId);
 
     if (!user.twoFactorSecret) {
       throw new BadRequestException(
@@ -450,7 +454,7 @@ export class AuthService {
   }
 
   async disableTwoFactor(userId: string, dto: TwoFactorCodeDto) {
-    const user = await this.usersService.findById(userId);
+    const user = await this.usersService.findByIdForAuth(userId);
 
     if (!user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new BadRequestException(

@@ -1,3 +1,12 @@
+/**
+ * Utilisateur attaché à la requête par `JwtStrategy.validate`, qui passe par
+ * `UsersService.findById`.
+ *
+ * `password`, `twoFactorSecret` et `twoFactorRecoveryCodes` n'y figurent pas :
+ * l'`omit` global du client Prisma les retire de toute lecture, et seuls les
+ * parcours d'authentification les rétablissent explicitement. Les déclarer ici
+ * ferait croire qu'un contrôleur peut les lire sur `req.user`.
+ */
 declare global {
   namespace Express {
     interface User {
@@ -6,7 +15,6 @@ declare global {
       phone: string | null;
       firstName: string;
       lastName: string;
-      password: string;
       avatar: string | null;
       jobTitle: string | null;
       isActive: boolean;
@@ -14,8 +22,6 @@ declare global {
       lockedUntil: Date | null;
       lastLogin: Date | null;
       twoFactorEnabled: boolean;
-      twoFactorSecret: string | null;
-      twoFactorRecoveryCodes: string[];
       companyId: string | null;
       departmentId: string | null;
       roleId: string;

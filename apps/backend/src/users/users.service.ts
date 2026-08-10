@@ -29,6 +29,21 @@ const USER_WITH_ROLE = {
   department: true,
 } satisfies Prisma.UserInclude;
 
+/**
+ * Rétablit les secrets que l'`omit` global du client Prisma retire de toute
+ * lecture (`prisma.service.ts`).
+ *
+ * Réservé aux parcours qui doivent **vérifier** quelque chose : comparer un
+ * mot de passe, valider un code TOTP, dériver le secret d'un lien de
+ * réinitialisation. Aucun de ces parcours ne renvoie l'utilisateur tel quel —
+ * la réponse de connexion passe par `sanitizeUser`.
+ */
+const WITH_AUTH_SECRETS = {
+  password: false,
+  twoFactorSecret: false,
+  twoFactorRecoveryCodes: false,
+} satisfies Prisma.UserOmit;
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -178,6 +193,32 @@ export class UsersService {
 
       include: USER_WITH_ROLE,
     });
+  }
+
+  /** Comme `findByEmail`, secrets d'authentification compris. Connexion et
+   * mot de passe oublié uniquement. */
+  async findByEmailForAuth(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      include: USER_WITH_ROLE,
+      omit: WITH_AUTH_SECRETS,
+    });
+  }
+
+  /** Comme `findById`, secrets d'authentification compris. Vérification 2FA
+   * et réinitialisation de mot de passe uniquement. */
+  async findByIdForAuth(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: USER_WITH_ROLE,
+      omit: WITH_AUTH_SECRETS,
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    return user;
   }
 
   async findById(id: string) {
@@ -369,6 +410,7 @@ export class UsersService {
   async consumeRecoveryCode(userId: string, code: string): Promise<boolean> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
+      omit: WITH_AUTH_SECRETS,
     });
 
     if (!user.twoFactorRecoveryCodes.includes(code)) {
