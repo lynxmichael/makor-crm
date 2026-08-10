@@ -24,7 +24,11 @@ import { ExportFormat } from './reporting.utils';
 export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
-  private send(res: Response, filename: string, file: { buffer: Buffer; contentType: string; extension: string }) {
+  private send(
+    res: Response,
+    filename: string,
+    file: { buffer: Buffer; contentType: string; extension: string },
+  ) {
     res.setHeader('Content-Type', file.contentType);
     res.setHeader(
       'Content-Disposition',
@@ -41,7 +45,10 @@ export class ReportingController {
     @Query('country') country?: string,
     @Query('sector') sector?: string,
   ) {
-    const file = await this.reportingService.customers(format, { country, sector });
+    const file = await this.reportingService.customers(format, {
+      country,
+      sector,
+    });
     this.send(res, 'clients', file);
   }
 
@@ -66,7 +73,11 @@ export class ReportingController {
     @Query('to') to?: string,
     @Query('customerId') customerId?: string,
   ) {
-    const file = await this.reportingService.invoices(format, { from, to, customerId });
+    const file = await this.reportingService.invoices(format, {
+      from,
+      to,
+      customerId,
+    });
     this.send(res, 'factures', file);
   }
 
@@ -79,7 +90,11 @@ export class ReportingController {
     @Query('to') to?: string,
     @Query('customerId') customerId?: string,
   ) {
-    const file = await this.reportingService.recharges(format, { from, to, customerId });
+    const file = await this.reportingService.recharges(format, {
+      from,
+      to,
+      customerId,
+    });
     this.send(res, 'rechargements', file);
   }
 
@@ -95,14 +110,19 @@ export class ReportingController {
   }
 
   @Get('sales-performance')
-  @ApiOperation({ summary: 'Export performance commerciale (panier moyen, transformation)' })
+  @ApiOperation({
+    summary: 'Export performance commerciale (panier moyen, transformation)',
+  })
   async salesPerformance(
     @Res() res: Response,
     @Query('format') format: ExportFormat = 'xlsx',
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const file = await this.reportingService.salesPerformance(format, { from, to });
+    const file = await this.reportingService.salesPerformance(format, {
+      from,
+      to,
+    });
     this.send(res, 'performance-commerciale', file);
   }
 }

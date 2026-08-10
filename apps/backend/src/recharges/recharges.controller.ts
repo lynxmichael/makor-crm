@@ -33,10 +33,7 @@ export class RechargesController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'FINANCE')
   @ApiOperation({ summary: 'Enregistrer un rechargement de crédit prépayé' })
-  create(
-    @Body() dto: CreateRechargeDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  create(@Body() dto: CreateRechargeDto, @CurrentUser() user: { id: string }) {
     return this.rechargesService.create(dto, user?.id);
   }
 

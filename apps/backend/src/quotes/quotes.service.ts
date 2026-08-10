@@ -266,9 +266,7 @@ export class QuotesService {
     const quote = await this.findOne(id);
 
     if (quote.status !== 'SENT') {
-      throw new BadRequestException(
-        'Seul un devis envoyé peut être accepté.',
-      );
+      throw new BadRequestException('Seul un devis envoyé peut être accepté.');
     }
 
     return this.prisma.quote.update({
@@ -282,9 +280,7 @@ export class QuotesService {
     const quote = await this.findOne(id);
 
     if (quote.status !== 'SENT') {
-      throw new BadRequestException(
-        'Seul un devis envoyé peut être refusé.',
-      );
+      throw new BadRequestException('Seul un devis envoyé peut être refusé.');
     }
 
     return this.prisma.quote.update({

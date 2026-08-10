@@ -65,4 +65,4 @@ async function bootstrap() {
   console.log(`📚 Swagger: http://localhost:${config.get('PORT')}/docs`);
 }
 
-bootstrap();
+void bootstrap();

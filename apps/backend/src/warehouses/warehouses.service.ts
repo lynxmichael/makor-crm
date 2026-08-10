@@ -11,52 +11,46 @@ import { Prisma } from '@prisma/client';
 export class WarehousesService {
   constructor(private readonly prisma: PrismaService) {}
 
-async create(dto: CreateWarehouseDto) {
-  const exists = await this.prisma.warehouse.findUnique({
-    where: {
-      code: dto.code,
-    },
-  });
-  if (exists) {throw new ConflictException('Ce code entrepôt existe déjà.'); 
+  async create(dto: CreateWarehouseDto) {
+    const exists = await this.prisma.warehouse.findUnique({
+      where: {
+        code: dto.code,
+      },
+    });
+    if (exists) {
+      throw new ConflictException('Ce code entrepôt existe déjà.');
+    }
 
-  } 
+    return this.prisma.warehouse.create({
+      data: dto,
+    });
+  }
 
-  return this.prisma.warehouse.create({
-    data: dto,
-  });
-}
+  async findAll(query: QueryWarehouseDto) {
+    const { page, limit, search, isActive } = query;
 
-async findAll(query: QueryWarehouseDto) {
-  const {
-    page,
-    limit,
-    search,
-    isActive,
-  } = query;
+    const where: Prisma.WarehouseWhereInput = {
+      isActive,
 
-  const where: Prisma.WarehouseWhereInput = {
-    isActive,
-
-    ...(search && {
-      OR: [
-        {
-          name: {
-            contains: search,
-            mode: 'insensitive',
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
           },
-        },
-        {
-          code: {
-            contains: search,
-            mode: 'insensitive',
+          {
+            code: {
+              contains: search,
+              mode: 'insensitive',
+            },
           },
-        },
-      ],
-    }),
-  };
+        ],
+      }),
+    };
 
-  const [data, total] =
-    await this.prisma.$transaction([
+    const [data, total] = await this.prisma.$transaction([
       this.prisma.warehouse.findMany({
         where,
 
@@ -74,44 +68,37 @@ async findAll(query: QueryWarehouseDto) {
       }),
     ]);
 
-  return {
-    data,
+    return {
+      data,
 
-    total,
+      total,
 
-    page,
+      page,
 
-    limit,
+      limit,
 
-    totalPages: Math.ceil( total / limit),
-};
-}
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 
-async findOne(id: string) {
-  const warehouse =
-    await this.prisma.warehouse.findUnique({
+  async findOne(id: string) {
+    const warehouse = await this.prisma.warehouse.findUnique({
       where: {
         id,
       },
     });
 
-  if (!warehouse) {
-    throw new NotFoundException(
-      'Entrepôt introuvable.',
-    );
+    if (!warehouse) {
+      throw new NotFoundException('Entrepôt introuvable.');
+    }
+
+    return warehouse;
   }
+  async update(id: string, dto: UpdateWarehouseDto) {
+    await this.findOne(id);
 
-  return warehouse;
-}
-async update(
-  id: string,
-  dto: UpdateWarehouseDto,
-) {
-  await this.findOne(id);
-
-  if (dto.code) {
-    const exists =
-      await this.prisma.warehouse.findFirst({
+    if (dto.code) {
+      const exists = await this.prisma.warehouse.findFirst({
         where: {
           code: dto.code,
           NOT: {
@@ -120,76 +107,71 @@ async update(
         },
       });
 
-    if (exists) {
-      throw new ConflictException(
-        'Ce code est déjà utilisé.',
-      );
+      if (exists) {
+        throw new ConflictException('Ce code est déjà utilisé.');
+      }
     }
-  }
 
-  return this.prisma.warehouse.update({
-    where: {
-      id,
-    },
-    data: dto,
-  });
-}
-async remove(id: string) {
-  await this.findOne(id);
-
-  return this.prisma.warehouse.update({
-    where: {
-      id,
-    },
-    data: {
-      isActive: false,
-    },
-  });
-}
-
-async dashboard() {
-  const [
-    totalWarehouses,
-    activeWarehouses,
-    inactiveWarehouses,
-  ] = await this.prisma.$transaction([
-    this.prisma.warehouse.count(),
-    this.prisma.warehouse.count({
+    return this.prisma.warehouse.update({
       where: {
-        isActive: true,
+        id,
       },
-    }),
-    this.prisma.warehouse.count({
+      data: dto,
+    });
+  }
+  async remove(id: string) {
+    await this.findOne(id);
+
+    return this.prisma.warehouse.update({
       where: {
+        id,
+      },
+      data: {
         isActive: false,
       },
-    }),
-  ]);
+    });
+  }
 
-  return {
-    totalWarehouses,
-    activeWarehouses,
-    inactiveWarehouses,
-  };
-}
+  async dashboard() {
+    const [totalWarehouses, activeWarehouses, inactiveWarehouses] =
+      await this.prisma.$transaction([
+        this.prisma.warehouse.count(),
+        this.prisma.warehouse.count({
+          where: {
+            isActive: true,
+          },
+        }),
+        this.prisma.warehouse.count({
+          where: {
+            isActive: false,
+          },
+        }),
+      ]);
 
-async restore(id: string) {
-  await this.findOne(id);
+    return {
+      totalWarehouses,
+      activeWarehouses,
+      inactiveWarehouses,
+    };
+  }
 
-  return this.prisma.warehouse.update({
-    where: {
-      id,
-    },
-    data: {
-      isActive: true,
-    },
-  });
-}
-async findByCode(code: string) {
-  return this.prisma.warehouse.findUnique({
-    where: {
-      code,
-    },
-  });
-}
+  async restore(id: string) {
+    await this.findOne(id);
+
+    return this.prisma.warehouse.update({
+      where: {
+        id,
+      },
+      data: {
+        isActive: true,
+      },
+    });
+  }
+  async findByCode(code: string) {
+    return this.prisma.warehouse.findUnique({
+      where: {
+        code,
+      },
+    });
+  }
 }

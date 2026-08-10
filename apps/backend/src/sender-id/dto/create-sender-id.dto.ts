@@ -10,7 +10,10 @@ export class CreateSenderIdRequestDto {
   @MaxLength(11)
   name!: string;
 
-  @ApiProperty({ required: false, description: 'Opérateur / agrégateur partenaire' })
+  @ApiProperty({
+    required: false,
+    description: 'Opérateur / agrégateur partenaire',
+  })
   @IsOptional()
   @IsString()
   partner?: string;

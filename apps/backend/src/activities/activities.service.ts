@@ -156,30 +156,29 @@ export class ActivitiesService {
       ],
     };
 
-    const [activities, total] =
-      await Promise.all([
-        this.prisma.activity.findMany({
-          where,
+    const [activities, total] = await Promise.all([
+      this.prisma.activity.findMany({
+        where,
 
-          include: {
-            assignedTo: true,
-            lead: true,
-            customer: true,
-            deal: true,
-          },
+        include: {
+          assignedTo: true,
+          lead: true,
+          customer: true,
+          deal: true,
+        },
 
-          skip,
-          take: limit,
+        skip,
+        take: limit,
 
-          orderBy: {
-            dueDate: 'asc',
-          },
-        }),
+        orderBy: {
+          dueDate: 'asc',
+        },
+      }),
 
-        this.prisma.activity.count({
-          where,
-        }),
-      ]);
+      this.prisma.activity.count({
+        where,
+      }),
+    ]);
 
     return {
       data: activities,
@@ -194,19 +193,18 @@ export class ActivitiesService {
   }
 
   async findOne(id: string) {
-    const activity =
-      await this.prisma.activity.findUnique({
-        where: {
-          id,
-        },
+    const activity = await this.prisma.activity.findUnique({
+      where: {
+        id,
+      },
 
-        include: {
-          assignedTo: true,
-          lead: true,
-          customer: true,
-          deal: true,
-        },
-      });
+      include: {
+        assignedTo: true,
+        lead: true,
+        customer: true,
+        deal: true,
+      },
+    });
 
     if (!activity) {
       throw new NotFoundException('Activité introuvable');

@@ -81,20 +81,19 @@ export class DocumentsService {
   }
 
   async findOne(id: string) {
-    const document =
-      await this.prisma.document.findUnique({
-        where: {
-          id,
-        },
+    const document = await this.prisma.document.findUnique({
+      where: {
+        id,
+      },
 
-        include: {
-          customer: true,
-          deal: true,
-          quote: true,
-          contract: true,
-          uploadedBy: true,
-        },
-      });
+      include: {
+        customer: true,
+        deal: true,
+        quote: true,
+        contract: true,
+        uploadedBy: true,
+      },
+    });
 
     if (!document) {
       throw new NotFoundException('Document introuvable');

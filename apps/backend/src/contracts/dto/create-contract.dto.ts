@@ -1,9 +1,4 @@
-import {
-  IsDateString,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
 
 /** Création manuelle d'un contrat (cas exceptionnel — le cas nominal du
  * CDC §4.9 passe par `POST /contracts/from-purchase-order/:purchaseOrderId`). */

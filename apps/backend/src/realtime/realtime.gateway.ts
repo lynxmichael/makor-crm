@@ -30,7 +30,9 @@ import { OnEvent } from '@nestjs/event-emitter';
     credentials: true,
   },
 })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server!: Server;
 
@@ -56,8 +58,10 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       });
 
       client.data.userId = payload.sub;
-      client.join(`user:${payload.sub}`);
-      client.join('broadcast');
+      // `join` rend une promesse dès qu'un adaptateur externe est branché
+      // (Redis) ; on ne l'attend pas — l'abonnement est immédiat côté mémoire.
+      void client.join(`user:${payload.sub}`);
+      void client.join('broadcast');
 
       this.logger.debug(`Client connecté : user ${payload.sub}`);
     } catch {
@@ -71,11 +75,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   @SubscribeMessage('campaign:subscribe')
-  subscribeToCampaign(
-    @ConnectedSocket() client: Socket,
-    campaignId: string,
-  ) {
-    client.join(`campaign:${campaignId}`);
+  subscribeToCampaign(@ConnectedSocket() client: Socket, campaignId: string) {
+    void client.join(`campaign:${campaignId}`);
   }
 
   // --- Relais des événements applicatifs vers les clients connectés ---

@@ -47,15 +47,15 @@ export class RolePermissionsService {
 
   async findOne(id: string) {
     const rolePermission = await this.prisma.rolePermission.findUnique({
-        where: {
-          id,
-        },
+      where: {
+        id,
+      },
 
-        include: {
-          role: true,
-          permission: true,
-        },
-      });
+      include: {
+        role: true,
+        permission: true,
+      },
+    });
 
     if (!rolePermission) {
       throw new NotFoundException('Association introuvable');

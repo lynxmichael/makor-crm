@@ -8,7 +8,13 @@ import { SettingsService } from '../settings/settings.service';
 
 import { Prisma } from '@prisma/client';
 
-import { buildCsv, ExportColumn, ExportFile, ExportFormat } from './reporting.utils';
+import {
+  buildCsv,
+  toDisplayString,
+  ExportColumn,
+  ExportFile,
+  ExportFormat,
+} from './reporting.utils';
 
 export interface ReportFilters {
   from?: string;
@@ -86,7 +92,7 @@ export class ReportingService {
       }));
 
       const pdfRows = rows.map((row) =>
-        columns.map((c) => String(row[c.key] ?? '')),
+        columns.map((c) => toDisplayString(row[c.key])),
       );
 
       const buffer = await this.pdfService.generateTableDocument(
@@ -99,7 +105,12 @@ export class ReportingService {
       return { buffer, contentType: 'application/pdf', extension: 'pdf' };
     }
 
-    throw new BadRequestException(`Format d'export non supporté : ${format}`);
+    // `format` est ici de type `never` : les trois valeurs de `ExportFormat`
+    // sont traitées au-dessus. Le garde-fou vaut pour l'appel non typé venu du
+    // paramètre de requête.
+    throw new BadRequestException(
+      `Format d'export non supporté : ${String(format)}`,
+    );
   }
 
   // -------------------------------------------------------------------
@@ -137,7 +148,9 @@ export class ReportingService {
       email: c.email ?? '',
       walletBalance: Number(c.walletBalance),
       status: c.status,
-      assignedTo: c.assignedTo ? `${c.assignedTo.firstName} ${c.assignedTo.lastName}` : '',
+      assignedTo: c.assignedTo
+        ? `${c.assignedTo.firstName} ${c.assignedTo.lastName}`
+        : '',
     }));
 
     return this.render(format, 'Clients', columns, rows);
@@ -169,7 +182,9 @@ export class ReportingService {
       stage: d.stage.name,
       amount: Number(d.amount),
       probability: d.probability,
-      customer: d.customer?.companyName ?? (d.lead ? `${d.lead.firstName} ${d.lead.lastName}` : ''),
+      customer:
+        d.customer?.companyName ??
+        (d.lead ? `${d.lead.firstName} ${d.lead.lastName}` : ''),
       assignedTo: `${d.assignedTo.firstName} ${d.assignedTo.lastName}`,
       createdAt: d.createdAt.toLocaleDateString('fr-FR'),
     }));
@@ -243,7 +258,9 @@ export class ReportingService {
       customer: r.customer.companyName,
       product: r.product?.name ?? '',
       amount: Number(r.amount),
-      recordedBy: r.recordedBy ? `${r.recordedBy.firstName} ${r.recordedBy.lastName}` : '',
+      recordedBy: r.recordedBy
+        ? `${r.recordedBy.firstName} ${r.recordedBy.lastName}`
+        : '',
     }));
 
     return this.render(format, 'Réchargements', columns, rows);
@@ -317,7 +334,9 @@ export class ReportingService {
           commercial: `${c.firstName} ${c.lastName}`,
           totalDeals: total,
           wonDeals: won.length,
-          conversionRate: total ? `${Math.round((won.length / total) * 100)}%` : '0%',
+          conversionRate: total
+            ? `${Math.round((won.length / total) * 100)}%`
+            : '0%',
           averageDealSize: won.length ? Math.round(wonAmount / won.length) : 0,
           totalWonAmount: wonAmount,
         };

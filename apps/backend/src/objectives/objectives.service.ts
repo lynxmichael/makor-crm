@@ -113,8 +113,9 @@ export class ObjectivesService {
       achievedAmount,
       achievedDeals: dealsWon,
       amountProgress: targetAmount ? achievedAmount / targetAmount : 0,
-      dealsProgress:
-        objective.targetDeals ? dealsWon / objective.targetDeals : null,
+      dealsProgress: objective.targetDeals
+        ? dealsWon / objective.targetDeals
+        : null,
     };
   }
 }

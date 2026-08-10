@@ -94,26 +94,26 @@ export class ContactsService {
     };
 
     const [contacts, total] = await Promise.all([
-        this.prisma.contact.findMany({
-          where,
+      this.prisma.contact.findMany({
+        where,
 
-          include: {
-            customer: true,
-            assignedTo: true,
-          },
+        include: {
+          customer: true,
+          assignedTo: true,
+        },
 
-          skip,
-          take: limit,
+        skip,
+        take: limit,
 
-          orderBy: {
-            createdAt: 'desc',
-          },
-        }),
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
 
-        this.prisma.contact.count({
-          where,
-        }),
-      ]);
+      this.prisma.contact.count({
+        where,
+      }),
+    ]);
 
     return {
       data: contacts,
@@ -129,15 +129,15 @@ export class ContactsService {
 
   async findOne(id: string) {
     const contact = await this.prisma.contact.findUnique({
-        where: {
-          id,
-        },
+      where: {
+        id,
+      },
 
-        include: {
-          customer: true,
-          assignedTo: true,
-        },
-      });
+      include: {
+        customer: true,
+        assignedTo: true,
+      },
+    });
 
     if (!contact) {
       throw new NotFoundException('Contact introuvable');

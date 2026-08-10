@@ -32,7 +32,8 @@ export class ContractsController {
 
   @Post('from-purchase-order/:purchaseOrderId')
   @ApiOperation({
-    summary: 'Générer le contrat à partir d’un bon de commande signé (CDC §4.9)',
+    summary:
+      'Générer le contrat à partir d’un bon de commande signé (CDC §4.9)',
   })
   createFromPurchaseOrder(
     @Param('purchaseOrderId') purchaseOrderId: string,

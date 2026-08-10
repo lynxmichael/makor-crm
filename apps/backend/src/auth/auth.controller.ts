@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Ip,
-  Headers,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Ip, Headers, Post, UseGuards } from '@nestjs/common';
 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -26,9 +19,7 @@ import { TwoFactorCodeDto } from './dto/two-factor-code.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   private ctx(ip?: string, userAgent?: string): RequestContext {
     return { ipAddress: ip, userAgent };
@@ -53,7 +44,9 @@ export class AuthController {
   @Post('login/2fa')
   @Public()
   @Throttle({ default: { limit: 8, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Seconde étape de connexion (code TOTP ou code de secours)' })
+  @ApiOperation({
+    summary: 'Seconde étape de connexion (code TOTP ou code de secours)',
+  })
   async loginTwoFactor(
     @Body() dto: TwoFactorLoginDto,
     @Ip() ip: string,
@@ -93,14 +86,18 @@ export class AuthController {
   @Post('forgot-password')
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Demander un lien de réinitialisation de mot de passe' })
+  @ApiOperation({
+    summary: 'Demander un lien de réinitialisation de mot de passe',
+  })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
 
   @Post('reset-password')
   @Public()
-  @ApiOperation({ summary: 'Réinitialiser le mot de passe à partir du lien reçu par email' })
+  @ApiOperation({
+    summary: 'Réinitialiser le mot de passe à partir du lien reçu par email',
+  })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
@@ -109,7 +106,8 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Initialiser la double authentification (génère le secret et le QR code)',
+    summary:
+      'Initialiser la double authentification (génère le secret et le QR code)',
   })
   async setupTwoFactor(@CurrentUser() user: { id: string }) {
     return this.authService.setupTwoFactor(user.id);

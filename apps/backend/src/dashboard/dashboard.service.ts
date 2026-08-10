@@ -6,7 +6,6 @@ import {
   InvoiceStatus,
   PaymentStatus,
   QuoteStatus,
-  PurchaseOrderStatus,
   ActivityType,
 } from '@prisma/client';
 
@@ -45,10 +44,7 @@ export class DashboardService {
    * s'appuyant sur la grille tarifaire produit/pays/secteur (CDC §4.5,
    * §9). Approximation : à défaut de tarif spécifique pays/secteur, on
    * retient le tarif générique du produit s'il existe. */
-  private async computeInvoiceMargin(period?: {
-    gte?: Date;
-    lte?: Date;
-  }) {
+  private async computeInvoiceMargin(period?: { gte?: Date; lte?: Date }) {
     const items = await this.prisma.invoiceItem.findMany({
       where: period ? { invoice: { issuedAt: period } } : undefined,
       include: {
@@ -67,9 +63,10 @@ export class DashboardService {
       if (!item.product) continue;
 
       const customer = item.invoice.customer;
-      const grid = item.product.pricingGrid.find(
-        (p) => p.country === customer.country && p.sector === customer.sector,
-      ) ??
+      const grid =
+        item.product.pricingGrid.find(
+          (p) => p.country === customer.country && p.sector === customer.sector,
+        ) ??
         item.product.pricingGrid.find(
           (p) => p.country === customer.country && !p.sector,
         ) ??
@@ -249,7 +246,9 @@ export class DashboardService {
     const [sent, accepted] = await Promise.all([
       this.prisma.quote.count({
         where: {
-          status: { in: [QuoteStatus.SENT, QuoteStatus.ACCEPTED, QuoteStatus.REJECTED] },
+          status: {
+            in: [QuoteStatus.SENT, QuoteStatus.ACCEPTED, QuoteStatus.REJECTED],
+          },
           ...(period ? { createdAt: period } : {}),
         },
       }),
@@ -366,7 +365,9 @@ export class DashboardService {
 
     return {
       customersCount: customers,
-      openDeals: deals.filter((d) => !d.stage.isClosedWon && !d.stage.isClosedLost),
+      openDeals: deals.filter(
+        (d) => !d.stage.isClosedWon && !d.stage.isClosedLost,
+      ),
       wonDeals: deals.filter((d) => d.stage.isClosedWon),
       upcomingActivities,
       quotesCreated: quotes,
@@ -426,9 +427,8 @@ export class DashboardService {
       .filter((v): v is number => v !== null);
 
     const averagePaymentDelayDays = delays.length
-      ? Math.round(
-          (delays.reduce((a, b) => a + b, 0) / delays.length) * 10,
-        ) / 10
+      ? Math.round((delays.reduce((a, b) => a + b, 0) / delays.length) * 10) /
+        10
       : 0;
 
     return {

@@ -18,7 +18,10 @@ describe('CampaignsService', () => {
       providers: [
         CampaignsService,
         { provide: PrismaService, useValue: {} },
-        { provide: getQueueToken(CAMPAIGNS_QUEUE), useValue: { add: jest.fn() } },
+        {
+          provide: getQueueToken(CAMPAIGNS_QUEUE),
+          useValue: { add: jest.fn() },
+        },
         { provide: SMS_WHATSAPP_GATEWAY, useValue: { send: jest.fn() } },
         { provide: NotificationsService, useValue: {} },
         { provide: AuditService, useValue: {} },

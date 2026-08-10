@@ -33,7 +33,7 @@ export class OffersController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string,@Body() dto: UpdateOfferDto) {
+  update(@Param('id') id: string, @Body() dto: UpdateOfferDto) {
     return this.offersService.update(id, dto);
   }
 

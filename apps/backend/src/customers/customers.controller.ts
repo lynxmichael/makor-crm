@@ -10,10 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import {
-  ApiBearerAuth,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CustomersService } from './customers.service';
 
@@ -42,8 +39,8 @@ export class CustomersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-     return this.customersService.findOne(id);
-    }
+    return this.customersService.findOne(id);
+  }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateCustomerDto) {

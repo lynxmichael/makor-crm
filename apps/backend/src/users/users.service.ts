@@ -319,7 +319,11 @@ export class UsersService {
   async resetFailedLogins(userId: string) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { failedLoginAttempts: 0, lockedUntil: null, lastLogin: new Date() },
+      data: {
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLogin: new Date(),
+      },
     });
   }
 

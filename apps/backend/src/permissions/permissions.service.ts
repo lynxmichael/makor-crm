@@ -33,18 +33,18 @@ export class PermissionsService {
 
   async findOne(id: string) {
     const permission = await this.prisma.permission.findUnique({
-        where: {
-          id,
-        },
+      where: {
+        id,
+      },
 
-        include: {
-          rolePermissions: {
-            include: {
-              role: true,
-            },
+      include: {
+        rolePermissions: {
+          include: {
+            role: true,
           },
         },
-      });
+      },
+    });
 
     if (!permission) {
       throw new NotFoundException('Permission introuvable');

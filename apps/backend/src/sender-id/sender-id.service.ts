@@ -148,19 +148,30 @@ export class SenderIdService {
   }
 
   private async notifyOutcome(
-    request: { name: string; status: SenderIdStatus; requestedBy: { id: string; email: string } },
+    request: {
+      name: string;
+      status: SenderIdStatus;
+      requestedBy: { id: string; email: string };
+    },
     label: string,
   ) {
     await Promise.all([
       this.mailService
-        .sendSenderIdStatusUpdate(request.requestedBy.email, request.name, label)
+        .sendSenderIdStatusUpdate(
+          request.requestedBy.email,
+          request.name,
+          label,
+        )
         .catch(() => undefined),
 
       this.notificationsService.notify(
         request.requestedBy.id,
         `Sender ID "${request.name}" — ${label}`,
         `Votre demande d'identifiant expéditeur a été ${label.toLowerCase()}.`,
-        { type: request.status === SenderIdStatus.APPROVED ? 'SUCCESS' : 'ERROR' },
+        {
+          type:
+            request.status === SenderIdStatus.APPROVED ? 'SUCCESS' : 'ERROR',
+        },
       ),
     ]);
   }

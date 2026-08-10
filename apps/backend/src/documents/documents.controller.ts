@@ -32,9 +32,7 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 @Controller('documents')
 @UseGuards(JwtAuthGuard)
 export class DocumentsController {
-  constructor(
-    private readonly documentsService: DocumentsService,
-  ) {}
+  constructor(private readonly documentsService: DocumentsService) {}
 
   @Post('upload')
   @ApiOperation({ summary: 'Déposer un document (GED)' })
@@ -44,9 +42,7 @@ export class DocumentsController {
         destination: './uploads',
 
         filename(req, file, cb) {
-          const unique = Date.now() +
-            '-' +
-            Math.round(Math.random() * 1000000);
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1000000);
 
           cb(null, unique + extname(file.originalname));
         },

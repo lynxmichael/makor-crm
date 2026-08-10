@@ -9,41 +9,40 @@ import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 export class SubscriptionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-   create(dto: CreateSubscriptionDto) {
-   return this.prisma.subscription.create({
-  data: {
-    startDate: new Date(dto.startDate),
-    endDate: dto.endDate ? new Date(dto.endDate) : null,
-    amount: dto.amount,
-    status: dto.status,
+  create(dto: CreateSubscriptionDto) {
+    return this.prisma.subscription.create({
+      data: {
+        startDate: new Date(dto.startDate),
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        amount: dto.amount,
+        status: dto.status,
 
-    customer: {
-      connect: {
-        id: dto.customerId,
-      },
-    },
+        customer: {
+          connect: {
+            id: dto.customerId,
+          },
+        },
 
-    offer: {
-      connect: {
-        id: dto.offerId,
+        offer: {
+          connect: {
+            id: dto.offerId,
+          },
+        },
       },
-    },
-  },
-});
+    });
   }
 
   async findOne(id: string) {
-    const subscription =
-      await this.prisma.subscription.findUnique({
-        where: {
-          id,
-        },
+    const subscription = await this.prisma.subscription.findUnique({
+      where: {
+        id,
+      },
 
-        include: {
-          customer: true,
-          offer: true,
-        },
-      });
+      include: {
+        customer: true,
+        offer: true,
+      },
+    });
 
     if (!subscription) {
       throw new NotFoundException('Souscription introuvable');
@@ -61,9 +60,7 @@ export class SubscriptionsService {
       },
 
       data: {
-        startDate: dto.startDate
-          ? new Date(dto.startDate)
-          : undefined,
+        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
 
         endDate:
           dto.endDate !== undefined

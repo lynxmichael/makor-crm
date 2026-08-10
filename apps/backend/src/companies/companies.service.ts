@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -10,9 +7,7 @@ import { UpdateCompanyDto } from './dto/update-company.dto';
 
 @Injectable()
 export class CompaniesService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateCompanyDto) {
     return this.prisma.company.create({
@@ -57,18 +52,13 @@ export class CompaniesService {
     });
 
     if (!company) {
-      throw new NotFoundException(
-        'Entreprise introuvable',
-      );
+      throw new NotFoundException('Entreprise introuvable');
     }
 
     return company;
   }
 
-  async update(
-    id: string,
-    dto: UpdateCompanyDto,
-  ) {
+  async update(id: string, dto: UpdateCompanyDto) {
     await this.findOne(id);
 
     return this.prisma.company.update({

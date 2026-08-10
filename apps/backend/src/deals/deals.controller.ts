@@ -75,7 +75,9 @@ export class DealsController {
   }
 
   @Patch(':id/move-stage')
-  @ApiOperation({ summary: 'Déplacer une opportunité vers une autre étape du pipeline' })
+  @ApiOperation({
+    summary: 'Déplacer une opportunité vers une autre étape du pipeline',
+  })
   moveStage(
     @Param('id') id: string,
     @Body() dto: MoveDealStageDto,

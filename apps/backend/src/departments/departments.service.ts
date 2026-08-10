@@ -29,14 +29,14 @@ export class DepartmentsService {
 
   async findOne(id: string) {
     const department = await this.prisma.department.findUnique({
-        where: {
-          id,
-        },
+      where: {
+        id,
+      },
 
-        include: {
-          users: true,
-        },
-      });
+      include: {
+        users: true,
+      },
+    });
 
     if (!department) {
       throw new NotFoundException('Département introuvable');

@@ -20,7 +20,9 @@ export class CampaignsProcessor extends WorkerHost {
   }
 
   async process(job: Job<{ campaignId: string }>): Promise<void> {
-    this.logger.log(`Traitement de la campagne ${job.data.campaignId} (job ${job.id})`);
+    this.logger.log(
+      `Traitement de la campagne ${job.data.campaignId} (job ${job.id})`,
+    );
     await this.campaignsService.processCampaign(job.data.campaignId);
   }
 }

@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,15 +8,12 @@ import { FilterCustomerDto } from './dto/filter-customer.dto';
 
 @Injectable()
 export class CustomersService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateCustomerDto) {
     const { assignedToId, ...data } = dto;
 
-    const code =
-      data.code ?? `CUST-${Date.now()}`;
+    const code = data.code ?? `CUST-${Date.now()}`;
 
     return this.prisma.customer.create({
       data: {
@@ -42,13 +36,7 @@ export class CustomersService {
   }
 
   async findAll(filter: FilterCustomerDto) {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      country,
-      status,
-    } = filter;
+    const { page = 1, limit = 10, search, country, status } = filter;
 
     const where: any = {};
 
@@ -83,71 +71,59 @@ export class CustomersService {
       where.status = status;
     }
 
-    const [customers, total] =
-      await Promise.all([
-        this.prisma.customer.findMany({
-          where,
+    const [customers, total] = await Promise.all([
+      this.prisma.customer.findMany({
+        where,
 
-          include: {
-            assignedTo: true,
-          },
+        include: {
+          assignedTo: true,
+        },
 
-          skip: (page - 1) * limit,
+        skip: (page - 1) * limit,
 
-          take: limit,
+        take: limit,
 
-          orderBy: {
-            createdAt: 'desc',
-          },
-        }),
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
 
-        this.prisma.customer.count({
-          where,
-        }),
-      ]);
+      this.prisma.customer.count({
+        where,
+      }),
+    ]);
 
     return {
       data: customers,
       total,
       page,
       limit,
-      totalPages: Math.ceil(
-        total / limit,
-      ),
+      totalPages: Math.ceil(total / limit),
     };
   }
 
   async findOne(id: string) {
-    const customer =
-      await this.prisma.customer.findUnique({
-        where: {
-          id,
-        },
+    const customer = await this.prisma.customer.findUnique({
+      where: {
+        id,
+      },
 
-        include: {
-          assignedTo: true,
-        },
-      });
+      include: {
+        assignedTo: true,
+      },
+    });
 
     if (!customer) {
-      throw new NotFoundException(
-        'Client introuvable',
-      );
+      throw new NotFoundException('Client introuvable');
     }
 
     return customer;
   }
 
-  async update(
-    id: string,
-    dto: UpdateCustomerDto,
-  ) {
+  async update(id: string, dto: UpdateCustomerDto) {
     await this.findOne(id);
 
-    const {
-      assignedToId,
-      ...data
-    } = dto;
+    const { assignedToId, ...data } = dto;
 
     return this.prisma.customer.update({
       where: {

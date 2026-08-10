@@ -85,7 +85,11 @@ export class NotificationsService {
 
   private async dispatch(
     channel: NotificationChannel,
-    notification: { title: string; message: string; user: { email: string; phone: string | null } },
+    notification: {
+      title: string;
+      message: string;
+      user: { email: string; phone: string | null };
+    },
   ) {
     switch (channel) {
       case NotificationChannel.EMAIL:
@@ -118,7 +122,10 @@ export class NotificationsService {
     userId: string,
     title: string,
     message: string,
-    options?: { type?: CreateNotificationDto['type']; channel?: NotificationChannel },
+    options?: {
+      type?: CreateNotificationDto['type'];
+      channel?: NotificationChannel;
+    },
   ) {
     return this.create({
       userId,

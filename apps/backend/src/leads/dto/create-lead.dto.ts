@@ -39,12 +39,18 @@ export class CreateLeadDto {
   @IsString()
   jobTitle?: string;
 
-  @ApiProperty({ required: false, description: "Secteur d'activité du prospect" })
+  @ApiProperty({
+    required: false,
+    description: "Secteur d'activité du prospect",
+  })
   @IsOptional()
   @IsString()
   sector?: string;
 
-  @ApiProperty({ required: false, description: 'Décideur identifié chez le prospect' })
+  @ApiProperty({
+    required: false,
+    description: 'Décideur identifié chez le prospect',
+  })
   @IsOptional()
   @IsString()
   decisionMaker?: string;

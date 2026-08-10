@@ -6,29 +6,29 @@ import { CreateAuditLogDto } from './dto/create-audit-log.dto';
 @Injectable()
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
-async create(dto: CreateAuditLogDto) {
-  return this.prisma.auditLog.create({
-    data: {
-      action: dto.action,
-      entity: dto.entity,
-      entityId: dto.entityId,
-      description: dto.description,
-      ipAddress: dto.ipAddress,
-      userAgent: dto.userAgent,
-   ...(dto.userId && {
-        user: {
-          connect: {
-            id: dto.userId,
+  async create(dto: CreateAuditLogDto) {
+    return this.prisma.auditLog.create({
+      data: {
+        action: dto.action,
+        entity: dto.entity,
+        entityId: dto.entityId,
+        description: dto.description,
+        ipAddress: dto.ipAddress,
+        userAgent: dto.userAgent,
+        ...(dto.userId && {
+          user: {
+            connect: {
+              id: dto.userId,
+            },
           },
-        },
-      }),
-    },
+        }),
+      },
 
-    include: {
-      user: true,
-    },
-  });
-}
+      include: {
+        user: true,
+      },
+    });
+  }
 
   async findAll() {
     return this.prisma.auditLog.findMany({

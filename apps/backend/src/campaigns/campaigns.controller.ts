@@ -22,10 +22,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { CampaignsService } from './campaigns.service';
 
-import {
-  AddRecipientsDto,
-  CreateCampaignDto,
-} from './dto/create-campaign.dto';
+import { AddRecipientsDto, CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { WebhookStatusDto } from './dto/webhook-status.dto';
 import { Public } from '../auth/decorators/public.decorator';
@@ -65,10 +62,7 @@ export class CampaignsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Créer une campagne' })
-  create(
-    @Body() dto: CreateCampaignDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  create(@Body() dto: CreateCampaignDto, @CurrentUser() user: { id: string }) {
     return this.campaignsService.create(dto, user?.id);
   }
 

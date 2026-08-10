@@ -214,7 +214,7 @@ export class CampaignsService {
       campaign.status !== CampaignStatus.SCHEDULED
     ) {
       throw new BadRequestException(
-        'Impossible d\'ajouter des destinataires à une campagne déjà en cours ou terminée.',
+        "Impossible d'ajouter des destinataires à une campagne déjà en cours ou terminée.",
       );
     }
 
@@ -291,7 +291,9 @@ export class CampaignsService {
       campaign.status === CampaignStatus.FINISHED ||
       campaign.status === CampaignStatus.CANCELLED
     ) {
-      throw new BadRequestException('Cette campagne ne peut plus être annulée.');
+      throw new BadRequestException(
+        'Cette campagne ne peut plus être annulée.',
+      );
     }
 
     return this.prisma.campaign.update({
@@ -313,13 +315,13 @@ export class CampaignsService {
       campaign.status !== CampaignStatus.SCHEDULED
     ) {
       throw new BadRequestException(
-        'Cette campagne a déjà été envoyée ou est en cours d\'envoi.',
+        "Cette campagne a déjà été envoyée ou est en cours d'envoi.",
       );
     }
 
     if (campaign._count.recipients === 0) {
       throw new BadRequestException(
-        'Impossible d\'envoyer une campagne sans destinataire.',
+        "Impossible d'envoyer une campagne sans destinataire.",
       );
     }
 
@@ -396,7 +398,12 @@ export class CampaignsService {
   }
 
   private async sendToRecipient(
-    campaign: { id: string; message: string; type: any; customerId: string | null },
+    campaign: {
+      id: string;
+      message: string;
+      type: any;
+      customerId: string | null;
+    },
     recipient: { id: string; destination: string },
   ) {
     try {
@@ -428,7 +435,9 @@ export class CampaignsService {
           // Le suivi du solde est secondaire : une erreur ici ne doit
           // jamais faire échouer l'envoi de la campagne.
           .catch((err) =>
-            this.logger.warn(`Décrément du solde client impossible : ${err.message}`),
+            this.logger.warn(
+              `Décrément du solde client impossible : ${err.message}`,
+            ),
           );
       }
     } catch (error) {
@@ -531,13 +540,13 @@ export class CampaignsService {
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
     const processed = total - counts.PENDING;
     const failed = counts.FAILED + counts.REJECTED;
-    const delivered = counts.DELIVERED + counts.SENT - counts.FAILED;
+    const delivered = counts.DELIVERED + counts.SENT;
 
     return {
       total,
       processed,
       counts,
-      deliveryRate: processed ? (counts.DELIVERED + counts.SENT) / processed : 0,
+      deliveryRate: processed ? delivered / processed : 0,
       failureRate: processed ? failed / processed : 0,
     };
   }
@@ -560,10 +569,9 @@ export class CampaignsService {
     const updated = await this.prisma.campaignRecipient.update({
       where: { id: recipient.id },
       data: {
-        status: dto.status as CampaignRecipientStatus,
+        status: dto.status,
         errorCode: dto.errorCode,
-        deliveredAt:
-          dto.status === 'DELIVERED' ? new Date() : undefined,
+        deliveredAt: dto.status === 'DELIVERED' ? new Date() : undefined,
       },
     });
 

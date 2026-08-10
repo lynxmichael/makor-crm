@@ -55,8 +55,7 @@ export class AuthService {
   // -------------------------------------------------------------------
 
   private sanitizeUser(user: Record<string, any>) {
-    const { password, twoFactorSecret, twoFactorRecoveryCodes, ...safe } =
-      user;
+    const { password, twoFactorSecret, twoFactorRecoveryCodes, ...safe } = user;
     return safe;
   }
 
@@ -358,10 +357,7 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const unverified = this.jwtService.decode(dto.token) as {
-      sub?: string;
-      purpose?: string;
-    } | null;
+    const unverified = this.jwtService.decode(dto.token);
 
     if (!unverified?.sub || unverified.purpose !== 'password_reset') {
       throw new BadRequestException('Lien de réinitialisation invalide.');

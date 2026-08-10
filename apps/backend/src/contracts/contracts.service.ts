@@ -242,9 +242,17 @@ export class ContractsService {
         currency: org.defaultCurrency,
         notes: contract.description,
         extraLines: [
-          { label: 'Date de début', value: contract.startDate.toLocaleDateString('fr-FR') },
+          {
+            label: 'Date de début',
+            value: contract.startDate.toLocaleDateString('fr-FR'),
+          },
           ...(contract.endDate
-            ? [{ label: 'Date de fin', value: contract.endDate.toLocaleDateString('fr-FR') }]
+            ? [
+                {
+                  label: 'Date de fin',
+                  value: contract.endDate.toLocaleDateString('fr-FR'),
+                },
+              ]
             : []),
         ],
       },
@@ -269,10 +277,14 @@ export class ContractsService {
 
     const pdf = await this.buildPdf(id);
 
-    await this.mailService.sendContract(contract.customer.email, contract.number, {
-      filename: `${contract.number}.pdf`,
-      content: pdf,
-    });
+    await this.mailService.sendContract(
+      contract.customer.email,
+      contract.number,
+      {
+        filename: `${contract.number}.pdf`,
+        content: pdf,
+      },
+    );
 
     await this.auditService.create({
       action: 'UPDATE',

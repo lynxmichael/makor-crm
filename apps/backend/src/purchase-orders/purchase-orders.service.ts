@@ -255,9 +255,7 @@ export class PurchaseOrdersService {
     }
 
     if (order.status !== 'DRAFT') {
-      throw new BadRequestException(
-        'Ce bon de commande a déjà été envoyé.',
-      );
+      throw new BadRequestException('Ce bon de commande a déjà été envoyé.');
     }
 
     const pdf = await this.buildPdf(id);
@@ -325,7 +323,7 @@ export class PurchaseOrdersService {
 
     if (order.status === 'SIGNED') {
       throw new BadRequestException(
-        "Un bon de commande signé ne peut pas être annulé.",
+        'Un bon de commande signé ne peut pas être annulé.',
       );
     }
 

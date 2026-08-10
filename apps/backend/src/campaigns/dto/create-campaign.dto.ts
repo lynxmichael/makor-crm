@@ -65,7 +65,7 @@ export class CreateCampaignDto {
   @ApiProperty({
     required: false,
     description:
-      'Clients ciblés — le téléphone (SMS/WhatsApp) ou l\'email (EMAIL) de chacun devient un destinataire.',
+      "Clients ciblés — le téléphone (SMS/WhatsApp) ou l'email (EMAIL) de chacun devient un destinataire.",
     type: [String],
   })
   @IsOptional()

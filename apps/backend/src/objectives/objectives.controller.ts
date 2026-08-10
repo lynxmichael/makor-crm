@@ -36,10 +36,7 @@ export class ObjectivesController {
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR')
   @ApiOperation({ summary: 'Assigner un objectif commercial' })
-  create(
-    @Body() dto: CreateObjectiveDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  create(@Body() dto: CreateObjectiveDto, @CurrentUser() user: { id: string }) {
     return this.objectivesService.create(dto, user.id);
   }
 

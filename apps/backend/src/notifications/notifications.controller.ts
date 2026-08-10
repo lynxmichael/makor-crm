@@ -35,11 +35,10 @@ export class NotificationsController {
 
   @Get()
   @ApiOperation({ summary: 'Notifications de l’utilisateur connecté' })
-  findAll(
-    @CurrentUser() user: { id: string },
-    @Query('all') all?: string,
-  ) {
-    return this.notificationsService.findAll(all === 'true' ? undefined : user.id);
+  findAll(@CurrentUser() user: { id: string }, @Query('all') all?: string) {
+    return this.notificationsService.findAll(
+      all === 'true' ? undefined : user.id,
+    );
   }
 
   @Get(':id')

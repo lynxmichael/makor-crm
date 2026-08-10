@@ -76,10 +76,7 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Définir le tarif et la marge pour un pays / secteur',
   })
-  addPricing(
-    @Param('id') id: string,
-    @Body() dto: CreateProductPricingDto,
-  ) {
+  addPricing(@Param('id') id: string, @Body() dto: CreateProductPricingDto) {
     return this.productsService.addPricing(id, dto);
   }
 

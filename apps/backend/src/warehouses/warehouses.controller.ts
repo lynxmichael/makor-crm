@@ -33,10 +33,10 @@ export class WarehousesController {
     return this.warehousesService.create(dto);
   }
 
-@Get()
- findAll(@Query() query: QueryWarehouseDto) {
-  return this.warehousesService.findAll(query);
-}
+  @Get()
+  findAll(@Query() query: QueryWarehouseDto) {
+    return this.warehousesService.findAll(query);
+  }
 
   @Get(':id')
   @ApiOperation({
@@ -62,20 +62,15 @@ export class WarehousesController {
     return this.warehousesService.remove(id);
   }
   @Get('dashboard')
-dashboard() {
-  return this.warehousesService.dashboard();
-}
-@Patch(':id/restore')
-restore(
-  @Param('id') id: string,
-) {
-  return this.warehousesService.restore(id);
-}
-@Get('code/:code')
-findByCode(
-  @Param('code') code: string,
-) {
-  return this.warehousesService.findByCode(code);
-}
-
+  dashboard() {
+    return this.warehousesService.dashboard();
+  }
+  @Patch(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.warehousesService.restore(id);
+  }
+  @Get('code/:code')
+  findByCode(@Param('code') code: string) {
+    return this.warehousesService.findByCode(code);
+  }
 }

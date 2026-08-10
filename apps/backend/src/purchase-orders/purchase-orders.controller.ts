@@ -30,9 +30,7 @@ import { SignPurchaseOrderDto } from './dto/sign-purchase-order.dto';
 @Controller('purchase-orders')
 @UseGuards(JwtAuthGuard)
 export class PurchaseOrdersController {
-  constructor(
-    private readonly purchaseOrdersService: PurchaseOrdersService,
-  ) {}
+  constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
 
   @Post('from-quote/:quoteId')
   @ApiOperation({

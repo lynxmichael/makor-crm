@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class InvoiceEmailService {
-  async sendInvoice(
+  // Bouchon : l'envoi réel passera par `MailService`. La signature reste
+  // asynchrone pour que les appelants n'aient pas à changer le jour où elle
+  // le devient vraiment.
+  sendInvoice(
     email: string,
     invoiceNumber: string,
     pdfPath?: string,
@@ -13,6 +16,6 @@ export class InvoiceEmailService {
       console.log(`Pièce jointe : ${pdfPath}`);
     }
 
-    return;
+    return Promise.resolve();
   }
 }

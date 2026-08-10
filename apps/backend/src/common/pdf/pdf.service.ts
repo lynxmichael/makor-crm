@@ -140,7 +140,13 @@ export class PdfService {
       // --- Tableau des lignes ---
       if (data.items && data.items.length > 0) {
         const tableTop = cursorY;
-        const col = { desc: 50, qty: 300, price: 360, discount: 440, total: 490 };
+        const col = {
+          desc: 50,
+          qty: 300,
+          price: 360,
+          discount: 440,
+          total: 490,
+        };
 
         doc
           .fontSize(9)
@@ -170,18 +176,28 @@ export class PdfService {
           doc
             .text(item.description, col.desc + 4, rowY + 6, { width: 240 })
             .text(String(item.quantity), col.qty, rowY + 6)
-            .text(this.formatAmount(item.unitPrice, currency), col.price, rowY + 6, {
-              width: 75,
-            })
+            .text(
+              this.formatAmount(item.unitPrice, currency),
+              col.price,
+              rowY + 6,
+              {
+                width: 75,
+              },
+            )
             .text(
               this.formatAmount(item.discount ?? 0, currency),
               col.discount,
               rowY + 6,
               { width: 45 },
             )
-            .text(this.formatAmount(item.total, currency), col.total, rowY + 6, {
-              width: 55,
-            });
+            .text(
+              this.formatAmount(item.total, currency),
+              col.total,
+              rowY + 6,
+              {
+                width: 55,
+              },
+            );
 
           rowY += rowHeight;
         });
@@ -194,45 +210,59 @@ export class PdfService {
 
         if (data.subtotal !== undefined) {
           doc.text('Sous-total', totalsX, cursorY);
-          doc.text(this.formatAmount(data.subtotal, currency), totalsX + 100, cursorY, {
-            align: 'right',
-            width: 85,
-          });
+          doc.text(
+            this.formatAmount(data.subtotal, currency),
+            totalsX + 100,
+            cursorY,
+            {
+              align: 'right',
+              width: 85,
+            },
+          );
           cursorY += 16;
         }
 
         if (data.discount) {
           doc.text('Remise', totalsX, cursorY);
-          doc.text(this.formatAmount(data.discount, currency), totalsX + 100, cursorY, {
-            align: 'right',
-            width: 85,
-          });
+          doc.text(
+            this.formatAmount(data.discount, currency),
+            totalsX + 100,
+            cursorY,
+            {
+              align: 'right',
+              width: 85,
+            },
+          );
           cursorY += 16;
         }
 
         if (data.tax !== undefined) {
           doc.text('TVA', totalsX, cursorY);
-          doc.text(this.formatAmount(data.tax, currency), totalsX + 100, cursorY, {
-            align: 'right',
-            width: 85,
-          });
+          doc.text(
+            this.formatAmount(data.tax, currency),
+            totalsX + 100,
+            cursorY,
+            {
+              align: 'right',
+              width: 85,
+            },
+          );
           cursorY += 16;
         }
 
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(12)
-          .text('TOTAL', totalsX, cursorY);
-        doc.text(this.formatAmount(data.total, currency), totalsX + 100, cursorY, {
-          align: 'right',
-          width: 85,
-        });
+        doc.font('Helvetica-Bold').fontSize(12).text('TOTAL', totalsX, cursorY);
+        doc.text(
+          this.formatAmount(data.total, currency),
+          totalsX + 100,
+          cursorY,
+          {
+            align: 'right',
+            width: 85,
+          },
+        );
         cursorY += 30;
       } else {
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(12)
-          .text('MONTANT', 360, cursorY);
+        doc.font('Helvetica-Bold').fontSize(12).text('MONTANT', 360, cursorY);
         doc.text(this.formatAmount(data.total, currency), 460, cursorY, {
           align: 'right',
           width: 85,
@@ -283,7 +313,11 @@ export class PdfService {
     subtitle?: string,
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ size: 'A4', margin: 40, layout: 'landscape' });
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 40,
+        layout: 'landscape',
+      });
       const chunks: Buffer[] = [];
 
       doc.on('data', (chunk) => chunks.push(chunk));
@@ -304,7 +338,14 @@ export class PdfService {
       const drawHeader = () => {
         let x = startX;
         doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff');
-        doc.rect(startX, y, columns.reduce((s, c) => s + c.width, 0), 18).fill('#1f2937');
+        doc
+          .rect(
+            startX,
+            y,
+            columns.reduce((s, c) => s + c.width, 0),
+            18,
+          )
+          .fill('#1f2937');
         doc.fillColor('#ffffff');
         for (const col of columns) {
           doc.text(col.label, x + 3, y + 5, { width: col.width - 6 });
@@ -327,7 +368,12 @@ export class PdfService {
 
         if (idx % 2 === 1) {
           doc
-            .rect(startX, y, columns.reduce((s, c) => s + c.width, 0), 16)
+            .rect(
+              startX,
+              y,
+              columns.reduce((s, c) => s + c.width, 0),
+              16,
+            )
             .fill('#f3f4f6');
           doc.fillColor('#222222');
         }
