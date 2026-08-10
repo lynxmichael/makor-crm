@@ -4,6 +4,104 @@ Une section par séance, la plus récente en haut. À compléter en fin de chaqu
 
 ---
 
+## 10 août 2026 — Le travail des 6 au 9 août est commité, le pipeline passe sur l'API
+
+### Point de départ : quatre jours de travail ni commités ni consignés
+
+La séance s'ouvre sur un arbre portant **84 changements non commités**, tous dans `apps/backend/`,
+et un journal qui s'arrêtait au 5 août. Trois chantiers s'y trouvaient mêlés, désormais séparés en
+trois commits.
+
+- **D24 — le pipeline devient administrable depuis l'écran.** `canonicalStage` obligatoire sur
+  chaque étape, `PipelineStage.order` qui perd son unicité (réordonner N colonnes se fait par N
+  `UPDATE` dans une transaction, qu'une contrainte d'unicité rendrait impossible), et l'archivage :
+  `DealStageHistory.toStageId` étant en `onDelete: Restrict`, une étape déjà traversée ne peut pas
+  être effacée sans détruire l'historique qui porte le calcul des délais moyens du CDC §4.6. Une
+  étape jamais traversée est supprimée, une étape traversée est archivée.
+- **La correction du 500 sur `GET /customers`**, défaut signalé le 05/08 et laissé hors périmètre
+  par D13 — que D17 a rendu à cette branche. C'est **uniquement** une migration SQL, écrite
+  idempotente : `schema.prisma` décrivait déjà l'état cible, la dérive n'existait qu'en base.
+- **Une passe de typage strict sur 78 fichiers**, avec `src/types/express.d.ts` qui donne à
+  `Express.User` sa forme réelle — le rôle lu par `RolesGuard` est enfin vérifié par le compilateur.
+
+### Fait — le lint backend, terminé
+
+La passe de typage était inachevée : `npm run lint` sortait sur **11 erreurs et 4 avertissements**.
+Corrigées. Trois ne sont pas cosmétiques :
+
+- **`campaigns.service.ts` portait une formule fausse.** `delivered` valait
+  `DELIVERED + SENT − FAILED` et n'était utilisé nulle part, pendant que `deliveryRate` recalculait
+  la bonne valeur en double.
+- **`reporting.utils.ts` pouvait livrer « [object Object] » à un client.** `String()` appliqué à un
+  `unknown` ne signale rien. Nouveau `toDisplayString()` : nombre, date et `Decimal` traités
+  explicitement, le reste en JSON.
+- **Trois `client.join()` de `realtime.gateway.ts`** dont la promesse n'était ni attendue ni
+  marquée : sans adaptateur Redis l'appel est synchrone, mais le jour où il y en a un, un rejet
+  passait à la trappe.
+
+`eslint.config.mjs` reçoit `ignoreRestSiblings` : l'omission par reste — `const { password, ...safe }
+= user` — est la façon dont un secret est retiré d'une entité avant d'être renvoyée. C'est une liste
+d'exclusion volontaire, pas un oubli.
+
+### Fait — le pipeline commercial sur données réelles (lot A)
+
+L'écran tournait sur `mockOpportunities`, avec des étapes — `prospection`, `business_case`,
+`closing`, `go_live` — **qui ne correspondaient à aucune des six étapes du CDC §4.6**. Il affichait
+un pipeline inventé pour la démonstration. En face, `GET /deals/board` et
+`PATCH /deals/:id/move-stage` existaient et n'étaient appelés par personne.
+
+Nouveau `services/pipeline.ts` (types transcrits du backend, pas devinés, comme `dashboard.ts`),
+`PipelinePage.tsx` réécrit, plus `NewDealModal`, `DealDetailModal` et un module `probability`
+partagé.
+
+**D5 est appliquée deux fois.** En amont : une colonne exigeant un bon de commande signé porte un
+cadenas, avant toute tentative. En aval : le refus du backend, déjà rédigé en français, s'affiche
+tel quel dans un bandeau `role="alert"`, et la carte revient à sa colonne. Le déplacement est
+optimiste, mais une carte restée déplacée après un refus ferait croire à une réussite.
+
+**L'alternative clavier au glisser-déposer existe enfin** — exigée par `DESIGN.md`, absente depuis
+le début : deux flèches par carte, atteintes à la tabulation, avec l'étape visée dans l'`aria-label`.
+
+Les quatre états de vue sont traités via `AsyncBoundary`. L'écriture est conditionnée par la matrice
+§7 : en Superviseur ou Admin ventes, le tableau est en lecture seule et le dit.
+
+### Vérifié
+
+`npx tsc --noEmit`, `npm run lint` et `nest build` du backend : verts. `npm run build` et
+`npm run lint` du frontend : verts.
+
+**Ce qui ne l'est pas :** les trois migrations du jour **n'ont jamais tourné sur une base**, la
+suite de tests backend n'a pas été lancée, et le parcours navigateur n'a toujours pas été passé —
+il l'était déjà en suspens depuis le 05/08.
+
+### En suspens
+
+1. **La documentation est en retard sur le code, et le registre des décisions est incohérent.**
+   `D23` est citée dans la table de `CLAUDE.md` sans être définie nulle part ; `D24` n'existe que
+   dans les commentaires du code ; et surtout **`D17` désigne deux décisions différentes** — « deux
+   applications distinctes » dans `CLAUDE.md`, « le Super Admin peut créer de nouveaux rôles » dans
+   `docs/DOSSIER-PROJET.md`, qui numérote D17 à D22 pour son propre compte. À trancher avant la
+   prochaine réunion : c'est le registre d'arbitrage du projet.
+2. **Lot B du pipeline non fait** — l'administration des colonnes par le Super Admin. Les cinq
+   endpoints existent et ne sont appelés par personne.
+3. **`components/shared/OpportunityQualificationModal.tsx` n'est plus référencé** (290 lignes). Non
+   supprimé, volontairement : il est bâti sur la grille de qualification, la check-list de mise en
+   service et les règlements, dont **aucun champ n'existe dans le modèle `Deal`**. Il redeviendra
+   utile le jour où le modèle les portera.
+4. **La création d'opportunité ne rattache pas à un client.** Le select aurait supposé
+   `GET /customers`, dont la correction n'a pas encore tourné sur une base réelle.
+5. Inchangé : **D2** (retrait de `Recharges`), **D11** (prestataire SMS), **D6** (validation de la
+   configuration au démarrage), et l'arbitrage laissé ouvert par **D12** sur
+   `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse`.
+
+### Prochain chantier
+
+**Appliquer les trois migrations sur une base réelle et passer le parcours navigateur.** Rien de
+ce qui a été livré ce jour n'a été vu fonctionner ; le contrôle par le build ne dit pas si
+`GET /customers` répond ni si le Kanban affiche les bonnes colonnes. Ensuite seulement, le lot B.
+
+---
+
 ## 5 août 2026 — Étape 1 : la faille est fermée, les fondations sont posées
 
 ### Fait
