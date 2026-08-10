@@ -65,14 +65,54 @@ le début : deux flèches par carte, atteintes à la tabulation, avec l'étape v
 Les quatre états de vue sont traités via `AsyncBoundary`. L'écriture est conditionnée par la matrice
 §7 : en Superviseur ou Admin ventes, le tableau est en lecture seule et le dit.
 
-### Vérifié
+### Vérifié — recette sur base et API réelles
 
 `npx tsc --noEmit`, `npm run lint` et `nest build` du backend : verts. `npm run build` et
 `npm run lint` du frontend : verts.
 
-**Ce qui ne l'est pas :** les trois migrations du jour **n'ont jamais tourné sur une base**, la
-suite de tests backend n'a pas été lancée, et le parcours navigateur n'a toujours pas été passé —
-il l'était déjà en suspens depuis le 05/08.
+**Correction : les trois migrations avaient déjà tourné.** Une première version de cette entrée
+affirmait le contraire. `_prisma_migrations` les horodate aux **6 et 9 août**, pendant les séances
+non consignées. `prisma migrate status` rend « Database schema is up to date », 23 migrations.
+`PipelineStage` porte bien `canonicalStage` et `isArchived`, l'unicité sur `order` a bien sauté, et
+`Customer.companyId` existe.
+
+Mesuré sur l'API démarrée :
+
+| Contrôle | Résultat |
+| --- | --- |
+| `GET /customers` | **200** — le 500 du 05/08 est corrigé |
+| `GET /deals/board` | 200, 7 colonnes avec leur `canonicalStage` |
+| Déplacement légitime d'une opportunité | **200**, la carte change de colonne, `DealStageHistory` est écrit |
+| **Refus D5** vers une étape `requiresSignedOrder` | **400** — « Impossible de déplacer ce deal vers "Closing" : aucun bon de commande signé n'est associé. » |
+
+C'est mot pour mot ce que le bandeau du Kanban affiche.
+
+### Fait — une fuite de données d'authentification, découverte et fermée
+
+**`GET /deals/board` et `GET /customers` renvoyaient l'empreinte argon2 du mot de passe** du
+commercial rattaché, son `twoFactorSecret` et ses codes de secours. Tout utilisateur connecté
+récupérait les empreintes de toute l'équipe ; le secret TOTP suffit à générer les codes 2FA des
+comptes sensibles. **Quinze services** incluent la relation utilisateur brute.
+
+`apps/backend/CLAUDE.md` l'annonçait depuis l'audit du 29/07 — « aucun DTO de sortie, vérifier
+`password` et `twoFactorSecret` sur `users` ». Personne ne l'avait vérifié en exécution.
+
+Correctif posé **au client Prisma**, pas dans les services : un `omit` global sur `User` retire les
+trois champs de toute lecture. Les quinze services sont couverts d'un coup, et ceux écrits demain le
+sont d'office — une règle qu'il faut penser à réappliquer à chaque requête n'en est pas une. Les six
+parcours qui doivent réellement vérifier un mot de passe ou un code TOTP passent par
+`findByEmailForAuth` / `findByIdForAuth`, qui rétablissent les secrets explicitement.
+
+Vérifié après redémarrage : connexion correcte → jeton, mauvais mot de passe → 401, **parcours 2FA
+complet** (setup, enable, défi, `login/2fa`, disable) suivi du retour à la connexion directe — le
+compte de démonstration est remis dans son état initial. Balayage de **17 endpoints** : 200 partout,
+aucun des trois champs nulle part.
+
+### Ce qui n'est toujours pas vérifié
+
+La suite de tests backend n'a pas été lancée, et **le parcours navigateur n'a toujours pas été
+passé** — en suspens depuis le 05/08. Toute la recette ci-dessus est passée par l'API, pas par
+l'interface.
 
 ### En suspens
 
@@ -88,17 +128,27 @@ il l'était déjà en suspens depuis le 05/08.
    supprimé, volontairement : il est bâti sur la grille de qualification, la check-list de mise en
    service et les règlements, dont **aucun champ n'existe dans le modèle `Deal`**. Il redeviendra
    utile le jour où le modèle les portera.
-4. **La création d'opportunité ne rattache pas à un client.** Le select aurait supposé
-   `GET /customers`, dont la correction n'a pas encore tourné sur une base réelle.
-5. Inchangé : **D2** (retrait de `Recharges`), **D11** (prestataire SMS), **D6** (validation de la
+4. **La création d'opportunité ne rattache pas à un client.** `GET /customers` est désormais vérifié
+   à 200 ; l'obstacle est levé, le select reste à écrire.
+5. **Une 7ᵉ colonne orpheline dans la base.** « RDV planifié » survit de l'ancien jeu d'étapes et se
+   place **en position 7, après « Perdu »**, alors que le seed n'en définit que 6. Conservée
+   volontairement : c'est le cas d'usage exact du lot B — une colonne à réordonner ou à archiver
+   depuis l'écran.
+6. **Données de recette laissées en base** : un client (Ecobank CI) et une opportunité, en
+   « Négociation ». Elles rendent le Kanban lisible au navigateur.
+7. **Un `assignedToId` inexistant rend 500 au lieu de 400** sur `POST /customers` — l'erreur de clé
+   étrangère Prisma n'est pas traduite. Constaté par accident, non corrigé.
+8. Inchangé : **D2** (retrait de `Recharges`), **D11** (prestataire SMS), **D6** (validation de la
    configuration au démarrage), et l'arbitrage laissé ouvert par **D12** sur
    `Company`/`Offer`/`Subscription`/`Ticket`/`Warehouse`.
 
 ### Prochain chantier
 
-**Appliquer les trois migrations sur une base réelle et passer le parcours navigateur.** Rien de
-ce qui a été livré ce jour n'a été vu fonctionner ; le contrôle par le build ne dit pas si
-`GET /customers` répond ni si le Kanban affiche les bonnes colonnes. Ensuite seulement, le lot B.
+**Le parcours navigateur**, seule vérification jamais faite depuis l'étape 1. Toute la recette du
+jour est passée par l'API : elle ne dit pas si le Kanban affiche les bonnes colonnes, si le bandeau
+de refus s'affiche, ni si la barre latérale change de contenu selon le rôle. Ensuite, le lot B du
+pipeline — l'administration des colonnes, dont la 7ᵉ colonne orpheline est le cas de test tout
+trouvé.
 
 ---
 
