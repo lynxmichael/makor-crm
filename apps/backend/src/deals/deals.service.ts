@@ -23,7 +23,8 @@ export class DealsService {
   ) {}
 
   async create(dto: CreateDealDto) {
-    const stageId = dto.stageId ?? (await this.pipelineStagesService.getDefaultStage()).id;
+    const stageId =
+      dto.stageId ?? (await this.pipelineStagesService.getDefaultStage()).id;
 
     return this.prisma.deal.create({
       data: {
@@ -32,12 +33,16 @@ export class DealsService {
         amount: dto.amount,
         probability: dto.probability ?? 0,
 
-        expectedCloseDate: dto.expectedCloseDate ? new Date(dto.expectedCloseDate) : null,
+        expectedCloseDate: dto.expectedCloseDate
+          ? new Date(dto.expectedCloseDate)
+          : null,
 
         stage: { connect: { id: stageId } },
         assignedTo: { connect: { id: dto.assignedToId } },
 
-        ...(dto.customerId && { customer: { connect: { id: dto.customerId } } }),
+        ...(dto.customerId && {
+          customer: { connect: { id: dto.customerId } },
+        }),
         ...(dto.leadId && { lead: { connect: { id: dto.leadId } } }),
       },
 
@@ -59,7 +64,8 @@ export class DealsService {
     customerId?: string;
     leadId?: string;
   }) {
-    const { page, limit, search, stageId, assignedToId, customerId, leadId } = params;
+    const { page, limit, search, stageId, assignedToId, customerId, leadId } =
+      params;
 
     const skip = (page - 1) * limit;
 
@@ -99,10 +105,18 @@ export class DealsService {
     };
   }
 
-  /** Vue pipeline : deals groupés par étape, pour l'affichage Kanban. */
+  /**
+   * Vue pipeline : deals groupés par étape, pour l'affichage Kanban.
+   *
+   * Les étapes archivées sont exclues — elles ne portent plus d'opportunité
+   * (la suppression les déplace) et n'ont rien à faire sur le tableau.
+   * `canonicalStage` accompagne chaque colonne : le frontend en a besoin pour
+   * afficher un libellé libre sans perdre l'étape du CDC qu'il représente.
+   */
   async board() {
     const stages = await this.prisma.pipelineStage.findMany({
-      orderBy: { order: 'asc' },
+      where: { isArchived: false },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
       include: {
         deals: {
           include: { assignedTo: true, customer: true, lead: true },
@@ -112,7 +126,16 @@ export class DealsService {
     });
 
     return stages.map((stage) => ({
-      stage: { id: stage.id, name: stage.name, order: stage.order, color: stage.color },
+      stage: {
+        id: stage.id,
+        name: stage.name,
+        order: stage.order,
+        color: stage.color,
+        canonicalStage: stage.canonicalStage,
+        isClosedWon: stage.isClosedWon,
+        isClosedLost: stage.isClosedLost,
+        requiresSignedOrder: stage.requiresSignedOrder,
+      },
       deals: stage.deals,
       totalValue: stage.deals.reduce((sum, d) => sum + Number(d.amount), 0),
     }));
@@ -161,8 +184,12 @@ export class DealsService {
               : null
             : undefined,
 
-        ...(dto.assignedToId && { assignedTo: { connect: { id: dto.assignedToId } } }),
-        ...(dto.customerId && { customer: { connect: { id: dto.customerId } } }),
+        ...(dto.assignedToId && {
+          assignedTo: { connect: { id: dto.assignedToId } },
+        }),
+        ...(dto.customerId && {
+          customer: { connect: { id: dto.customerId } },
+        }),
         ...(dto.leadId && { lead: { connect: { id: dto.leadId } } }),
       },
 
@@ -184,6 +211,12 @@ export class DealsService {
   async moveStage(id: string, dto: MoveDealStageDto, changedById?: string) {
     const deal = await this.findOne(id);
     const targetStage = await this.pipelineStagesService.findOne(dto.stageId);
+
+    if (targetStage.isArchived) {
+      throw new BadRequestException(
+        `Impossible de déplacer ce deal vers "${targetStage.name}" : cette étape a été retirée du pipeline.`,
+      );
+    }
 
     if (targetStage.requiresSignedOrder) {
       const signedOrder = await this.prisma.purchaseOrder.findFirst({
@@ -274,8 +307,14 @@ export class DealsService {
     });
 
     await this.prisma.$transaction([
-      this.prisma.deal.update({ where: { id: dealId }, data: { customerId: customer.id } }),
-      this.prisma.lead.update({ where: { id: leadId }, data: { status: 'WON' } }),
+      this.prisma.deal.update({
+        where: { id: dealId },
+        data: { customerId: customer.id },
+      }),
+      this.prisma.lead.update({
+        where: { id: leadId },
+        data: { status: 'WON' },
+      }),
     ]);
 
     return customer;

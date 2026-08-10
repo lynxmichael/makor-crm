@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { CanonicalStage, PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
@@ -73,23 +73,42 @@ const CURRENCIES: [string, string, boolean][] = [
   ['USD', 'Dollar américain', false],
 ];
 
-/** Pipeline par défaut (CDC §4.6 : Prospect → RDV → Proposition → Bon
- * de commande → Contrat → Vente), modifiable ensuite par le Super Admin
- * depuis l'écran "Pipeline personnalisé". */
+/**
+ * Pipeline par défaut : les cinq étapes de la maquette validée par la direction
+ * (Q6, tranchée le 09/08), plus une étape terminale « Perdu » — sans elle, une
+ * affaire perdue n'est plus traçable et le service n'a aucune étape
+ * `isClosedLost` sur laquelle retomber.
+ *
+ * Ce n'est qu'un état initial : depuis D24, chaque colonne se renomme, se
+ * déplace, se supprime et se crée depuis l'écran Pipeline. `canonicalStage`
+ * est ce qui rattache une colonne aux étapes du CDC §4.6 quel que soit son
+ * libellé, et il est obligatoire.
+ */
 const PIPELINE_STAGES = [
-  { name: 'Prospection', order: 1, color: '#94a3b8' },
-  { name: 'RDV planifié', order: 2, color: '#60a5fa' },
-  { name: 'Proposition envoyée', order: 3, color: '#818cf8' },
-  { name: 'Négociation', order: 4, color: '#f59e0b' },
-  { name: 'Bon de commande', order: 5, color: '#fb923c' },
+  { name: 'Prospection', order: 1, color: '#94a3b8', canonicalStage: CanonicalStage.PROSPECT },
+  { name: 'Business Case', order: 2, color: '#818cf8', canonicalStage: CanonicalStage.PROPOSITION },
   {
-    name: 'Vente gagnée',
-    order: 6,
+    name: 'Bon de commande',
+    order: 3,
+    color: '#fb923c',
+    canonicalStage: CanonicalStage.BON_DE_COMMANDE,
+  },
+  { name: 'Négociation', order: 4, color: '#f59e0b', canonicalStage: CanonicalStage.CONTRAT },
+  {
+    name: 'Closing',
+    order: 5,
     color: '#22c55e',
+    canonicalStage: CanonicalStage.VENTE,
     isClosedWon: true,
     requiresSignedOrder: true,
   },
-  { name: 'Perdu', order: 7, color: '#ef4444', isClosedLost: true },
+  {
+    name: 'Perdu',
+    order: 6,
+    color: '#ef4444',
+    canonicalStage: CanonicalStage.PERDU,
+    isClosedLost: true,
+  },
 ];
 
 const PRODUCTS = [
@@ -199,10 +218,27 @@ async function main() {
   }
 
   // --- Pipeline de vente par défaut ---
+  //
+  // `update` reprend la définition complète, contrairement aux autres upserts
+  // de ce fichier : sans cela, toute correction apportée à PIPELINE_STAGES
+  // (couleur, rang, canonicalStage) resterait sans effet sur une base déjà
+  // semée, et le pipeline dériverait silencieusement de sa définition.
+  //
+  // `order` et `canonicalStage` sont réalignés, mais ni `isClosedWon` ni
+  // `isClosedLost` ni `requiresSignedOrder` ne sont remis à `false` sur une
+  // étape absente de cette liste : le re-seed ne défait pas ce qu'un
+  // administrateur a réglé depuis l'écran (D24).
   for (const stage of PIPELINE_STAGES) {
     await prisma.pipelineStage.upsert({
       where: { name: stage.name },
-      update: {},
+      update: {
+        order: stage.order,
+        color: stage.color,
+        canonicalStage: stage.canonicalStage,
+        isClosedWon: stage.isClosedWon ?? false,
+        isClosedLost: stage.isClosedLost ?? false,
+        requiresSignedOrder: stage.requiresSignedOrder ?? false,
+      },
       create: stage,
     });
   }

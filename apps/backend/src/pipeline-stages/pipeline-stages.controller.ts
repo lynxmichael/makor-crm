@@ -6,27 +6,38 @@ import {
   Param,
   Patch,
   Post,
-  UseGuards,
+  Query,
+  Req,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 import { PipelineStagesService } from './pipeline-stages.service';
-import { CreatePipelineStageDto, UpdatePipelineStageDto } from './dto/pipeline-stage.dto';
+import {
+  CreatePipelineStageDto,
+  QueryPipelineStagesDto,
+  RemovePipelineStageDto,
+  ReorderPipelineStagesDto,
+  UpdatePipelineStageDto,
+} from './dto/pipeline-stage.dto';
 
+/**
+ * `JwtAuthGuard` et `RolesGuard` sont globaux depuis l'étape 1 (D16) : la
+ * lecture demande une session, l'écriture demande le Super Admin — la
+ * configuration du pipeline est une décision d'administration (CDC §7).
+ */
 @ApiTags('Pipeline Stages')
 @ApiBearerAuth()
 @Controller('pipeline-stages')
-@UseGuards(JwtAuthGuard)
 export class PipelineStagesController {
   constructor(private readonly pipelineStagesService: PipelineStagesService) {}
 
   @Get()
-  findAll() {
-    return this.pipelineStagesService.findAll();
+  @ApiOperation({ summary: 'Étapes du pipeline, dans l’ordre d’affichage' })
+  findAll(@Query() query: QueryPipelineStagesDto) {
+    return this.pipelineStagesService.findAll(query.includeArchived ?? false);
   }
 
   @Get(':id')
@@ -35,23 +46,51 @@ export class PipelineStagesController {
   }
 
   @Post()
-  @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN')
-  create(@Body() dto: CreatePipelineStageDto) {
-    return this.pipelineStagesService.create(dto);
+  create(@Body() dto: CreatePipelineStageDto, @Req() req: Request) {
+    return this.pipelineStagesService.create(dto, this.userId(req));
+  }
+
+  /**
+   * Déclaré avant `PATCH :id`, sinon « reorder » serait capturé comme un
+   * identifiant d'étape.
+   */
+  @Patch('reorder')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Réécrit l’ordre complet du pipeline actif' })
+  reorder(@Body() dto: ReorderPipelineStagesDto, @Req() req: Request) {
+    return this.pipelineStagesService.reorder(dto, this.userId(req));
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN')
-  update(@Param('id') id: string, @Body() dto: UpdatePipelineStageDto) {
-    return this.pipelineStagesService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdatePipelineStageDto,
+    @Req() req: Request,
+  ) {
+    return this.pipelineStagesService.update(id, dto, this.userId(req));
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN')
-  remove(@Param('id') id: string) {
-    return this.pipelineStagesService.remove(id);
+  @ApiOperation({
+    summary:
+      'Retire une étape — les opportunités partent vers destinationStageId',
+  })
+  remove(
+    @Param('id') id: string,
+    @Query() query: RemovePipelineStageDto,
+    @Req() req: Request,
+  ) {
+    return this.pipelineStagesService.remove(
+      id,
+      query.destinationStageId,
+      this.userId(req),
+    );
+  }
+
+  private userId(req: Request): string | undefined {
+    return req.user?.id;
   }
 }

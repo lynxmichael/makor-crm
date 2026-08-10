@@ -317,10 +317,42 @@ model Lead {
   @@index([assignedToId])
 }
 
+/// Étapes de référence du CDC §4.6, auxquelles toute étape du pipeline se
+/// rattache (D24). Les colonnes du Kanban sont librement renommées, créées et
+/// supprimées depuis l'écran : `canonicalStage` est ce qui garde le reporting
+/// comparable dans le temps quand un libellé change.
+///
+/// `PERDU` s'ajoute aux six étapes du CDC : une affaire perdue doit rester
+/// traçable et ne correspond à aucune d'entre elles.
+enum CanonicalStage {
+  PROSPECT
+  RDV
+  PROPOSITION
+  BON_DE_COMMANDE
+  CONTRAT
+  VENTE
+  PERDU
+}
+
 model PipelineStage {
-  id    String @id @default(cuid())
-  name  String @unique
-  order Int    @unique
+  id   String @id @default(cuid())
+  name String @unique
+
+  /// Rang d'affichage. Volontairement **non unique** : réordonner les colonnes
+  /// se fait par une série d'`UPDATE` dans une transaction, ce qu'une
+  /// contrainte d'unicité rendrait impossible sans valeurs tampons.
+  order Int
+
+  /// Étape du CDC sur laquelle celle-ci s'agrège (D24). Obligatoire.
+  canonicalStage CanonicalStage
+
+  /// Étape retirée du pipeline mais conservée en base. `DealStageHistory`
+  /// pointe vers l'étape en `onDelete: Restrict` : une étape déjà traversée
+  /// ne peut pas être effacée sans détruire l'historique sur lequel se
+  /// calculent les délais moyens. Elle est donc archivée — invisible du
+  /// Kanban et des listes, ses lignes d'historique restent lisibles.
+  /// Une étape jamais traversée, elle, est réellement supprimée.
+  isArchived Boolean @default(false)
 
   isClosedWon  Boolean @default(false)
   isClosedLost Boolean @default(false)
@@ -335,6 +367,10 @@ model PipelineStage {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@index([canonicalStage])
+  @@index([isArchived])
 }
 
 model Deal {
@@ -394,6 +430,8 @@ model DealStageHistory {
   createdAt DateTime @default(now())
 
   @@index([dealId])
+  @@index([toStageId])
+  @@index([createdAt])
 }
 
 enum ActivityType {
