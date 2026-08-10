@@ -87,7 +87,7 @@ export const qualificationSections: QualificationSection[] = [
       { key: "autres_details", label: "Autres détails importants" },
       { key: "conditions_contractuelles", label: "Conditions contractuelles spécifiques : durée d’engagement, SLA, support…" },
       { key: "responsable_admin_client", label: "Responsable administratif côté client (pour fluidifier la signature et le paiement)" },
-      { key: "documents_requis", label: "Documents requis : bon de commande, devis signé, contrat…" },
+      { key: "documents_requis", label: "Documents requis : facture proforma signée, contrat…" },
     ],
   },
   {
@@ -116,7 +116,7 @@ export const qualificationSections: QualificationSection[] = [
     fields: [
       { key: "produit", label: "Produit proposé" },
       { key: "date_signature", label: "Date prévue de signature" },
-      { key: "documents", label: "Document(s) à finaliser : bon de commande, contrat, devis…" },
+      { key: "documents", label: "Document(s) à finaliser : facture proforma, contrat…" },
       { key: "engagements_client", label: "Engagements pris par le client (verbaux ou écrits)" },
       { key: "derniers_points", label: "Derniers points à valider : juridiques, techniques, administratifs" },
       { key: "signataire_client", label: "Personne en charge de la signature côté client" },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Users } from "lucide-react";
+import { BookUser, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/ui/Modal";
@@ -13,6 +13,7 @@ import { campaignsService, productsService } from "@/services/resources";
 import { QK } from "@/config/constants";
 import type { ApiError } from "@/types/api";
 import { AiGeneratePanel } from "@/features/ai/AiGeneratePanel";
+import { RecipientPickerModal } from "./RecipientPickerModal";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -44,6 +45,7 @@ export function CampaignEditorModal({ open, onClose, campaign }: Props) {
   const [productId, setProductId] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [destinations, setDestinations] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -222,6 +224,13 @@ export function CampaignEditorModal({ open, onClose, campaign }: Props) {
           htmlFor="c-destinations"
           hint="Un numéro ou une adresse par ligne. D'autres destinataires peuvent être ajoutés ensuite."
         >
+          <div className="mb-2 flex justify-end">
+            <Button size="sm" variant="secondary" onClick={() => setPickerOpen(true)}>
+              <BookUser className="h-3.5 w-3.5" />
+              Charger depuis l'annuaire
+            </Button>
+          </div>
+
           <Textarea
             id="c-destinations"
             rows={4}
@@ -269,6 +278,29 @@ export function CampaignEditorModal({ open, onClose, campaign }: Props) {
           </Button>
         </div>
       </div>
+
+      <RecipientPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        channel={type}
+        onConfirm={(values) => {
+          // Fusion avec la saisie manuelle : on ajoute sans écraser, et sans
+          // réintroduire un destinataire déjà présent.
+          setDestinations((prev) => {
+            const existing = prev
+              .split(/[\n,;]/)
+              .map((entry) => entry.trim())
+              .filter(Boolean);
+
+            const merged = [...existing];
+            for (const value of values) {
+              if (!merged.includes(value)) merged.push(value);
+            }
+
+            return merged.join("\n");
+          });
+        }}
+      />
     </Modal>
   );
 }

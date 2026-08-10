@@ -48,11 +48,9 @@ export function UsersPage() {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const currentRole = useAuthStore((s) => s.user?.role?.name);
 
-  // Un superviseur n'administre que les commerciaux : on masque les actions
-  // sur les autres comptes plutôt que de laisser le serveur les refuser.
-  const canManage = (user: Row) =>
-    currentRole === "SUPER_ADMIN" ||
-    (currentRole === "SUPERVISEUR" && (user.role as Row | undefined)?.name === "COMMERCIAL");
+  // Écran réservé au Super Admin depuis le 07/08. La fonction est conservée
+  // pour rester le point unique où se décide la visibilité des actions.
+  const canManage = (_user: Row) => currentRole === "SUPER_ADMIN";
 
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");

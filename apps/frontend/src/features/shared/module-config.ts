@@ -26,6 +26,22 @@ export interface ModuleField {
   /** Pour les champs de type select : valeur → libellé. */
   options?: Record<string, string>;
   required?: boolean;
+
+  /**
+   * Obligatoire seulement quand un autre champ prend l'une des valeurs
+   * indiquées — la description d'une activité, exigée pour un rendez-vous
+   * mais pas pour une note.
+   */
+  requiredWhen?: { field: string; equals: string[] };
+
+  /**
+   * Longueur minimale exigée quand le champ est obligatoire.
+   *
+   * Doit refléter le `@MinLength` du DTO : sans elle, l'interface laisse
+   * partir une valeur trop courte et l'utilisateur découvre le refus après
+   * l'envoi, sans savoir combien de caractères il lui manque.
+   */
+  minLength?: number;
   placeholder?: string;
   hint?: string;
 

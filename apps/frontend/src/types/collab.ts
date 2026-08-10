@@ -100,7 +100,7 @@ export interface AiGeneration {
 }
 
 export const AI_TASK_LABELS: Record<AiTaskType, string> = {
-  QUOTE_INTRO: "Introduction du devis",
+  QUOTE_INTRO: "Introduction de la facture proforma",
   QUOTE_TERMS: "Conditions générales",
   CONTRACT_BODY: "Corps du contrat",
   CONTRACT_CLAUSE: "Clause particulière",

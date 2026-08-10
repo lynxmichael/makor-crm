@@ -2,9 +2,9 @@
 export const TRIGGER_LABELS: Record<string, string> = {
   DEAL_STAGE_CHANGED: "Affaire changée d'étape",
   DEAL_CREATED: "Opportunité créée",
-  QUOTE_SENT: "Devis envoyé",
-  QUOTE_ACCEPTED: "Devis accepté",
-  QUOTE_REJECTED: "Devis refusé",
+  QUOTE_SENT: "Facture proforma envoyée",
+  QUOTE_ACCEPTED: "Facture proforma acceptée",
+  QUOTE_REJECTED: "Facture proforma refusée",
   PURCHASE_ORDER_SIGNED: "Bon de commande signé",
   CONTRACT_ACTIVATED: "Contrat activé",
   INVOICE_SENT: "Facture émise",

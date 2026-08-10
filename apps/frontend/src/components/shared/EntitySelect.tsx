@@ -54,7 +54,7 @@ export function EntitySelect({
     enabled: open,
   });
 
-  // Recharge le libellé quand la valeur vient d'ailleurs (édition d'un devis
+  // Recharge le libellé quand la valeur vient d'ailleurs (édition d'une facture proforma
   // existant) : sans cela, le champ afficherait un identifiant brut.
   const detailQuery = useQuery({
     queryKey: [...queryKey, "select-resolve", value],

@@ -29,6 +29,7 @@ import { UpdateQuoteDto } from './dto/update-quote.dto';
 @ApiBearerAuth()
 @Controller('quotes')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class QuotesController {
   constructor(private readonly quotesService: QuotesService) {}
 

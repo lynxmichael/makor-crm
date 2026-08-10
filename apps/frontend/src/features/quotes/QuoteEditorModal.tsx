@@ -32,7 +32,7 @@ interface QuoteLine {
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** Devis existant, pour édition. */
+  /** Facture proforma existante, pour édition. */
   quote?: Record<string, unknown> | null;
 }
 
@@ -94,7 +94,7 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
     mutationFn: () => {
       // Les totaux ne sont jamais envoyés : le serveur les recalcule depuis
       // les lignes. Les transmettre laisserait croire que le client peut
-      // décider du montant d'un devis.
+      // décider du montant d'une facture proforma.
       const body = {
         title: title.trim(),
         customerId,
@@ -117,7 +117,7 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
         : quotesService.create(body);
     },
     onSuccess: () => {
-      toast.success(isEdit ? "Devis mis à jour" : "Devis créé");
+      toast.success(isEdit ? "Facture proforma mise à jour" : "Facture proforma créée");
       queryClient.invalidateQueries({ queryKey: QK.quotes });
       onClose();
     },
@@ -150,13 +150,13 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? `Devis ${quote?.number ?? ""}` : "Nouveau devis"}
+      title={isEdit ? `Facture proforma ${quote?.number ?? ""}` : "Nouvelle facture proforma"}
       description="Le numéro et les montants sont attribués par le serveur à l'enregistrement."
       className="max-w-4xl"
     >
       <div className="scrollbar-thin max-h-[70vh] space-y-5 overflow-y-auto pr-1">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Objet du devis" htmlFor="quote-title" required>
+          <Field label="Objet de la facture proforma" htmlFor="quote-title" required>
             <Input
               id="quote-title"
               value={title}
@@ -194,7 +194,7 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
         {/* Lignes */}
         <div className="rounded-xl border border-line">
           <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-            <h3 className="font-display text-sm font-semibold text-ink">Lignes du devis</h3>
+            <h3 className="font-display text-sm font-semibold text-ink">Lignes de la facture proforma</h3>
             <Button size="sm" variant="secondary" onClick={() => setLines((p) => [...p, emptyLine()])}>
               <Plus className="h-3.5 w-3.5" />
               Ajouter
@@ -345,7 +345,7 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
           />
         </Field>
 
-        {/* Rédaction assistée — disponible seulement sur un devis enregistré,
+        {/* Rédaction assistée — disponible seulement sur une facture proforma enregistré,
             puisque le contexte chiffré est reconstruit en base côté serveur. */}
         {isEdit && (
           <AiGeneratePanel
@@ -381,7 +381,7 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
         </Button>
         <Button onClick={() => save.mutate()} disabled={save.isPending || !canSubmit}>
           {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {isEdit ? "Enregistrer" : "Créer le devis"}
+          {isEdit ? "Enregistrer" : "Créer la facture proforma"}
         </Button>
       </div>
     </Modal>

@@ -14,6 +14,7 @@ import { EmptyState, ErrorState } from "@/components/shared/DataState";
 import { CommissionPlanModal } from "./CommissionPlanModal";
 import { http } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
+import { QK } from "@/config/constants";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatMoney, initials } from "@/lib/format";
@@ -73,6 +74,9 @@ export function CommissionsPage() {
         `${String(result.created ?? 0)} commission(s) calculée(s) — ${String(result.skipped ?? 0)} écartée(s)`,
       );
       queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      // Les commissions figurent maintenant sur les tableaux de bord :
+      // un calcul ou une mise en paiement doit s'y répercuter.
+      queryClient.invalidateQueries({ queryKey: QK.dashboard });
     },
     onError: (error) => toast.error((error as ApiError).message),
   });
@@ -82,6 +86,9 @@ export function CommissionsPage() {
     onSuccess: (_data, verb) => {
       toast.success(verb === "approve" ? "Commissions validées" : "Commissions mises en paiement");
       queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      // Les commissions figurent maintenant sur les tableaux de bord :
+      // un calcul ou une mise en paiement doit s'y répercuter.
+      queryClient.invalidateQueries({ queryKey: QK.dashboard });
     },
     onError: (error) => toast.error((error as ApiError).message),
   });

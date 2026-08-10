@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   Check,
   Download,
+  FileOutput,
   FileText,
   Pencil,
   Plus,
@@ -78,6 +79,23 @@ export function QuotesPage() {
   const query = useResourceList<Row>(QK.quotes, quotesService, params);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: QK.quotes });
 
+  /**
+   * Contrat généré depuis la proforma acceptée.
+   *
+   * Le module Bons de commande ayant été retiré, c'est la proforma qui
+   * déclenche le contrat. Le serveur reprend le montant de la pièce acceptée,
+   * donc rien n'est ressaisi et rien ne peut diverger.
+   */
+  const toContract = useMutation({
+    mutationFn: (id: string) => http.post(`/contracts/from-quote/${id}`),
+    onSuccess: () => {
+      toast.success("Contrat généré depuis la proforma");
+      queryClient.invalidateQueries({ queryKey: QK.contracts });
+      queryClient.invalidateQueries({ queryKey: QK.quotes });
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
+
   /** Les transitions de statut passent par leurs propres routes métier. */
   const transition = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "send" | "accept" | "reject" }) =>
@@ -87,10 +105,10 @@ export function QuotesPage() {
     onSuccess: (_data, variables) => {
       toast.success(
         variables.action === "send"
-          ? "Devis envoyé au client"
+          ? "Facture proforma envoyée au client"
           : variables.action === "accept"
-            ? "Devis marqué comme accepté"
-            : "Devis marqué comme refusé",
+            ? "Facture proforma marquée comme acceptée"
+            : "Facture proforma marquée comme refusée",
       );
       invalidate();
       setConfirmSend(null);
@@ -101,7 +119,7 @@ export function QuotesPage() {
   const remove = useMutation({
     mutationFn: (id: string) => quotesService.remove(id),
     onSuccess: () => {
-      toast.success("Devis supprimé");
+      toast.success("Facture proforma supprimée");
       invalidate();
       setToDelete(null);
     },
@@ -130,7 +148,7 @@ export function QuotesPage() {
       const url = URL.createObjectURL(response.data as Blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${String(quote.number ?? "devis")}.pdf`;
+      link.download = `${String(quote.number ?? "proforma")}.pdf`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
@@ -142,15 +160,15 @@ export function QuotesPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Devis</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Factures proforma</h1>
           <p className="mt-1 text-sm text-slate">
-            {query.isPending ? "Chargement…" : `${total} devis`}
+            {query.isPending ? "Chargement…" : `${total} facture${total > 1 ? "s" : ""} proforma`}
           </p>
         </div>
 
         <Button onClick={() => openEditor(null)}>
           <Plus className="h-4 w-4" />
-          Nouveau devis
+          Nouvelle facture proforma
         </Button>
       </header>
 
@@ -165,7 +183,7 @@ export function QuotesPage() {
             }}
             placeholder="Rechercher par numéro, objet ou client"
             className="pl-9"
-            aria-label="Rechercher un devis"
+            aria-label="Rechercher une facture proforma"
           />
         </div>
 
@@ -209,17 +227,17 @@ export function QuotesPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title={hasFilters ? "Aucun devis ne correspond" : "Aucun devis"}
+          title={hasFilters ? "Aucune facture proforma ne correspond" : "Aucune facture proforma"}
           detail={
             hasFilters
               ? "Élargissez la recherche ou retirez un filtre."
-              : "Créez un devis pour le proposer à un client, puis transformez-le en bon de commande."
+              : "Créez une facture proforma pour la proposer à un client, puis générez le contrat une fois acceptée."
           }
           action={
             hasFilters ? undefined : (
               <Button onClick={() => openEditor(null)}>
                 <Plus className="h-4 w-4" />
-                Nouveau devis
+                Nouvelle facture proforma
               </Button>
             )
           }
@@ -289,7 +307,7 @@ export function QuotesPage() {
                             <Download className="h-4 w-4" />
                           </Button>
 
-                          {/* Un devis parti chez le client ne se modifie plus :
+                          {/* Une facture proforma parti chez le client ne se modifie plus :
                               il faut en émettre un nouveau, sinon la version
                               reçue et la version en base divergent. */}
                           {isDraft && (
@@ -340,6 +358,19 @@ export function QuotesPage() {
                             </>
                           )}
 
+                          {quoteStatus === "ACCEPTED" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-signal hover:bg-signal/10"
+                              onClick={() => toContract.mutate(quote.id)}
+                              disabled={toContract.isPending}
+                              aria-label="Générer le contrat"
+                            >
+                              <FileOutput className="h-4 w-4" />
+                            </Button>
+                          )}
+
                           {isDraft && (
                             <Button
                               variant="ghost"
@@ -363,7 +394,7 @@ export function QuotesPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-line px-4 py-3">
               <p className="text-xs text-slate">
-                Page {page} sur {totalPages} · {total} devis
+                Page {page} sur {totalPages} · {total} facture{total > 1 ? "s" : ""} proforma
               </p>
               <div className="flex gap-2">
                 <Button
@@ -393,11 +424,11 @@ export function QuotesPage() {
       <Modal
         open={Boolean(confirmSend)}
         onClose={() => setConfirmSend(null)}
-        title="Envoyer ce devis au client ?"
+        title="Envoyer cette facture proforma au client ?"
         description={String(confirmSend?.number ?? "")}
       >
         <p className="text-sm leading-relaxed text-slate">
-          Le devis part par e-mail avec le PDF en pièce jointe. Il passe au statut « Envoyé » et ne
+          La facture proforma part par e-mail avec le PDF en pièce jointe. Il passe au statut « Envoyé » et ne
           sera plus modifiable — pour changer quelque chose, il faudra en émettre un nouveau.
         </p>
         <div className="mt-5 flex justify-end gap-2">
@@ -419,11 +450,11 @@ export function QuotesPage() {
       <Modal
         open={Boolean(toDelete)}
         onClose={() => setToDelete(null)}
-        title="Supprimer ce devis ?"
+        title="Supprimer cette facture proforma ?"
         description={String(toDelete?.number ?? "")}
       >
         <p className="text-sm leading-relaxed text-slate">
-          Les lignes du devis seront supprimées avec lui. Cette action est irréversible.
+          Les lignes de la facture proforma seront supprimées avec lui. Cette action est irréversible.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setToDelete(null)}>

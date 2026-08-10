@@ -50,7 +50,7 @@ export const RESOURCE_CATEGORY_LABELS: Record<ResourceCategory, string> = {
   CLIENTS: "Clients et prospects",
   PIPELINE: "Pipeline commercial",
   CAMPAGNES: "Campagnes",
-  DEVIS_COMMANDES: "Devis et bons de commande",
+  DEVIS_COMMANDES: "Factures proforma",
   CONTRATS: "Contrats",
   FACTURATION: "Facturation et encaissements",
   SENDER_ID: "Sender ID",

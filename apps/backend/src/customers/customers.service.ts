@@ -75,9 +75,16 @@ export class CustomersService {
       search,
       country,
       status,
+      assignedToId,
     } = filter;
 
-    const where: any = scopeToUserId ? { assignedToId: scopeToUserId } : {};
+    // Le périmètre du commercial prime : un filtre passé en query ne permet
+    // pas de regarder le portefeuille d'un collègue.
+    const where: any = scopeToUserId
+      ? { assignedToId: scopeToUserId }
+      : assignedToId
+        ? { assignedToId }
+        : {};
 
     if (search) {
       where.OR = [

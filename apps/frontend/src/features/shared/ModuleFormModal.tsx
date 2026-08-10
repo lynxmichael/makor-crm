@@ -139,8 +139,14 @@ export function ModuleFormModal({
     // Le backend tourne en `forbidNonWhitelisted` et rejette les chaînes vides
     // sur les champs typés : on n'envoie que ce qui est renseigné, et on
     // convertit les nombres avant l'envoi plutôt que de laisser partir du texte.
+    // Champs pilotés par le serveur : les renvoyer fait échouer la requête en
+    // 400, le ValidationPipe tournant en liste blanche stricte. Ce filet évite
+    // qu'une configuration mal formée ne casse un formulaire entier.
+    const SERVER_MANAGED = new Set(["id", "createdAt", "updatedAt", "number", "code"]);
+
     const payload: Row = {};
     for (const field of config.fields) {
+      if (SERVER_MANAGED.has(field.key)) continue;
       const value = values[field.key];
       if (value === "" || value === undefined || value === null) continue;
 
@@ -161,9 +167,18 @@ export function ModuleFormModal({
     await onSubmit(payload);
   }
 
-  const missingRequired = config.fields.some(
-    (field) => field.required && !String(values[field.key] ?? "").trim(),
-  );
+  /** Un champ peut n'être obligatoire que sous condition d'un autre champ. */
+  const isRequired = (field: ModuleField) =>
+    field.required ||
+    (field.requiredWhen
+      ? field.requiredWhen.equals.includes(String(values[field.requiredWhen.field] ?? ""))
+      : false);
+
+  const missingRequired = config.fields.some((field) => {
+    if (!isRequired(field)) return false;
+    const value = String(values[field.key] ?? "").trim();
+    return value.length < Math.max(1, field.minLength ?? 1);
+  });
 
   return (
     <Modal
@@ -179,8 +194,14 @@ export function ModuleFormModal({
               <Field
                 label={field.label}
                 htmlFor={field.key}
-                required={field.required}
-                hint={field.hint}
+                required={isRequired(field)}
+                hint={
+                  field.minLength && isRequired(field)
+                    ? `${field.hint ?? ""} ${
+                        String(values[field.key] ?? "").trim().length
+                      }/${field.minLength} caractères`.trim()
+                    : field.hint
+                }
                 error={error?.fieldErrors?.[field.key]}
               >
                 {renderInput(field, values[field.key], (v) => set(field.key, v))}

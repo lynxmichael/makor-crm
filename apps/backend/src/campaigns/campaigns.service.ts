@@ -122,14 +122,28 @@ export class CampaignsService {
     status?: string;
     type?: string;
     customerId?: string;
+    statuses?: string;
   }) {
-    const { page, limit, search, status, type, customerId } = params;
+    const { page, limit, search, status, statuses, type, customerId } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.CampaignWhereInput = {
       AND: [
         search ? { name: { contains: search, mode: 'insensitive' } } : {},
-        status ? { status: status as CampaignStatus } : {},
+        // Un statut unique, ou une famille de statuts envoyée par les
+        // filtres rapides de l'écran.
+        status
+          ? { status: status as CampaignStatus }
+          : statuses
+            ? {
+                status: {
+                  in: statuses
+                    .split(',')
+                    .map((entry) => entry.trim())
+                    .filter(Boolean) as CampaignStatus[],
+                },
+              }
+            : {},
         type ? { type: type as Prisma.EnumCampaignTypeFilter['equals'] } : {},
         customerId ? { customerId } : {},
       ],

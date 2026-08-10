@@ -2,6 +2,8 @@ import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { ScoringService } from './scoring.service';
@@ -13,7 +15,8 @@ import { ScoringService } from './scoring.service';
 @ApiTags('Scoring')
 @ApiBearerAuth()
 @Controller('scoring')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class ScoringController {
   constructor(private readonly scoring: ScoringService) {}
 

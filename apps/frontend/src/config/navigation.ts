@@ -16,6 +16,7 @@ import {
   UsersRound,
   KeyRound,
   Coins,
+  BookUser,
   Gauge,
   CalendarCheck,
   Zap,
@@ -69,12 +70,20 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Commercial",
     items: [
-      { to: "/clients", label: "Clients", icon: Building2 },
-      { to: "/prospects", label: "Prospects", icon: UserPlus },
-      { to: "/opportunities", label: "Pipeline", icon: Target },
-      { to: "/quotes", label: "Devis", icon: FileText },
-      { to: "/purchase-orders", label: "Bons de commande", icon: ClipboardList },
-      { to: "/contracts", label: "Contrats", icon: FileSignature },
+      { to: "/clients", label: "Clients", icon: Building2, roles: ALL_SALES },
+      { to: "/annuaire", label: "Annuaire", icon: BookUser, roles: ALL_SALES },
+      { to: "/prospects", label: "Prospects", icon: UserPlus, roles: ALL_SALES },
+      { to: "/opportunities", label: "Pipeline", icon: Target, roles: ALL_SALES },
+      { to: "/quotes", label: "Factures proforma", icon: FileText, roles: ALL_SALES },
+      {
+        to: "/contracts",
+        label: "Contrats",
+        icon: FileSignature,
+        // Retiré au Financier sur demande du 05/08 : son périmètre se limite
+        // aux modules financiers. Le montant qu'il facture figure déjà sur la
+        // facture elle-même.
+        roles: ALL_SALES,
+      },
       { to: "/agenda", label: "Agenda", icon: Calendar, roles: ALL_SALES },
     ],
   },
@@ -83,7 +92,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/campaigns", label: "Campagnes", icon: Radio, roles: ALL_SALES },
       { to: "/sender-id", label: "Sender ID", icon: Fingerprint, roles: ALL_SALES },
-      { to: "/documents", label: "Documents", icon: FolderOpen },
+      { to: "/documents", label: "Documents", icon: FolderOpen, roles: ALL_SALES },
     ],
   },
   {
@@ -96,16 +105,28 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Pilotage",
     items: [
-      { to: "/reports", label: "Rapports", icon: BarChart3 },
-      { to: "/priorites", label: "Priorités", icon: Gauge },
+      {
+        to: "/reports",
+        label: "Rapports",
+        icon: BarChart3,
+        roles: [...ALL_SALES, ROLES.MANAGER],
+      },
+      { to: "/priorites", label: "Priorités", icon: Gauge, roles: ALL_SALES },
       {
         to: "/evaluation",
         label: "Évaluation",
         icon: CalendarCheck,
         // Fermé au COMMERCIAL, conformément à la demande du 31/07.
-        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_VENTES, ROLES.SUPERVISEUR, ROLES.MANAGER],
+        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_VENTES, ROLES.SUPERVISEUR],
       },
-      { to: "/commissions", label: "Commissions", icon: Coins },
+      {
+        to: "/commissions",
+        label: "Commissions",
+        icon: Coins,
+        // Chaque agent consulte les siennes via /commissions/mine ;
+        // le calcul et la mise en paiement relèvent du Financier.
+        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_VENTES, ROLES.SUPERVISEUR, ROLES.COMMERCIAL, ROLES.MANAGER],
+      },
       { to: "/audit", label: "Audit", icon: ShieldCheck, roles: [ROLES.SUPER_ADMIN] },
     ],
   },
@@ -116,9 +137,9 @@ export const NAV_GROUPS: NavGroup[] = [
         to: "/users",
         label: "Comptes et accès",
         icon: UsersRound,
-        // Le superviseur y accède aussi : il gère ses commerciaux. Le
-        // périmètre est appliqué côté serveur par `UserAdminPolicy`.
-        roles: [ROLES.SUPER_ADMIN, ROLES.SUPERVISEUR],
+        // Retiré au superviseur le 07/08 : il encadre l'activité de ses
+        // commerciaux, pas leurs accès.
+        roles: [ROLES.SUPER_ADMIN],
       },
       {
         to: "/workflows",

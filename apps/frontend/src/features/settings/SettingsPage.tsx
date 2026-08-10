@@ -124,7 +124,7 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
     },
     onSuccess: () => {
       toast.success("Paramètres enregistrés");
-      // Le taux de TVA alimente l'estimation des devis et factures : leurs
+      // Le taux de TVA alimente l'estimation des factures proforma et factures : leurs
       // écrans doivent repartir sur la nouvelle valeur.
       queryClient.invalidateQueries({ queryKey: QK.settings });
     },
@@ -194,7 +194,7 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
         <Field
           label="Taux de TVA (%)"
           htmlFor="s-vat"
-          hint="Appliqué au calcul des devis et des factures."
+          hint="Appliqué au calcul des factures proforma et des factures."
         >
           <Input
             id="s-vat"
@@ -222,7 +222,7 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
         </Field>
 
         <div className="sm:col-span-2">
-          <Field label="Logo (URL)" htmlFor="s-logo" hint="Affiché sur les devis et factures PDF.">
+          <Field label="Logo (URL)" htmlFor="s-logo" hint="Affiché sur les factures proforma et factures PDF.">
             <Input
               id="s-logo"
               value={form.logoUrl ?? ""}
@@ -528,7 +528,7 @@ function ReferencePanel({
  *
  * Rattaché aux Paramètres plutôt qu'à un module séparé : c'est un
  * référentiel qu'on configure une fois et qu'on ajuste rarement, comme les
- * secteurs ou les devises. L'écriture est ouverte à l'Admin ventes en plus
+ * secteurs ou les factures proformaes. L'écriture est ouverte à l'Admin ventes en plus
  * du Super Admin — c'est lui qui pilote le catalogue commercial.
  */
 function ProductsPanel({ canEdit }: { canEdit: boolean }) {
@@ -593,7 +593,7 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
       <header className="border-b border-line px-5 py-4">
         <h2 className="font-display text-sm font-semibold text-ink">Catalogue produits</h2>
         <p className="mt-0.5 text-xs text-slate">
-          SMS Marketing, OTP, API SMS, WhatsApp, Voice… Les prix servent de base aux devis et
+          SMS Marketing, OTP, API SMS, WhatsApp, Voice… Les prix servent de base aux factures proforma et
           aux factures, où ils restent modifiables ligne par ligne.
         </p>
       </header>
@@ -656,7 +656,7 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
         </div>
       ) : products.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-slate">
-          Aucun produit au catalogue. Les devis et campagnes s'appuient dessus : commencez par
+          Aucun produit au catalogue. Les factures proforma et campagnes s'appuient dessus : commencez par
           en créer un.
         </p>
       ) : (
@@ -701,7 +701,7 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
                       <td className="px-5 py-3">
                         <div className="flex justify-end gap-1">
                           {/* Désactiver plutôt que supprimer : un produit
-                              retiré reste référencé par les devis et factures
+                              retiré reste référencé par les factures proforma et factures
                               déjà émis. */}
                           <Button
                             size="sm"

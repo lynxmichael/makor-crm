@@ -23,6 +23,7 @@ import { Modal } from "@/components/ui/Modal";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataState";
 
 import { InvoiceEditorModal } from "./InvoiceEditorModal";
+import { settledAmount } from "./InvoicePaymentsPanel";
 import { invoicesService } from "@/services/resources";
 import { api, http } from "@/services/api";
 import { useResourceList } from "@/hooks/use-resource";
@@ -49,14 +50,6 @@ const STATUS_TONES: Record<string, "neutral" | "wire" | "signal" | "alert"> = {
   CANCELLED: "alert",
 };
 
-/** Somme des encaissements réellement aboutis sur une facture. */
-function settledAmount(invoice: Row): number {
-  const payments = (invoice.payments as Row[]) ?? [];
-
-  return payments
-    .filter((payment) => payment.status === "SUCCESS")
-    .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
-}
 
 export function InvoicesPage() {
   const reduced = usePrefersReducedMotion();

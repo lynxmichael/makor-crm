@@ -27,6 +27,7 @@ import { MoveDealStageDto } from './dto/move-stage.dto';
 @ApiBearerAuth()
 @Controller('deals')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class DealsController {
   constructor(private readonly dealsService: DealsService) {}
 

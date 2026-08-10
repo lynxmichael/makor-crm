@@ -43,6 +43,73 @@ export class ContractsService {
    * Génère le contrat à partir d'un bon de commande signé (CDC §4.9).
    * Un seul contrat peut être généré par bon de commande.
    */
+  /**
+   * Contrat généré depuis une facture proforma acceptée (demande du 07/08/2026).
+   *
+   * Le module Bons de commande étant retiré de l'interface, la proforma
+   * acceptée devient le document qui déclenche le contrat. On conserve ainsi
+   * la propriété essentielle de l'ancienne conversion : le montant est repris
+   * de la pièce signée, jamais ressaisi — donc jamais divergent.
+   */
+  async createFromQuote(quoteId: string, userId: string, title?: string) {
+    const quote = await this.prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: { customer: { select: { id: true, companyName: true } } },
+    });
+
+    if (!quote) {
+      throw new NotFoundException('Facture proforma introuvable');
+    }
+
+    if (quote.status !== 'ACCEPTED') {
+      throw new BadRequestException(
+        'Seule une facture proforma acceptée peut donner lieu à un contrat.',
+      );
+    }
+
+    const existing = await this.prisma.contract.findFirst({
+      where: { quoteId: quote.id },
+      select: { id: true, number: true },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        `Le contrat ${existing.number} a déjà été généré depuis cette proforma.`,
+      );
+    }
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const number = await this.nextNumber(tx);
+
+      return tx.contract.create({
+        data: {
+          number,
+          title: title ?? quote.title ?? `Contrat commercial ${number}`,
+
+          amount: quote.total,
+          startDate: new Date(),
+          status: 'DRAFT',
+
+          customer: { connect: { id: quote.customerId } },
+          createdBy: { connect: { id: userId } },
+          quote: { connect: { id: quote.id } },
+        },
+
+        include: this.include,
+      });
+    });
+
+    await this.auditService.create({
+      action: 'CREATE',
+      entity: 'Contract',
+      entityId: created.id,
+      description: `Contrat ${created.number} généré depuis la facture proforma ${quote.number}`,
+      userId,
+    });
+
+    return created;
+  }
+
   async createFromPurchaseOrder(
     purchaseOrderId: string,
     userId: string,

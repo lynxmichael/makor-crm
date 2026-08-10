@@ -27,12 +27,8 @@ export function UserFormModal({ open, onClose, user, roles }: Props) {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const currentRole = useAuthStore((s) => s.user?.role?.name);
 
-  // Le serveur refuse déjà l'attribution hors périmètre ; on ne propose pas
-  // un choix qui serait rejeté à l'enregistrement.
-  const assignableRoles =
-    currentRole === "SUPERVISEUR"
-      ? roles.filter((r) => String(r.name) === "COMMERCIAL")
-      : roles;
+  // Seul le Super Admin atteint cet écran : tous les rôles lui sont ouverts.
+  const assignableRoles = currentRole === "SUPER_ADMIN" ? roles : [];
   const isEdit = Boolean(user);
   const isSelf = isEdit && String(user?.id) === currentUserId;
 

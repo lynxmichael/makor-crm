@@ -33,7 +33,7 @@ export class UsersController {
   ) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
+  @Roles('SUPER_ADMIN')
   create(@Body() dto: CreateUserDto, @CurrentUser() actor: any) {
     return this.usersService.create(dto, actor?.role?.name);
   }
@@ -68,7 +68,7 @@ export class UsersController {
    * trace nominative.
    */
   @Patch(':id/two-factor/reset')
-  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
+  @Roles('SUPER_ADMIN')
   resetTwoFactor(@Param('id') id: string, @CurrentUser() actor: any) {
     return this.usersService.resetTwoFactorAsAdmin(id, actor.id, actor?.role?.name);
   }
@@ -96,7 +96,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
+  @Roles('SUPER_ADMIN')
   update(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
@@ -106,7 +106,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'SUPERVISEUR')
+  @Roles('SUPER_ADMIN')
   remove(@Param('id') id: string, @CurrentUser() actor: any) {
     return this.usersService.remove(id, actor?.role?.name);
   }

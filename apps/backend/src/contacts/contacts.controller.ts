@@ -25,6 +25,7 @@ import { UpdateContactDto } from './dto/update-contact.dto';
 @ApiBearerAuth()
 @Controller('contacts')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 

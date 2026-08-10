@@ -126,7 +126,7 @@ export function ResourceFormModal({ open, onClose, resource, readOnly }: Props) 
             id="res-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Créer et envoyer un devis"
+            placeholder="Créer et envoyer une facture proforma"
             autoFocus
           />
         </Field>

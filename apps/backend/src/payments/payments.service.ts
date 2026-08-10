@@ -60,6 +60,22 @@ export class PaymentsService {
       );
     }
 
+    // `Payment.reference` est unique en base : une référence d'opérateur déjà
+    // saisie signale presque toujours un double enregistrement du même
+    // versement. Mieux vaut le dire que de laisser remonter une erreur Prisma.
+    if (dto.reference?.trim()) {
+      const existing = await this.prisma.payment.findUnique({
+        where: { reference: dto.reference.trim() },
+        select: { id: true },
+      });
+
+      if (existing) {
+        throw new BadRequestException(
+          `La référence « ${dto.reference.trim()} » est déjà enregistrée sur un autre versement.`,
+        );
+      }
+    }
+
     const count =
       await this.prisma.payment.count();
 
@@ -68,13 +84,24 @@ export class PaymentsService {
         const payment =
           await tx.payment.create({
             data: {
-              reference: `PAY-${String(
-                count + 1,
-              ).padStart(6, '0')}`,
+              // La référence saisie est celle du versement chez l'opérateur
+              // — identifiant Wave, numéro de bordereau. Elle prime, parce
+              // que c'est elle qui permet de rapprocher avec le relevé. À
+              // défaut, on retombe sur une numérotation interne.
+              reference:
+                dto.reference?.trim() ||
+                `PAY-${String(count + 1).padStart(6, '0')}`,
 
               amount: dto.amount,
 
               method: dto.method,
+
+              // Trois champs acceptés par le DTO et jamais enregistrés
+              // jusqu'ici : un versement daté d'hier était horodaté du jour,
+              // et son statut retombait sur la valeur par défaut.
+              ...(dto.status ? { status: dto.status } : {}),
+              ...(dto.provider ? { provider: dto.provider } : {}),
+              paidAt: dto.paidAt ? new Date(dto.paidAt) : new Date(),
 
               customer: {
                 connect: {

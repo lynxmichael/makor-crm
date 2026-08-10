@@ -198,6 +198,8 @@ export class DashboardService {
       };
     });
 
+    const commissionsByCommercial = await this.commissionsByCommercial();
+
     return {
       totals: {
         activeUsers: totalUsers,
@@ -212,6 +214,7 @@ export class DashboardService {
       revenue: margin,
       pipeline,
       transformationByCommercial,
+      commissionsByCommercial,
     };
   }
 
@@ -273,9 +276,16 @@ export class DashboardService {
 
     const teamWhere = departmentId ? { departmentId } : {};
 
+    // Un superviseur encadre des commerciaux. Sans ce filtre de rôle, la
+    // requête ramenait TOUS les comptes actifs — Super Admin, Admin ventes et
+    // Financier compris — et exposait leur activité dans son tableau de bord.
     const commercials = await this.prisma.user.findMany({
-      where: { ...teamWhere, isActive: true },
-      select: { id: true, firstName: true, lastName: true },
+      where: {
+        ...teamWhere,
+        isActive: true,
+        role: { name: 'COMMERCIAL' },
+      },
+      select: { id: true, firstName: true, lastName: true, avatar: true },
     });
 
     const ids = commercials.map((c) => c.id);
@@ -326,15 +336,56 @@ export class DashboardService {
     const poMap = toMap(purchaseOrders, 'createdById');
     const salesMap = toMap(sales, 'assignedToId');
 
-    return commercials.map((c) => ({
-      userId: c.id,
-      name: `${c.firstName} ${c.lastName}`,
-      meetings: rdvMap.get(c.id)?._count._all ?? 0,
-      proposals: proposalsMap.get(c.id)?._count._all ?? 0,
-      purchaseOrders: poMap.get(c.id)?._count._all ?? 0,
-      sales: salesMap.get(c.id)?._count._all ?? 0,
-      salesValue: Number(salesMap.get(c.id)?._sum.amount ?? 0),
-    }));
+    const team = commercials.map((c) => {
+      const meetings = rdvMap.get(c.id)?._count._all ?? 0;
+      const proposals = proposalsMap.get(c.id)?._count._all ?? 0;
+      const purchaseOrders = poMap.get(c.id)?._count._all ?? 0;
+      const sales = salesMap.get(c.id)?._count._all ?? 0;
+
+      return {
+        userId: c.id,
+        name: `${c.firstName} ${c.lastName}`,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        avatar: c.avatar,
+        meetings,
+        proposals,
+        purchaseOrders,
+        sales,
+        salesValue: Number(salesMap.get(c.id)?._sum.amount ?? 0),
+        // Taux de transformation du rendez-vous à la vente : c'est lui qui
+        // distingue un commercial efficace d'un commercial occupé.
+        conversionRate: meetings ? sales / meetings : 0,
+      };
+    });
+
+    const sum = (key: 'meetings' | 'proposals' | 'purchaseOrders' | 'sales') =>
+      team.reduce((acc, member) => acc + member[key], 0);
+
+    return {
+      team,
+      totals: {
+        commercials: team.length,
+        meetings: sum('meetings'),
+        proposals: sum('proposals'),
+        purchaseOrders: sum('purchaseOrders'),
+        sales: sum('sales'),
+        salesValue: team.reduce((acc, m) => acc + m.salesValue, 0),
+      },
+      /**
+       * Entonnoir de l'équipe. Les écarts entre deux étapes disent où le
+       * travail se perd : beaucoup de rendez-vous et peu de propositions
+       * n'appelle pas la même réaction que l'inverse.
+       */
+      funnel: [
+        { stage: 'Rendez-vous', count: sum('meetings') },
+        { stage: 'Propositions', count: sum('proposals') },
+        // Étape retirée le 07/08 : le module n'existe plus dans l'interface.
+        // Le comptage par commercial reste calculé, au cas où le module
+        // serait rebranché.
+        { stage: 'Ventes', count: sum('sales') },
+      ],
+    };
   }
 
   // -------------------------------------------------------------------
@@ -364,12 +415,15 @@ export class DashboardService {
       this.prisma.quote.count({ where: { createdById: userId } }),
     ]);
 
+    const commissions = await this.commissionsFor(userId);
+
     return {
       customersCount: customers,
       openDeals: deals.filter((d) => !d.stage.isClosedWon && !d.stage.isClosedLost),
       wonDeals: deals.filter((d) => d.stage.isClosedWon),
       upcomingActivities,
       quotesCreated: quotes,
+      commissions,
     };
   }
 
@@ -431,6 +485,12 @@ export class DashboardService {
         ) / 10
       : 0;
 
+    const [byMethod, aging, series] = await Promise.all([
+      this.paymentsByMethod(period),
+      this.receivableAging(),
+      this.financeSeries(period),
+    ]);
+
     return {
       invoicesSent: sentInvoices._count._all,
       invoicesSentAmount: Number(sentInvoices._sum.total ?? 0),
@@ -438,6 +498,190 @@ export class DashboardService {
       paymentsReceivedAmount: Number(payments._sum.amount ?? 0),
       overdueInvoices: overdue,
       averagePaymentDelayDays,
+      byMethod,
+      aging,
+      series,
     };
+  }
+
+  /** Répartition des encaissements par moyen de paiement. */
+  private async paymentsByMethod(period?: { gte?: Date; lte?: Date }) {
+    const rows = await this.prisma.payment.groupBy({
+      by: ['method'],
+      where: { status: 'SUCCESS', ...(period ? { paidAt: period } : {}) },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+
+    return rows
+      .map((r) => ({
+        method: r.method,
+        amount: Number(r._sum.amount ?? 0),
+        count: r._count._all,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }
+
+  /**
+   * Balance âgée du reste à recouvrer.
+   *
+   * Le total dû ne dit rien : mille francs en retard de cinq jours et mille
+   * francs en retard de six mois n'appellent pas la même action. On répartit
+   * donc par ancienneté.
+   */
+  private async receivableAging() {
+    const invoices = await this.prisma.invoice.findMany({
+      where: { status: { in: ['SENT'] } },
+      select: { total: true, dueDate: true, payments: { select: { amount: true, status: true } } },
+    });
+
+    const buckets = [
+      { label: 'À échoir', min: -Infinity, max: 0, amount: 0, count: 0 },
+      { label: '1 à 30 jours', min: 0, max: 30, amount: 0, count: 0 },
+      { label: '31 à 60 jours', min: 30, max: 60, amount: 0, count: 0 },
+      { label: '61 à 90 jours', min: 60, max: 90, amount: 0, count: 0 },
+      { label: 'Plus de 90 jours', min: 90, max: Infinity, amount: 0, count: 0 },
+    ];
+
+    for (const invoice of invoices) {
+      const paid = invoice.payments
+        .filter((p) => p.status === 'SUCCESS')
+        .reduce((sum, p) => sum + Number(p.amount), 0);
+
+      const outstanding = Number(invoice.total) - paid;
+      if (outstanding <= 0) continue;
+
+      const daysLate = invoice.dueDate
+        ? Math.floor((Date.now() - invoice.dueDate.getTime()) / 86_400_000)
+        : 0;
+
+      const bucket = buckets.find((b) => daysLate > b.min && daysLate <= b.max) ?? buckets[0];
+      bucket.amount += outstanding;
+      bucket.count += 1;
+    }
+
+    return buckets.map(({ label, amount, count }) => ({ label, amount, count }));
+  }
+
+  /**
+   * Facturé et encaissé par mois, pour la courbe.
+   *
+   * Sans période demandée, on retient les douze derniers mois : une courbe
+   * a besoin de plusieurs points pour dire quelque chose.
+   */
+  private async financeSeries(period?: { gte?: Date; lte?: Date }) {
+    const from = period?.gte ?? new Date(Date.now() - 365 * 86_400_000);
+    const to = period?.lte ?? new Date();
+
+    const [invoices, payments] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where: { issuedAt: { gte: from, lte: to } },
+        select: { issuedAt: true, total: true },
+      }),
+      this.prisma.payment.findMany({
+        where: { status: 'SUCCESS', paidAt: { gte: from, lte: to } },
+        select: { paidAt: true, amount: true },
+      }),
+    ]);
+
+    const buckets = new Map<string, { period: string; invoiced: number; collected: number }>();
+    const keyOf = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+
+    const touch = (key: string) => {
+      if (!buckets.has(key)) buckets.set(key, { period: key, invoiced: 0, collected: 0 });
+      return buckets.get(key)!;
+    };
+
+    for (const invoice of invoices) {
+      touch(keyOf(invoice.issuedAt)).invoiced += Number(invoice.total);
+    }
+
+    for (const payment of payments) {
+      if (!payment.paidAt) continue;
+      touch(keyOf(payment.paidAt)).collected += Number(payment.amount);
+    }
+
+    return [...buckets.values()].sort((a, b) => a.period.localeCompare(b.period));
+  }
+
+  /**
+   * Commissions d'un commercial, ventilées par statut.
+   *
+   * « En attente » n'est pas un dû : c'est un montant calculé qu'un
+   * responsable doit encore valider. Les afficher ensemble sans les
+   * distinguer laisserait croire à une rémunération acquise, et la première
+   * annulation d'une ligne serait vécue comme un retrait.
+   */
+  private async commissionsFor(userId: string) {
+    const rows = await this.prisma.commission.groupBy({
+      by: ['status'],
+      where: { userId, status: { not: 'CANCELLED' } },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+
+    const amount = (status: string) =>
+      Number(rows.find((r) => r.status === status)?._sum.amount ?? 0);
+
+    const lines = rows.reduce((sum, r) => sum + r._count._all, 0);
+
+    const pending = amount('PENDING');
+    const approved = amount('APPROVED');
+    const paid = amount('PAID');
+
+    return {
+      pending,
+      approved,
+      paid,
+      // Ce qui est dû mais pas encore versé : le chiffre qu'un commercial
+      // regarde en premier.
+      payable: approved,
+      total: pending + approved + paid,
+      lines,
+    };
+  }
+
+  /** Même ventilation, pour tous les bénéficiaires — vue Super Admin. */
+  private async commissionsByCommercial() {
+    const rows = await this.prisma.commission.groupBy({
+      by: ['userId', 'status'],
+      where: { status: { not: 'CANCELLED' } },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+
+    if (rows.length === 0) return [];
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: [...new Set(rows.map((r) => r.userId))] } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        role: { select: { name: true, label: true } },
+      },
+    });
+
+    return users
+      .map((user) => {
+        const own = rows.filter((r) => r.userId === user.id);
+        const amount = (status: string) =>
+          Number(own.find((r) => r.status === status)?._sum.amount ?? 0);
+
+        const pending = amount('PENDING');
+        const approved = amount('APPROVED');
+        const paid = amount('PAID');
+
+        return {
+          user,
+          pending,
+          approved,
+          paid,
+          payable: approved,
+          total: pending + approved + paid,
+          lines: own.reduce((sum, r) => sum + r._count._all, 0),
+        };
+      })
+      .sort((a, b) => b.total - a.total);
   }
 }

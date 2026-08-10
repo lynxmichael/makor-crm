@@ -10,11 +10,13 @@ import { Modal } from "@/components/ui/Modal";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataState";
 
 import { CustomerFormModal } from "./CustomerFormModal";
+import { EntitySelect } from "@/components/shared/EntitySelect";
 import { CustomerTimeline } from "@/features/communications/CustomerTimeline";
 import { CommentThread } from "@/features/collaboration/CommentThread";
 import { CUSTOMER_STATUS_LABELS, CUSTOMER_STATUS_TONES } from "./customer-status";
 
-import { customersService } from "@/services/resources";
+import { customersService, usersService } from "@/services/resources";
+import { useAuthStore } from "@/store/auth.store";
 import { useResourceList, useResourceMutations } from "@/hooks/use-resource";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -29,6 +31,10 @@ export function ClientsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<CustomerStatus | "">("");
   const [country, setCountry] = useState("");
+  const [assignedToId, setAssignedToId] = useState("");
+  const currentRole = useAuthStore((s) => s.user?.role?.name);
+  // Un commercial ne voit déjà que son portefeuille : le filtre serait vide de sens.
+  const canFilterByOwner = currentRole !== "COMMERCIAL";
   const [page, setPage] = useState(1);
 
   const [formOpen, setFormOpen] = useState(false);
@@ -47,8 +53,9 @@ export function ClientsPage() {
       ...(debouncedSearch ? { search: debouncedSearch } : {}),
       ...(status ? { status } : {}),
       ...(country ? { country } : {}),
+      ...(assignedToId ? { assignedToId } : {}),
     }),
-    [page, debouncedSearch, status, country],
+    [page, debouncedSearch, status, country, assignedToId],
   );
 
   const query = useResourceList<Customer>(QK.customers, customersService, params);
@@ -66,7 +73,7 @@ export function ClientsPage() {
   const total = query.data?.total ?? 0;
   const totalPages = query.data?.totalPages ?? 1;
 
-  const hasFilters = Boolean(debouncedSearch || status || country);
+  const hasFilters = Boolean(debouncedSearch || status || country || assignedToId);
 
   function openCreate() {
     setEditing(null);
@@ -97,6 +104,7 @@ export function ClientsPage() {
     setSearch("");
     setStatus("");
     setCountry("");
+    setAssignedToId("");
     setPage(1);
   }
 
@@ -162,6 +170,25 @@ export function ClientsPage() {
           className="w-auto min-w-[140px]"
           aria-label="Filtrer par pays"
         />
+
+        {canFilterByOwner && (
+          <div className="min-w-[200px]">
+            <EntitySelect
+              service={usersService}
+              queryKey={QK.users}
+              value={assignedToId}
+              onChange={(id) => {
+                setAssignedToId(id);
+                setPage(1);
+              }}
+              placeholder="Filtrer par chargé de compte"
+              render={(row) => ({
+                label: `${String(row.firstName ?? "")} ${String(row.lastName ?? "")}`,
+                detail: String(row.email ?? ""),
+              })}
+            />
+          </div>
+        )}
 
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={resetFilters}>
@@ -363,7 +390,7 @@ export function ClientsPage() {
         description={toDelete?.companyName}
       >
         <p className="text-sm leading-relaxed text-slate">
-          Le schéma est en suppression en cascade : les opportunités, devis, bons de commande,
+          Le schéma est en suppression en cascade : les opportunités, factures proforma, contrats,
           contrats, factures et encaissements rattachés à ce client seront{" "}
           <strong className="text-alert">définitivement supprimés</strong> avec lui. Cette action
           est irréversible.

@@ -30,6 +30,7 @@ export class SenderIdService {
       data: {
         name: dto.name.toUpperCase(),
         partner: dto.partner,
+        partnerCountry: dto.partnerCountry,
         notes: dto.notes,
 
         customer: { connect: { id: dto.customerId } },
@@ -45,13 +46,15 @@ export class SenderIdService {
     limit: number;
     status?: string;
     customerId?: string;
+    partnerCountry?: string;
   }) {
-    const { page, limit, status, customerId } = params;
+    const { page, limit, status, customerId, partnerCountry } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.SenderIdRequestWhereInput = {
       status: status as SenderIdStatus,
       customerId,
+      partnerCountry,
     };
 
     const [data, total] = await Promise.all([

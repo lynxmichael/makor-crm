@@ -47,6 +47,7 @@ export const STORAGE_KEYS = {
 export const QK = {
   me: ["me"] as const,
   customers: ["customers"] as const,
+  contacts: ["contacts"] as const,
   leads: ["leads"] as const,
   deals: ["deals"] as const,
   pipelineStages: ["pipeline-stages"] as const,

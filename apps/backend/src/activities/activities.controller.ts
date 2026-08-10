@@ -27,6 +27,7 @@ import { UpdateActivityDto } from './dto/update-activity.dto';
 @ApiBearerAuth()
 @Controller('activities')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 

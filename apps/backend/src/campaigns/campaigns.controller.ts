@@ -83,6 +83,7 @@ export class CampaignsController {
     @Query('limit') limit = 10,
     @Query('search') search?: string,
     @Query('status') status?: string,
+    @Query('statuses') statuses?: string,
     @Query('type') type?: string,
     @Query('customerId') customerId?: string,
   ) {
@@ -91,6 +92,7 @@ export class CampaignsController {
       limit: Number(limit),
       search,
       status,
+      statuses,
       type,
       customerId,
     });

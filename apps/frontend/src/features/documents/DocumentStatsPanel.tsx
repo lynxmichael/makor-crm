@@ -28,7 +28,7 @@ const EVENT_LABELS: Record<string, string> = {
  * Statistiques d'un document (demande du 31/07/2026).
  *
  * L'indicateur qui compte n'est pas le nombre de vues mais la première
- * ouverture par le client : c'est ce qui dit si le devis envoyé a été lu,
+ * ouverture par le client : c'est ce qui dit si la facture proforma envoyé a été lu,
  * et c'est la question qu'on se pose avant de relancer.
  */
 export function DocumentStatsPanel({ documentId }: { documentId: string }) {

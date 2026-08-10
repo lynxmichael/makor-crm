@@ -31,6 +31,7 @@ import { SignPurchaseOrderDto } from './dto/sign-purchase-order.dto';
 @ApiBearerAuth()
 @Controller('purchase-orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class PurchaseOrdersController {
   constructor(
     private readonly purchaseOrdersService: PurchaseOrdersService,

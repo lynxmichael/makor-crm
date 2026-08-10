@@ -45,12 +45,14 @@ export class SenderIdController {
     @Query('limit') limit = 10,
     @Query('status') status?: string,
     @Query('customerId') customerId?: string,
+    @Query('partnerCountry') partnerCountry?: string,
   ) {
     return this.senderIdService.findAll({
       page: Number(page),
       limit: Number(limit),
       status,
       customerId,
+      partnerCountry,
     });
   }
 

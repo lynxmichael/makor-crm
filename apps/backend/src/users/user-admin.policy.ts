@@ -5,14 +5,16 @@ import { PrismaService } from '../prisma/prisma.service';
 /**
  * Qui peut créer et gérer quels comptes.
  *
- * Le Super Admin administre tout le monde. Le Superviseur encadre une équipe
- * commerciale : il peut donc créer et gérer ses commerciaux, mais rien
- * au-dessus — sans quoi il pourrait se hisser lui-même ou promouvoir un
- * collègue, ce qui viderait la hiérarchie de son sens.
+ * Seul le Super Admin administre les comptes. Le Superviseur en a eu le droit
+ * un temps (demande du 04/08), retiré le 07/08 : il encadre l'activité de ses
+ * commerciaux, pas leurs accès.
+ *
+ * La table reste en place plutôt qu'être supprimée — rouvrir un périmètre se
+ * fait en ajoutant une ligne, et les contrôles qui s'appuient dessus restent
+ * valides quoi qu'il arrive.
  */
 const MANAGEABLE_BY: Record<string, string[]> = {
   SUPER_ADMIN: ['SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER'],
-  SUPERVISEUR: ['COMMERCIAL'],
 };
 
 @Injectable()
@@ -36,9 +38,7 @@ export class UserAdminPolicy {
 
     if (!allowed.includes(targetRoleName)) {
       throw new ForbiddenException(
-        actorRole === 'SUPERVISEUR'
-          ? 'Un superviseur ne peut créer ou gérer que des comptes commerciaux.'
-          : 'Vous n’êtes pas autorisé à attribuer ce rôle.',
+        'Seul le Super administrateur gère les comptes et leurs rôles.',
       );
     }
   }

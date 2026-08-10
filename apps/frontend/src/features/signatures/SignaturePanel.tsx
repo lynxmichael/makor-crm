@@ -46,7 +46,7 @@ interface Props {
 }
 
 /**
- * Suivi des signatures d'une pièce, à poser sur un devis, un bon de commande
+ * Suivi des signatures d'une pièce, à poser sur une facture proforma, un bon de commande
  * ou un contrat. Autonome : il gère son chargement, ses mutations et son
  * cache, comme `CommentThread`.
  */

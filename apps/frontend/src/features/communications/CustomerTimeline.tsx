@@ -63,7 +63,7 @@ const KIND_TINTS: Record<string, string> = {
  * Fil unifié des échanges avec un client (CDC §5 — V2).
  *
  * Rassemble sur une seule ligne de temps ce qui était jusqu'ici éparpillé
- * entre sept écrans : rendez-vous, campagnes, devis, commandes, contrats,
+ * entre sept écrans : rendez-vous, campagnes, factures proforma, contrats,
  * factures, encaissements, commentaires et documents.
  *
  * Les e-mails entrants n'y figurent pas : le backend ne sait pas encore les
@@ -113,7 +113,7 @@ export function CustomerTimeline({ customerId }: { customerId: string }) {
           <EmptyState
             icon={CalendarClock}
             title="Aucun échange enregistré"
-            detail="Les rendez-vous, devis, factures et campagnes liés à ce client apparaîtront ici au fil de la relation."
+            detail="Les rendez-vous, factures proforma, factures et campagnes liés à ce client apparaîtront ici au fil de la relation."
           />
         ) : (
           <motion.ol

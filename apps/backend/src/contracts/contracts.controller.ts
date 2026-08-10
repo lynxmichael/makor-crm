@@ -32,6 +32,19 @@ import { UpdateContractDto } from './dto/update-contract.dto';
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
 
+  @Post('from-quote/:quoteId')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
+  @ApiOperation({
+    summary: 'Générer le contrat depuis une facture proforma acceptée',
+  })
+  createFromQuote(
+    @Param('quoteId') quoteId: string,
+    @CurrentUser() user: { id: string },
+    @Body() body?: { title?: string },
+  ) {
+    return this.contractsService.createFromQuote(quoteId, user.id, body?.title);
+  }
+
   @Post('from-purchase-order/:purchaseOrderId')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({

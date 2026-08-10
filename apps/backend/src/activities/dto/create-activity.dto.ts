@@ -3,6 +3,8 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
@@ -14,9 +16,27 @@ export class CreateActivityDto {
   @IsString()
   title!: string;
 
-  @ApiProperty({ required: false })
-  @IsOptional()
+  /**
+   * Obligatoire pour un rendez-vous (demande du 07/08/2026).
+   *
+   * Un rendez-vous sans objet écrit ne dit rien à qui le relit trois semaines
+   * plus tard, ni au superviseur qui suit l'activité de l'équipe. Les autres
+   * types — appel, tâche, note — restent libres : y imposer un texte serait
+   * de la friction sans contrepartie.
+   */
+  @ApiProperty({
+    required: false,
+    description: 'Obligatoire lorsque le type est MEETING',
+  })
+  @ValidateIf((dto: CreateActivityDto) => dto.type === ActivityType.MEETING)
   @IsString()
+  @MinLength(10, {
+    message: 'Décrivez l’objet du rendez-vous en une phrase au moins.',
+  })
+  // Pas de `@IsOptional()` ici : il désactiverait toute validation dès que la
+  // valeur est absente, ce qui laisserait passer précisément le cas qu'on
+  // veut interdire. `@ValidateIf` suffit — il ignore le champ pour les
+  // autres types d'activité.
   description?: string;
 
   @ApiProperty({ required: false, description: 'Lieu du rendez-vous' })

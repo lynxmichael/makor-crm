@@ -71,7 +71,7 @@ export function Topbar() {
       />
 
       {/* Assistant de rédaction — accessible depuis n'importe quel écran.
-          Il ne s'affichait auparavant qu'à l'intérieur des éditeurs de devis
+          Il ne s'affichait auparavant qu'à l'intérieur des éditeurs de facture proforma
           et de contrat, donc invisible tant qu'on n'y était pas entré. */}
       <button
         type="button"
@@ -118,7 +118,7 @@ const SEARCH_SECTIONS: { key: string; label: string; path: string; labelKey: str
   { key: "customers", label: "Clients", path: "/clients", labelKey: ["companyName", "name"] },
   { key: "leads", label: "Prospects", path: "/prospects", labelKey: ["companyName", "name"] },
   { key: "deals", label: "Opportunités", path: "/opportunities", labelKey: ["title", "name"] },
-  { key: "quotes", label: "Devis", path: "/quotes", labelKey: ["reference", "number"] },
+  { key: "quotes", label: "Factures proforma", path: "/quotes", labelKey: ["reference", "number"] },
   { key: "campaigns", label: "Campagnes", path: "/campaigns", labelKey: ["name"] },
 ];
 
@@ -150,7 +150,7 @@ function GlobalSearch({
     <div className="relative w-full max-w-md">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate" />
       <Input
-        placeholder="Rechercher un client, un devis, une opportunité…"
+        placeholder="Rechercher un client, une facture proforma, une opportunité…"
         className="pl-9"
         value={query}
         onFocus={onOpen}

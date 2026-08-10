@@ -320,6 +320,12 @@ model Lead {
   jobTitle String?
   sector   String?
 
+  /// Localisation du prospect. Absente jusqu'ici : un client porte son pays,
+  /// pas un prospect — ce qui rendait impossible toute recherche par zone
+  /// dans un annuaire mêlant les deux.
+  country String?
+  city    String?
+
   decisionMaker String?
 
   value Float?
@@ -340,6 +346,7 @@ model Lead {
   @@index([status])
   @@index([source])
   @@index([assignedToId])
+  @@index([country])
 }
 
 model PipelineStage {
@@ -582,6 +589,7 @@ model Quote {
   @@index([status])
   @@index([createdById])
 
+  contractFromQuote Contract? @relation("ContractFromQuote")
 }
 
 model QuoteItem {
@@ -691,6 +699,14 @@ model Contract {
 
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  /// Proforma dont le contrat est issu (demande du 07/08/2026).
+  ///
+  /// Le module Bons de commande étant retiré de l'interface, c'est la
+  /// proforma acceptée qui déclenche désormais le contrat. `@unique` empêche
+  /// d'en générer deux depuis la même pièce.
+  quoteId String? @unique
+  quote   Quote?  @relation("ContractFromQuote", fields: [quoteId], references: [id], onDelete: SetNull)
 
   purchaseOrderId String?        @unique
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
@@ -868,6 +884,14 @@ model SenderIdRequest {
   name    String
   partner String?
 
+  /// Pays de l'opérateur partenaire (demande du 07/08/2026).
+  ///
+  /// Un même Sender ID s'obtient pays par pays : les règles d'homologation
+  /// diffèrent d'un régulateur à l'autre, et une demande approuvée en Côte
+  /// d'Ivoire ne vaut rien au Sénégal. Sans ce champ, deux demandes portant
+  /// le même nom pour des pays différents étaient indiscernables.
+  partnerCountry String?
+
   status SenderIdStatus @default(PENDING)
   notes  String?
 
@@ -884,6 +908,7 @@ model SenderIdRequest {
 
   @@index([customerId])
   @@index([status])
+  @@index([partnerCountry])
 }
 
 enum CampaignType {

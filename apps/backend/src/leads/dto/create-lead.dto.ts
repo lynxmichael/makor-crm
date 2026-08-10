@@ -6,7 +6,7 @@ import {
   IsEmail,
 } from 'class-validator';
 
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { LeadSource, LeadStatus } from '@prisma/client';
 
@@ -43,6 +43,17 @@ export class CreateLeadDto {
   @IsOptional()
   @IsString()
   sector?: string;
+
+  /** Localisation — sert à retrouver un prospect par zone dans l'annuaire. */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  city?: string;
 
   @ApiProperty({ required: false, description: 'Décideur identifié chez le prospect' })
   @IsOptional()

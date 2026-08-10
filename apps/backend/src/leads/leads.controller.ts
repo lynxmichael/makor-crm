@@ -31,6 +31,7 @@ import { UpdateLeadDto } from './dto/update-lead.dto';
 @ApiBearerAuth()
 @Controller('leads')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 

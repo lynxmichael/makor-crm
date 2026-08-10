@@ -64,12 +64,29 @@ export const CAMPAIGN_TYPE_LABELS: Record<string, string> = {
 /** Une campagne en cours d'acheminement change d'état côté serveur. */
 const LIVE_STATUSES = new Set(["QUEUED", "RUNNING"]);
 
+/**
+ * Filtres rapides par famille de statut.
+ *
+ * Le menu déroulant permet déjà de viser un statut précis, mais la question
+ * posée est rarement « montre-moi les campagnes en file » : c'est « lesquelles
+ * tournent » ou « lesquelles sont finies ». D'où ces raccourcis, qui envoient
+ * plusieurs statuts au serveur d'un seul geste.
+ */
+const STATUS_GROUPS: { key: string; label: string; statuses: string[] }[] = [
+  { key: "", label: "Toutes", statuses: [] },
+  { key: "active", label: "Actives", statuses: ["SCHEDULED", "QUEUED", "RUNNING"] },
+  { key: "inactive", label: "Inactives", statuses: ["DRAFT", "CANCELLED"] },
+  { key: "done", label: "Terminées", statuses: ["FINISHED"] },
+  { key: "failed", label: "En échec", statuses: ["FAILED"] },
+];
+
 export function CampaignsPage() {
   const reduced = usePrefersReducedMotion();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [group, setGroup] = useState("");
   const [page, setPage] = useState(1);
 
   const [editorOpen, setEditorOpen] = useState(false);
@@ -85,9 +102,15 @@ export function CampaignsPage() {
       page,
       limit: DEFAULT_PAGE_SIZE,
       ...(debouncedSearch ? { search: debouncedSearch } : {}),
-      ...(status ? { status } : {}),
+      // Un statut précis prime : choisir « En file » après avoir cliqué
+      // « Actives » doit affiner, pas cumuler.
+      ...(status
+        ? { status }
+        : group
+          ? { statuses: STATUS_GROUPS.find((g) => g.key === group)?.statuses.join(",") }
+          : {}),
     }),
-    [page, debouncedSearch, status],
+    [page, debouncedSearch, status, group],
   );
 
   const query = useResourceList<Row>(QK.campaigns, campaignsService, params);
@@ -121,11 +144,12 @@ export function CampaignsPage() {
 
   const total = query.data?.total ?? 0;
   const totalPages = query.data?.totalPages ?? 1;
-  const hasFilters = Boolean(debouncedSearch || status);
+  const hasFilters = Boolean(debouncedSearch || status || group);
 
   function resetFilters() {
     setSearch("");
     setStatus("");
+    setGroup("");
     setPage(1);
   }
 
@@ -150,6 +174,27 @@ export function CampaignsPage() {
           Nouvelle campagne
         </Button>
       </header>
+
+      <div className="flex flex-wrap gap-2">
+        {STATUS_GROUPS.map((entry) => (
+          <button
+            key={entry.key}
+            type="button"
+            onClick={() => {
+              setGroup(entry.key);
+              setStatus("");
+              setPage(1);
+            }}
+            className={
+              group === entry.key && !status
+                ? "rounded-lg border border-wire bg-wire/10 px-3 py-1.5 text-sm font-medium text-wire"
+                : "rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-slate transition-colors hover:text-ink"
+            }
+          >
+            {entry.label}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface p-3">
         <div className="relative min-w-[220px] flex-1">

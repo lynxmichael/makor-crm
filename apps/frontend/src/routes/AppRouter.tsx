@@ -26,13 +26,13 @@ import { MODULE_CONFIGS } from "@/features/shared/module-configs";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 
 import { QuotesPage } from "@/features/quotes/QuotesPage";
-import { PurchaseOrdersPage } from "@/features/purchase-orders/PurchaseOrdersPage";
 import { InvoicesPage } from "@/features/invoices/InvoicesPage";
 import { UsersPage } from "@/features/users/UsersPage";
 import { ApiKeysPage } from "@/features/api-keys/ApiKeysPage";
 import { CommissionsPage } from "@/features/commissions/CommissionsPage";
 import { WorkflowsPage } from "@/features/workflows/WorkflowsPage";
 import { ScoringPage } from "@/features/scoring/ScoringPage";
+import { DirectoryPage } from "@/features/directory/DirectoryPage";
 import { EvaluationPage } from "@/features/evaluation/EvaluationPage";
 
 /**
@@ -64,10 +64,10 @@ export function AppRouter() {
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="clients" element={<ClientsPage />} />
+            <Route path="annuaire" element={<DirectoryPage />} />
             <Route path="prospects" element={<ResourceModulePage config={MODULE_CONFIGS.prospects} />} />
             <Route path="opportunities" element={<PipelinePage />} />
             <Route path="quotes" element={<QuotesPage />} />
-            <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
             <Route path="contracts" element={<ResourceModulePage config={MODULE_CONFIGS.contrats} />} />
             <Route path="agenda" element={<ResourceModulePage config={MODULE_CONFIGS.agenda} />} />
             <Route path="securite/2fa" element={<TwoFactorSetupPage />} />

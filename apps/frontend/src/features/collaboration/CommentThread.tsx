@@ -30,7 +30,7 @@ interface Props {
  * Fil de commentaires réutilisable (CDC §4.1).
  *
  * Volontairement autonome : il gère son propre chargement, ses mutations et
- * son cache. Une fiche client ou un devis n'a qu'à le poser avec son type et
+ * son cache. Une fiche client ou une facture proforma n'a qu'à le poser avec son type et
  * son identifiant, sans rien remonter dans son propre état.
  */
 export function CommentThread({ entityType, entityId, title = "Commentaires", emptyDetail }: Props) {

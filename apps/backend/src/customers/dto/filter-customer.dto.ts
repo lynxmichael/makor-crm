@@ -26,4 +26,9 @@ export class FilterCustomerDto {
   @IsOptional()
   @IsEnum(CustomerStatus)
   status?: CustomerStatus;
+
+  /** Chargé de compte — permet à un pilote d'isoler le portefeuille d'un commercial. */
+  @IsOptional()
+  @IsString()
+  assignedToId?: string;
 }

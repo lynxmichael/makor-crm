@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Field, Select } from "@/components/ui/Field";
 import { EntitySelect } from "@/components/shared/EntitySelect";
 import { CommentThread } from "@/features/collaboration/CommentThread";
+import { InvoicePaymentsPanel } from "./InvoicePaymentsPanel";
 
 import {
   contractsService,
@@ -52,7 +53,7 @@ const emptyLine = (): Line => ({
 /**
  * Facture (CDC §4.10).
  *
- * Comme pour les devis, aucun montant n'est transmis : le serveur recalcule
+ * Comme pour les factures proforma, aucun montant n'est transmis : le serveur recalcule
  * sous-total, remise, TVA et total à partir des lignes et du taux configuré
  * dans Paramètres. Ce que l'écran affiche pendant la saisie est une
  * estimation, signalée comme telle.
@@ -372,7 +373,9 @@ export function InvoiceEditorModal({ open, onClose, invoice }: Props) {
         {/* Pas de signature sur une facture : elle constate une créance, elle
             ne l'engage pas — c'est le contrat ou le bon de commande qui le fait. */}
         {isEdit && invoice?.id && (
-          <div className="border-t border-line pt-5">
+          <div className="space-y-4 border-t border-line pt-5">
+            <InvoicePaymentsPanel invoice={invoice} />
+
             <CommentThread
               entityType="INVOICE"
               entityId={String(invoice.id)}

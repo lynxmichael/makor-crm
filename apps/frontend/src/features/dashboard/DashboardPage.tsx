@@ -2,23 +2,24 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Building2,
   CalendarClock,
+  Coins,
   FileText,
-  Receipt,
   Target,
   TrendingUp,
   Trophy,
   Users,
-  Wallet,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared/DataState";
 import { CommentThread } from "@/features/collaboration/CommentThread";
+import { ManagerDashboard } from "./ManagerDashboard";
+import { SupervisorDashboard } from "./SupervisorDashboard";
+import { PeriodSelector, usePeriod } from "@/components/shared/PeriodSelector";
 
 import { dashboardService } from "@/services/resources";
 import { useAuthStore } from "@/store/auth.store";
@@ -43,9 +44,15 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const role = (user?.role?.name ?? "COMMERCIAL") as RoleName;
 
+  // Le Financier pilote sur une période ; les autres profils gardent la vue
+  // courante, où la notion de période n'apporte rien.
+  const { period, setPeriod, range, label } = usePeriod("month");
+  const usesPeriod = role === "MANAGER" || role === "SUPERVISEUR";
+
   const query = useQuery({
-    queryKey: [...QK.dashboard, role],
-    queryFn: () => dashboardService.forRole(role),
+    queryKey: [...QK.dashboard, role, usesPeriod ? period : "all"],
+    queryFn: () =>
+      dashboardService.forRole(role, usesPeriod ? { from: range.from, to: range.to } : undefined),
     enabled: Boolean(user),
   });
 
@@ -60,6 +67,13 @@ export function DashboardPage() {
         <p className="mt-1 text-sm text-slate">
           {SUBTITLES[role] ?? "Vue d'ensemble de l'activité."}
         </p>
+
+        {usesPeriod && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <PeriodSelector value={period} onChange={setPeriod} />
+            <span className="text-xs text-slate">{label}</span>
+          </div>
+        )}
       </header>
 
       {query.isPending ? (
@@ -95,9 +109,9 @@ function DashboardBody({ role, data }: { role: RoleName; data: Row }) {
     case "ADMIN_VENTES":
       return <SalesAdminView data={data} />;
     case "MANAGER":
-      return <ManagerView data={data} />;
+      return <ManagerDashboard data={data} />;
     case "SUPERVISEUR":
-      return <SupervisorView data={data} />;
+      return <SupervisorDashboard data={data} />;
     default:
       return <PortfolioView data={data} />;
   }
@@ -259,6 +273,7 @@ function RevenuePanel({ revenue }: { revenue: Row }) {
 function SuperAdminView({ data }: { data: Row }) {
   const totals = (data.totals as Row) ?? {};
   const ranking = (data.transformationByCommercial as Row[]) ?? [];
+  const commissions = (data.commissionsByCommercial as Row[]) ?? [];
 
   return (
     <div className="space-y-6">
@@ -271,19 +286,15 @@ function SuperAdminView({ data }: { data: Row }) {
 
       <KpiGrid>
         <Kpi label="Prospects" value={String(totals.leads ?? 0)} icon={Users} tone="amber" />
-        <Kpi label="Devis" value={String(totals.quotes ?? 0)} icon={FileText} tone="amber" />
-        <Kpi
-          label="Bons de commande"
-          value={String(totals.purchaseOrders ?? 0)}
-          icon={Receipt}
-          tone="amber"
-        />
+        <Kpi label="Factures proforma" value={String(totals.quotes ?? 0)} icon={FileText} tone="amber" />
         <Kpi label="Contrats" value={String(totals.contracts ?? 0)} icon={FileText} tone="signal" />
       </KpiGrid>
 
       {data.revenue ? <RevenuePanel revenue={data.revenue as Row} /> : null}
       {data.pipeline ? <PipelinePanel pipeline={data.pipeline as Row} /> : null}
       {ranking.length > 0 && <CommercialRanking rows={ranking} />}
+
+      {commissions.length > 0 && <CommissionsByCommercial rows={commissions} />}
     </div>
   );
 }
@@ -298,10 +309,10 @@ function SalesAdminView({ data }: { data: Row }) {
       {data.pipelineQuality ? <PipelinePanel pipeline={data.pipelineQuality as Row} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Signature des devis" icon={FileText}>
+        <Panel title="Signature des factures proforma" icon={FileText}>
           <p className="font-display text-3xl font-semibold text-ink">{percent(signature.rate)}</p>
           <p className="mt-1 text-sm text-slate">
-            {String(signature.accepted ?? 0)} devis acceptés sur {String(signature.sent ?? 0)}{" "}
+            {String(signature.accepted ?? 0)} factures proforma acceptées sur {String(signature.sent ?? 0)}{" "}
             envoyés
           </p>
         </Panel>
@@ -325,106 +336,7 @@ function SalesAdminView({ data }: { data: Row }) {
   );
 }
 
-function ManagerView({ data }: { data: Row }) {
-  const overdue = Number(data.overdueInvoices ?? 0);
 
-  return (
-    <div className="space-y-6">
-      <KpiGrid>
-        <Kpi
-          label="Factures émises"
-          value={String(data.invoicesSent ?? 0)}
-          hint={formatMoney(data.invoicesSentAmount as number)}
-          icon={Receipt}
-        />
-        <Kpi
-          label="Encaissements"
-          value={String(data.paymentsReceived ?? 0)}
-          hint={formatMoney(data.paymentsReceivedAmount as number)}
-          icon={Wallet}
-          tone="signal"
-        />
-        <Kpi
-          label="Factures en retard"
-          value={String(overdue)}
-          icon={AlertTriangle}
-          tone={overdue > 0 ? "alert" : "signal"}
-        />
-        <Kpi
-          label="Délai moyen de règlement"
-          value={`${String(data.averagePaymentDelayDays ?? 0)} j`}
-          icon={CalendarClock}
-          tone="amber"
-        />
-      </KpiGrid>
-
-      {/* Reste à recouvrer : l'écart entre facturé et encaissé est le chiffre
-          que le Financier surveille en premier. */}
-      <Panel title="Reste à recouvrer" icon={TrendingUp}>
-        <p className="font-display text-3xl font-semibold text-ink">
-          {formatMoney(
-            Number(data.invoicesSentAmount ?? 0) - Number(data.paymentsReceivedAmount ?? 0),
-          )}
-        </p>
-        <p className="mt-1 text-sm text-slate">
-          Écart entre le montant facturé et les encaissements aboutis sur la période.
-        </p>
-      </Panel>
-    </div>
-  );
-}
-
-function SupervisorView({ data }: { data: Row }) {
-  // Le backend renvoie directement un tableau, une ligne par commercial.
-  const rows = (Array.isArray(data) ? data : ((data as Row).team as Row[])) ?? [];
-
-  if (rows.length === 0) {
-    return (
-      <Panel title="Équipe" icon={Users}>
-        <p className="text-sm text-slate">Aucun commercial rattaché à votre équipe.</p>
-      </Panel>
-    );
-  }
-
-  return (
-    <Panel title="Activité de l'équipe" icon={Users}>
-      <div className="scrollbar-thin overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs font-medium uppercase tracking-wide text-slate">
-              <th className="px-3 py-2">Commercial</th>
-              <th className="px-3 py-2 text-right">RDV</th>
-              <th className="px-3 py-2 text-right">Propositions</th>
-              <th className="px-3 py-2 text-right">Bons de commande</th>
-              <th className="px-3 py-2 text-right">Ventes</th>
-              <th className="px-3 py-2 text-right">CA signé</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={String(row.userId)} className="border-b border-line last:border-0">
-                <td className="px-3 py-2 text-ink">{String(row.name ?? "")}</td>
-                <td className="px-3 py-2 text-right font-mono-tabular">
-                  {String(row.meetings ?? 0)}
-                </td>
-                <td className="px-3 py-2 text-right font-mono-tabular">
-                  {String(row.proposals ?? 0)}
-                </td>
-                <td className="px-3 py-2 text-right font-mono-tabular">
-                  {String(row.purchaseOrders ?? 0)}
-                </td>
-                <td className="px-3 py-2 text-right font-mono-tabular">{String(row.sales ?? 0)}</td>
-                <td className="px-3 py-2 text-right font-mono-tabular text-ink">
-                  {formatMoney(row.salesValue as number)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
-  );
-}
 
 function PortfolioView({ data }: { data: Row }) {
   const openDeals = (data.openDeals as Row[]) ?? [];
@@ -437,8 +349,13 @@ function PortfolioView({ data }: { data: Row }) {
         <Kpi label="Mes clients" value={String(data.customersCount ?? 0)} icon={Building2} />
         <Kpi label="Affaires en cours" value={String(openDeals.length)} icon={Target} tone="amber" />
         <Kpi label="Affaires gagnées" value={String(wonDeals.length)} icon={Trophy} tone="signal" />
-        <Kpi label="Devis créés" value={String(data.quotesCreated ?? 0)} icon={FileText} />
+        <Kpi label="Facture proforma créées" value={String(data.quotesCreated ?? 0)} icon={FileText} />
       </KpiGrid>
+
+      {/* Commissions — ce qu'un commercial cherche en ouvrant son tableau de
+          bord, après ses affaires. Réparti par statut : « en attente » est un
+          montant calculé, pas un dû. */}
+      {data.commissions ? <MyCommissions commissions={data.commissions as Row} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Affaires en cours" icon={Target}>
@@ -494,6 +411,180 @@ function PortfolioView({ data }: { data: Row }) {
         </Panel>
       </div>
     </div>
+  );
+}
+
+
+
+/**
+ * Commissions par commercial, vue Super Admin.
+ *
+ * Trois colonnes distinctes plutôt qu'un total : c'est l'écart entre validé
+ * et versé qui appelle une action, pas le cumul.
+ */
+function CommissionsByCommercial({ rows }: { rows: Row[] }) {
+  const totals = rows.reduce(
+    (acc, row) => ({
+      pending: acc.pending + Number(row.pending ?? 0),
+      payable: acc.payable + Number(row.payable ?? 0),
+      paid: acc.paid + Number(row.paid ?? 0),
+    }),
+    { pending: 0, payable: 0, paid: 0 },
+  );
+
+  return (
+    <Panel title="Commissions par commercial" icon={Coins}>
+      <div className="scrollbar-thin overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-xs font-medium uppercase tracking-wide text-slate">
+              <th className="px-3 py-2">Commercial</th>
+              <th className="px-3 py-2 text-right">En attente</th>
+              <th className="px-3 py-2 text-right">À verser</th>
+              <th className="px-3 py-2 text-right">Versé</th>
+              <th className="px-3 py-2 text-right">Cumul</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map((row) => {
+              const user = row.user as Row;
+              const payable = Number(row.payable ?? 0);
+
+              return (
+                <tr key={String(user.id)} className="border-b border-line last:border-0">
+                  <td className="px-3 py-2">
+                    <span className="flex items-center gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-wire/10 text-[10px] font-semibold text-wire">
+                        {initials(String(user.firstName ?? ""), String(user.lastName ?? ""))}
+                      </span>
+                      <span className="text-ink">
+                        {String(user.firstName ?? "")} {String(user.lastName ?? "")}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono-tabular text-slate">
+                    {formatMoney(row.pending as number)}
+                  </td>
+                  <td
+                    className={`px-3 py-2 text-right font-mono-tabular ${
+                      payable > 0 ? "font-medium text-signal" : "text-slate"
+                    }`}
+                  >
+                    {formatMoney(payable)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono-tabular text-slate">
+                    {formatMoney(row.paid as number)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono-tabular font-medium text-ink">
+                    {formatMoney(row.total as number)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+
+          <tfoot>
+            <tr className="border-t-2 border-line font-medium">
+              <td className="px-3 py-2 text-ink">Total</td>
+              <td className="px-3 py-2 text-right font-mono-tabular text-ink">
+                {formatMoney(totals.pending)}
+              </td>
+              <td className="px-3 py-2 text-right font-mono-tabular text-signal">
+                {formatMoney(totals.payable)}
+              </td>
+              <td className="px-3 py-2 text-right font-mono-tabular text-ink">
+                {formatMoney(totals.paid)}
+              </td>
+              <td className="px-3 py-2 text-right font-mono-tabular text-ink">
+                {formatMoney(totals.pending + totals.payable + totals.paid)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+/**
+ * Mes commissions, vue du commercial.
+ *
+ * Le montant mis en avant est celui qui est validé et pas encore payé : c'est
+ * la question posée. Le total cumulé et les lignes en attente restent
+ * visibles, mais au second plan.
+ */
+function MyCommissions({ commissions }: { commissions: Row }) {
+  const pending = Number(commissions.pending ?? 0);
+  const payable = Number(commissions.payable ?? 0);
+  const paid = Number(commissions.paid ?? 0);
+  const total = Number(commissions.total ?? 0);
+  const lines = Number(commissions.lines ?? 0);
+
+  if (lines === 0) {
+    return (
+      <Panel title="Mes commissions" icon={Coins}>
+        <p className="text-sm leading-relaxed text-slate">
+          Aucune commission pour l'instant. Elles se calculent sur les factures encaissées de vos
+          clients, selon les barèmes en vigueur.
+        </p>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel title="Mes commissions" icon={Coins}>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate">À percevoir</p>
+          <p className="mt-1 font-display text-3xl font-semibold tracking-tight text-signal">
+            {formatMoney(payable)}
+          </p>
+          <p className="mt-0.5 text-xs text-slate">
+            Validé, en attente de versement
+          </p>
+        </div>
+
+        <dl className="flex flex-wrap gap-6">
+          <div>
+            <dt className="text-xs text-slate">En attente de validation</dt>
+            <dd className="mt-0.5 font-mono-tabular text-lg text-ink">{formatMoney(pending)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-slate">Déjà versé</dt>
+            <dd className="mt-0.5 font-mono-tabular text-lg text-ink">{formatMoney(paid)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-slate">Cumul</dt>
+            <dd className="mt-0.5 font-mono-tabular text-lg text-ink">{formatMoney(total)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      {/* Répartition visuelle : la part déjà versée se distingue d'un coup. */}
+      <div className="mt-4 flex h-2 overflow-hidden rounded-full bg-line">
+        {(
+          [
+            [paid, "bg-signal"],
+            [payable, "bg-wire"],
+            [pending, "bg-amber"],
+          ] as const
+        ).map(([value, color], index) =>
+          value > 0 && total > 0 ? (
+            <span
+              key={index}
+              className={color}
+              style={{ width: `${(value / total) * 100}%` }}
+            />
+          ) : null,
+        )}
+      </div>
+
+      <p className="mt-2 text-xs text-slate">
+        {lines} ligne{lines > 1 ? "s" : ""} de commission · le détail est dans l'onglet
+        Commissions.
+      </p>
+    </Panel>
   );
 }
 

@@ -80,6 +80,7 @@ export const prospectsConfig: ModuleConfig = {
     { key: "firstName", label: "Prénom" },
     { key: "company", label: "Entreprise" },
     { key: "sector", label: "Secteur" },
+    { key: "country", label: "Pays" },
     { key: "phone", label: "Téléphone" },
     { key: "value", label: "Potentiel", type: "money", align: "right" },
     { key: "status", label: "Statut", type: "status" },
@@ -92,6 +93,8 @@ export const prospectsConfig: ModuleConfig = {
     { key: "email", label: "E-mail", type: "email" },
     { key: "phone", label: "Téléphone", type: "tel" },
     { key: "sector", label: "Secteur d'activité" },
+    { key: "country", label: "Pays", placeholder: "Côte d'Ivoire" },
+    { key: "city", label: "Ville", placeholder: "Abidjan" },
     { key: "decisionMaker", label: "Décideur" },
     { key: "value", label: "Potentiel estimé (FCFA)", type: "money" },
     { key: "source", label: "Origine", type: "select", options: LEAD_SOURCES },
@@ -161,7 +164,7 @@ export const contractsConfig: ModuleConfig = {
   // l'accepte pas — un contrat naît en brouillon et son statut évolue par
   // les actions du cycle de vie, pas par saisie directe.
   emptyTitle: "Aucun contrat",
-  emptyDetail: "Les contrats sont généralement issus d'un bon de commande signé.",
+  emptyDetail: "Les contrats sont généralement issus d'une facture proforma acceptée.",
   deleteWarning: "Les factures rattachées à ce contrat perdront leur lien.",
   rowActions: [
     {
@@ -324,6 +327,7 @@ export const senderIdConfig: ModuleConfig = {
     { key: "name", label: "Sender ID" },
     { key: "customer.companyName", label: "Client" },
     { key: "partner", label: "Opérateur" },
+    { key: "partnerCountry", label: "Pays" },
     { key: "createdAt", label: "Demandé le", type: "date" },
     { key: "approvedAt", label: "Approuvé le", type: "date" },
     { key: "status", label: "Statut", type: "status" },
@@ -338,6 +342,14 @@ export const senderIdConfig: ModuleConfig = {
       required: true,
     },
     { key: "partner", label: "Opérateur partenaire" },
+    {
+      key: "partnerCountry",
+      label: "Pays du partenaire",
+      placeholder: "Côte d'Ivoire",
+      // L'homologation se fait pays par pays : la même demande doit être
+      // reprise auprès de chaque régulateur, et son statut peut différer.
+      hint: "Le Sender ID s'homologue auprès du régulateur de chaque pays.",
+    },
     { key: "notes", label: "Notes", type: "textarea" },
   ],
   // `status` retiré du formulaire : l'approbation et le rejet passent par
@@ -402,7 +414,19 @@ export const agendaConfig: ModuleConfig = {
       reference: { resource: "customers" },
     },
     { key: "status", label: "Statut", type: "select", options: ACTIVITY_STATUSES },
-    { key: "description", label: "Description", type: "textarea" },
+    {
+      key: "description",
+      label: "Description",
+      type: "textarea",
+      // Exigée pour un rendez-vous seulement (demande du 07/08). Le serveur
+      // applique la même règle : celle-ci évite juste un aller-retour.
+      requiredWhen: { field: "type", equals: ["MEETING"] },
+      // Le DTO impose `@MinLength(10)` : le rappeler ici évite un aller-retour
+      // et affiche le compteur à la saisie.
+      minLength: 10,
+      placeholder: "Objet du rendez-vous, interlocuteur, points à aborder…",
+      hint: "Obligatoire pour un rendez-vous — une phrase au moins.",
+    },
   ],
   // `CreateActivityDto` exige `assignedToId` sans que ce soit une question à
   // poser : on planifie son propre agenda.
@@ -425,7 +449,7 @@ export const agendaConfig: ModuleConfig = {
 const DOCUMENT_TYPES = {
   CONTRACT: "Contrat",
   INVOICE: "Facture",
-  QUOTE: "Devis",
+  QUOTE: "Factures proforma",
   PURCHASE_ORDER: "Bon de commande",
   IMAGE: "Image",
   PDF: "PDF",

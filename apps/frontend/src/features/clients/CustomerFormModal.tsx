@@ -5,7 +5,11 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, Select, Textarea } from "@/components/ui/Field";
+import { EntitySelect } from "@/components/shared/EntitySelect";
 import { CUSTOMER_STATUS_LABELS } from "./customer-status";
+import { usersService } from "@/services/resources";
+import { useAuthStore } from "@/store/auth.store";
+import { QK, ROLES } from "@/config/constants";
 import type { ApiError, Customer, CustomerInput, CustomerStatus } from "@/types/api";
 
 interface Props {
@@ -38,6 +42,15 @@ const EMPTY: CustomerInput = {
  */
 export function CustomerFormModal({ open, onClose, customer, onSubmit, pending, error }: Props) {
   const isEdit = Boolean(customer);
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentRole = useAuthStore((s) => s.user?.role?.name);
+
+  // Un commercial ne redistribue pas les portefeuilles : ses fiches lui sont
+  // attribuées d'office. Les profils de pilotage, eux, choisissent.
+  const canAssign =
+    currentRole === ROLES.SUPER_ADMIN ||
+    currentRole === ROLES.ADMIN_VENTES ||
+    currentRole === ROLES.SUPERVISEUR;
   const [values, setValues] = useState<CustomerInput>(EMPTY);
 
   // On resynchronise à l'ouverture uniquement : réagir à chaque changement de
@@ -58,8 +71,14 @@ export function CustomerFormModal({ open, onClose, customer, onSubmit, pending, 
             website: customer.website ?? "",
             status: customer.status,
             notes: customer.notes ?? "",
+            assignedToId: customer.assignedToId ?? "",
           }
-        : EMPTY,
+        : {
+            ...EMPTY,
+            // Sans chargé de compte, la fiche n'apparaît dans le portefeuille
+            // de personne : on rattache par défaut à qui la crée.
+            assignedToId: currentUserId ?? "",
+          },
     );
   }, [open, customer]);
 
@@ -176,6 +195,42 @@ export function CustomerFormModal({ open, onClose, customer, onSubmit, pending, 
             />
           </Field>
         </div>
+
+        <Field
+          label="Chargé de compte"
+          htmlFor="assignedToId"
+          error={fieldError("assignedToId")}
+          hint={
+            canAssign
+              ? "Le commercial qui suit ce client. Lui seul le verra dans son portefeuille."
+              : "Vous êtes le chargé de compte de ce client."
+          }
+        >
+          {canAssign ? (
+            <EntitySelect
+              id="assignedToId"
+              service={usersService}
+              queryKey={QK.users}
+              value={values.assignedToId ?? ""}
+              onChange={(id) => set("assignedToId", id)}
+              placeholder="Rechercher un commercial"
+              render={(row) => ({
+                label: `${String(row.firstName ?? "")} ${String(row.lastName ?? "")}`,
+                detail: String((row.role as Record<string, unknown> | undefined)?.name ?? ""),
+              })}
+            />
+          ) : (
+            <Input
+              id="assignedToId"
+              value={
+                customer?.assignedTo
+                  ? `${customer.assignedTo.firstName} ${customer.assignedTo.lastName}`
+                  : "Vous"
+              }
+              disabled
+            />
+          )}
+        </Field>
 
         <Field label="Adresse" htmlFor="address" error={fieldError("address")}>
           <Input

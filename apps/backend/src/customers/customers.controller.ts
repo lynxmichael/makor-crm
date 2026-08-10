@@ -31,6 +31,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiBearerAuth()
 @Controller('customers')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 

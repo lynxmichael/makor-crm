@@ -78,7 +78,7 @@ const RESOURCES = {
   quotes: {
     service: quotesService,
     queryKey: QK.quotes,
-    placeholder: "Rechercher un devis",
+    placeholder: "Rechercher une facture proforma",
     render: (row: Row) => ({
       label: `${String(row.number ?? "")} — ${String(row.title ?? "")}`,
       detail: formatMoney(row.total as string),
@@ -180,7 +180,7 @@ export function AiAssistantModal({ open, onClose }: { open: boolean; onClose: ()
               value={task}
               onChange={(e) => {
                 setTask(e.target.value as AiTaskType);
-                // La pièce dépend de la tâche : un devis choisi pour une
+                // La pièce dépend de la tâche : une facture proforma choisi pour une
                 // introduction n'a pas de sens pour un corps de contrat.
                 setEntityId("");
                 setOutput(null);

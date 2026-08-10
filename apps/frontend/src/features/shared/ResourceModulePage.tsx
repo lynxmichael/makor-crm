@@ -44,7 +44,7 @@ import type { ModuleConfig, ModuleField, Row } from "./module-config";
  * onze fois le même code — et onze occasions d'oublier l'état vide ou la
  * gestion d'erreur. Chaque module se réduit ici à un objet de configuration.
  *
- * Ce qui ne rentre pas dans ce moule garde son écran dédié : les devis, bons
+ * Ce qui ne rentre pas dans ce moule garde son écran dédié : les factures proforma, bons
  * de commande et factures ont des lignes à saisir et des totaux à calculer,
  * le pipeline a son glisser-déposer, le tableau de bord a cinq formes de
  * réponse.

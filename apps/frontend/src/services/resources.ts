@@ -46,6 +46,13 @@ export const pipelineStagesService = createResource<Row>("pipeline-stages");
 export const activitiesService = createResource<Row>("activities");
 export const productsService = createResource<Row>("products");
 export const quotesService = createResource<Row>("quotes");
+/**
+ * Bons de commande — module retiré de l'interface le 07/08/2026.
+ *
+ * Le service reste exporté : l'API existe toujours, les bons déjà émis sont
+ * conservés et les contrats y renvoient encore par `purchaseOrderId`. Le
+ * rebrancher ne demande qu'une route et une entrée de menu.
+ */
 export const purchaseOrdersService = createResource<Row>("purchase-orders");
 export const contractsService = createResource<Row>("contracts");
 export const invoicesService = createResource<Row>("invoices");
