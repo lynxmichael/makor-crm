@@ -4,6 +4,99 @@ Une section par séance, la plus récente en haut. À compléter en fin de chaqu
 
 ---
 
+## 11 août 2026 — Lot B : le pipeline s'administre depuis l'écran
+
+### Fait — les cinq endpoints `pipeline-stages` sont enfin appelés
+
+Ils existaient depuis le 9 août et **personne ne les appelait**. Le Kanban était figé : aucune
+colonne ne pouvait être créée, renommée, déplacée ni retirée sans passer par l'API à la main.
+
+**La maquette tranche la forme, et elle ne prévoit pas d'écran séparé.** Elle place
+l'administration **sur la page Pipeline elle-même** — bouton d'en-tête « ⇅ Réorganiser les
+étapes » (l. 597) et tuile « + Ajouter une étape », donnée « personnalisable par le Super Admin »
+(l. 645). Pas de nouvelle route, pas de 19ᵉ module en barre latérale.
+
+Quatre fichiers : `services/pipeline.ts` (les quatre appels, types transcrits du DTO backend),
+`StageFormModal.tsx` et `RemoveStageModal.tsx` (nouveaux), `PipelinePage.tsx`.
+
+**Trois choix qui méritent d'être dits :**
+
+- **Le déplacement d'une colonne se fait aux flèches ◀ ▶, pas au glisser-déposer.** La maquette
+  dit « glissez les colonnes » ; le geste est déjà pris par les cartes, et `DESIGN.md` exige de
+  toute façon une alternative clavier. Les flèches servent les deux usages d'un coup. **Écart
+  assumé avec la maquette, sur la forme et non sur la fonction.**
+- **Le retrait d'une colonne exige de dire où vont ses opportunités**, et la modale annonce
+  d'avance qu'une étape déjà traversée sera **archivée et non supprimée** — l'historique porte le
+  calcul des délais moyens du CDC §4.6. Le compte rendu du backend est affiché tel quel après
+  coup : « archivée » ou « supprimée », et le nombre d'opportunités déplacées.
+- **Une contrainte que le backend n'a pas :** le formulaire refuse une étape à la fois
+  `isClosedWon` et `isClosedLost`. Une colonne qui clôture en gain *et* en perte rendrait tout
+  taux de conversion incalculable.
+
+Les refus d'administration passent par **le même bandeau `role="alert"`** que les refus D5 : « cette
+étape est la seule sortie gagnante du pipeline » mérite exactement le même traitement qu'un
+prérequis documentaire manquant.
+
+### Vérifié — recette sur base et API réelles, 17 contrôles sur 17
+
+`npm run build` et `npm run lint` du frontend : **verts**. Un avertissement du compilateur React a
+été corrigé au passage — `form.watch()` renvoie une fonction qu'il ne peut pas mémoriser et lui
+fait renoncer à optimiser tout le composant ; remplacé par `useWatch`.
+
+| Contrôle | Résultat |
+| --- | --- |
+| `PATCH /reorder`, série complète | **200** — « RDV planifié » passe du rang 7 au rang 2 |
+| `PATCH /reorder`, liste partielle | **400** — « doit porter sur les 7 étapes actives ; 5 manque(nt) : … », nommées |
+| `PATCH /:id`, renommage | **200**, `canonicalStage` inchangé |
+| `DELETE` d'une colonne portant une opportunité, sans destination | **400** — « 1 opportunité(s) sont sur l'étape "Zone de recette" » |
+| `DELETE` avec `destinationStageId` | **200** — `archived: true`, `movedDeals: 1`, `DealStageHistory` écrit |
+| `DELETE` de la seule étape `VENTE` | **400** — « "Closing" est la seule étape de vente du pipeline » |
+| Les **4 écritures** avec un jeton **COMMERCIAL** | **403** sur les quatre |
+| `GET /pipeline-stages` en Commercial | 200 — la lecture reste ouverte, comme prévu |
+
+**La 7ᵉ colonne orpheline est traitée.** « RDV planifié » survivait au rang 7, *après* « Perdu ».
+Arbitrage rendu : **réordonnée et conservée**, pas retirée — elle porte `canonicalStage: RDV` et a
+donc sa place au rang 2. Le pipeline actif se lit maintenant dans l'ordre : Prospection · RDV
+planifié · Business Case · Bon de commande · Négociation · Closing · Perdu. Les contrôles
+destructifs se sont passés sur une colonne jetable créée pour l'occasion.
+
+### Ce qui n'est pas vérifié
+
+**Le parcours navigateur n'est toujours pas passé** — en suspens depuis le 05/08. Les deux serveurs
+tournent (`http://localhost:5173`, API sur `:3000`) et les quatre modules se transforment sans
+erreur, mais **piloter un navigateur n'est pas à ma portée depuis ce poste**. Toute la recette
+ci-dessus est passée par l'API. Restent à contrôler à l'œil : l'affichage du bandeau de refus, la
+disparition du bouton d'administration pour les quatre autres rôles, l'atteinte des flèches à la
+tabulation, et la pastille de couleur en tête de colonne.
+
+La suite de tests backend n'a toujours pas été lancée.
+
+### En suspens
+
+1. **Résidu de recette en base** : une étape **« Zone de recette (archivée) »**. Elle a été
+   traversée, donc archivée et non supprimée — c'est le comportement voulu. Elle n'apparaît dans
+   aucun écran (`findAll` exclut les archivées par défaut) et ne gêne rien.
+2. **Le registre des décisions reste incohérent.** **D24 est désormais définie** dans `CLAUDE.md` —
+   elle n'existait qu'en commentaires de code. Mais **`D17` désigne toujours deux décisions
+   différentes** (« deux applications distinctes » dans `CLAUDE.md`, « le Super Admin peut créer
+   des rôles » dans `docs/DOSSIER-PROJET.md`, qui numérote pour son compte jusqu'à D22), et `D23`
+   est citée en table sans définition. **C'est un arbitrage à rendre, pas une correction à
+   appliquer** — à trancher avant la prochaine réunion.
+3. **Trois fichiers vides dans `src/routes/`** — `AppRouter.tsx`, `index.tsx`, `PublicRoute.tsx`,
+   0 octet chacun. Le routage vit entièrement dans `App.tsx`. Signalés, non supprimés.
+4. **Onze modules sur dix-huit sont encore des écrans d'attente** (`App.tsx:9-25`).
+5. Inchangé : la création d'opportunité ne rattache pas à un client ; `OpportunityQualification-
+   Modal.tsx` reste non référencé ; un `assignedToId` inexistant rend 500 au lieu de 400 sur
+   `POST /customers` ; et **D2**, **D11**, **D6**, plus l'arbitrage laissé ouvert par **D12**.
+
+### Prochain chantier
+
+**Le parcours navigateur**, qui reste la seule vérification jamais faite — et qui ne demande plus
+que d'ouvrir `http://localhost:5173`. Ensuite, au choix : le rattachement client à la création
+d'opportunité (petit, l'obstacle est levé), ou l'attaque des onze écrans d'attente.
+
+---
+
 ## 10 août 2026 — Le travail des 6 au 9 août est commité, le pipeline passe sur l'API
 
 ### Point de départ : quatre jours de travail ni commités ni consignés

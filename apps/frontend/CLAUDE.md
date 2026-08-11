@@ -137,7 +137,16 @@ C'est le prérequis à tout travail d'apparence : rien ne doit être stylé avan
 
 ## Décisions actées à impact frontend
 
-- **D5 — Drag & drop conditionné :** le refus d'une transition de pipeline **doit être visible à l'écran avec sa raison**. `PipelinePage.tsx:54-65` accepte aujourd'hui toutes les transitions, sans condition ni retour visuel.
+- **D5 — Drag & drop conditionné :** le refus d'une transition de pipeline **doit être visible à
+  l'écran avec sa raison**. *Appliqué depuis le 10/08* — en amont, une colonne exigeant un bon de
+  commande signé porte un cadenas ; en aval, le refus du backend s'affiche tel quel dans un bandeau
+  `role="alert"` et la carte revient à sa colonne.
+- **D24 — Le pipeline s'administre depuis l'écran.** *Appliqué le 11/08.* Les contrôles de colonne
+  (créer, renommer, réordonner, retirer) vivent **sur la page Pipeline**, conformément à la maquette
+  (l. 597 et 645) — pas d'écran ni de module dédié. L'écriture est réservée au `SUPER_ADMIN` ; les
+  autres rôles ne voient pas le bouton. Le déplacement d'une colonne se fait **aux flèches**, seul
+  écart assumé avec la maquette, qui dit « glissez les colonnes » : le geste est pris par les cartes,
+  et l'alternative clavier est de toute façon exigée ci-dessus.
 - **D6 — Rédaction IA :** le texte généré s'affiche dans un **champ éditable explicitement marqué comme brouillon**. Aucun bouton d'envoi client ne doit être atteignable sans validation humaine explicite.
 - **D9 — Sender ID :** les actions « approuver » et « rejeter » sont réservées au Super Admin. Le Manager crée et consulte sans pouvoir d'approbation — le bouton ne doit pas lui être affiché.
 - **D3 — Messagerie interne repoussée en V2 :** ne pas construire d'écran de messagerie. En V1, seul l'envoi de document par email depuis une fiche.

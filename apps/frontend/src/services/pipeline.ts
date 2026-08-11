@@ -164,3 +164,86 @@ export async function createDeal(input: CreateDealInput): Promise<BoardDeal> {
   const { data } = await api.post<BoardDeal>("/deals", input);
   return data;
 }
+
+/* --- Administration du pipeline (D24) -------------------------------------
+ *
+ * Les quatre écritures ci-dessous sont réservées au Super Admin par le
+ * contrôleur (`@Roles('SUPER_ADMIN')` sur `POST`, `PATCH` et `DELETE`). Le
+ * conditionnement côté écran n'est qu'une commodité : l'autorité reste l'API.
+ *
+ * Formes transcrites de `pipeline-stages/dto/pipeline-stage.dto.ts`.
+ */
+
+/**
+ * `order` est absent, et volontairement : le backend refuse de déplacer une
+ * colonne isolément — cela laisserait des rangs en double ou troués. Le
+ * réordonnancement passe par `reorderStages`, qui réécrit la série entière.
+ */
+export interface StagePayload {
+  name: string;
+  canonicalStage: CanonicalStage;
+  /** Hexadécimal `#RRGGBB` — le backend rejette toute autre écriture. */
+  color: string;
+  isClosedWon: boolean;
+  isClosedLost: boolean;
+  /** D5 — atteindre l'étape exigera un bon de commande signé. */
+  requiresSignedOrder: boolean;
+}
+
+export async function createStage(payload: StagePayload): Promise<BoardStage> {
+  const { data } = await api.post<BoardStage>("/pipeline-stages", payload);
+  return data;
+}
+
+export async function updateStage(
+  stageId: string,
+  payload: StagePayload,
+): Promise<BoardStage> {
+  const { data } = await api.patch<BoardStage>(
+    `/pipeline-stages/${stageId}`,
+    payload,
+  );
+  return data;
+}
+
+/**
+ * `stageIds` doit porter **toutes** les étapes actives, dans le nouvel ordre.
+ * Une liste partielle est refusée : le backend y voit — à raison — un écran
+ * désynchronisé, dont l'application mélangerait les colonnes absentes aux
+ * nouvelles.
+ */
+export async function reorderStages(stageIds: string[]): Promise<void> {
+  await api.patch("/pipeline-stages/reorder", { stageIds });
+}
+
+/**
+ * Compte rendu du retrait. `archived` distingue les deux issues : une étape
+ * jamais traversée disparaît, une étape qui porte de l'historique est archivée
+ * — `DealStageHistory` la référence en `onDelete: Restrict`, et cet historique
+ * porte le calcul des délais moyens du CDC §4.6.
+ */
+export interface RemoveStageResult {
+  id: string;
+  name: string;
+  archived: boolean;
+  movedDeals: number;
+  destinationStageId: string | null;
+}
+
+/**
+ * `destinationStageId` est exigé par le backend dès que l'étape porte au moins
+ * une opportunité : une colonne ne se retire pas en emportant ses affaires.
+ *
+ * Il passe en paramètre d'URL et non en corps de requête — plusieurs
+ * intermédiaires HTTP suppriment le corps d'un DELETE.
+ */
+export async function removeStage(
+  stageId: string,
+  destinationStageId?: string,
+): Promise<RemoveStageResult> {
+  const { data } = await api.delete<RemoveStageResult>(
+    `/pipeline-stages/${stageId}`,
+    { params: destinationStageId ? { destinationStageId } : undefined },
+  );
+  return data;
+}

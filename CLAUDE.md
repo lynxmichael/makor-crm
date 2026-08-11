@@ -364,6 +364,44 @@ applications répondent au même cahier des charges, elles n'ont pas à se resse
 
 ---
 
+## Décisions actées — 10 août 2026
+
+### D24 — Le pipeline commercial est administrable depuis l'écran
+
+> Cette décision a été **appliquée dans le code avant d'être consignée ici** : elle n'existait que
+> dans six commentaires de `apps/backend/src/pipeline-stages/` et dans `SUIVI.md`. Elle est
+> formalisée le 11/08, au moment où le frontend la rend accessible.
+
+Les colonnes du Kanban **se créent, se renomment, se recolorent, se réordonnent et se retirent
+depuis l'interface**, sans mise en production. C'est la mise en œuvre concrète de **D4** — plusieurs
+pipelines coexistants — dont elle fournit le socle : un jeu d'étapes qui n'est plus figé dans le
+seed.
+
+**L'écriture est réservée au Super Admin.** La configuration du pipeline est une décision
+d'administration (CDC §7) ; la lecture, elle, reste ouverte à toute session.
+
+**Trois invariants tiennent cette liberté sans qu'elle ne casse le reporting :**
+
+1. **`canonicalStage` est obligatoire sur chaque étape.** Le libellé d'une colonne est libre et
+   changeant ; le reporting agrège sur les six étapes du CDC §4.6 (plus `PERDU`, qui n'en est pas
+   une mais doit rester traçable). Renommer « Closing » en « Signature » ne doit rien casser.
+2. **Le pipeline garde toujours une sortie gagnante.** Retirer la dernière étape rattachée à
+   `VENTE` — ou l'en détacher — est refusé : sans elle, plus aucune affaire ne se clôture, ni la
+   conversion prospect → client (CDC §4.3), ni le chiffre d'affaires.
+3. **Une étape déjà traversée est archivée, jamais supprimée.** `DealStageHistory.toStageId` est en
+   `onDelete: Restrict`, et cet historique porte le calcul des délais moyens du CDC §4.6. Seule une
+   étape qui n'a jamais rien porté disparaît réellement.
+
+**Conséquences de schéma, déjà migrées** (migrations des 6 et 9 août) : `PipelineStage.order` perd
+son unicité — réordonner N colonnes suppose N `UPDATE` dans une transaction, qu'une contrainte
+d'unicité rendrait impossible — et `PipelineStage.isArchived` apparaît.
+
+**Le réordonnancement réécrit la série entière.** `PATCH /pipeline-stages/reorder` refuse une liste
+partielle, où il faut voir un écran désynchronisé : l'appliquer laisserait les étapes absentes à
+leur ancien rang, mélangées aux nouvelles.
+
+---
+
 ## Méthode de travail attendue
 
 - **Explorer avant de modifier.** Lire les fichiers concernés et leurs dépendances avant toute proposition.
