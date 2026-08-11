@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -9,6 +10,7 @@ import { Label, Select } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { errorMessage } from "@/services/api";
+import { CUSTOMERS_QUERY_KEY, fetchCustomers } from "@/services/customers";
 import {
   CANONICAL_STAGE_LABELS,
   type BoardStage,
@@ -41,6 +43,12 @@ const schema = z.object({
   expectedCloseDate: z.string(),
 
   stageId: z.string().min(1, "Choisissez une étape de départ."),
+
+  /**
+   * Facultatif, comme au backend : une opportunité peut naître d'un contact
+   * dont le compte client n'est pas encore créé. Chaîne vide = non rattachée.
+   */
+  customerId: z.string(),
 });
 
 type NewDealForm = z.infer<typeof schema>;
@@ -56,6 +64,17 @@ interface NewDealModalProps {
 export function NewDealModal({ open, onClose, stages, onCreate }: NewDealModalProps) {
   const [serverError, setServerError] = useState<string | null>(null);
 
+  /**
+   * Comptes clients proposés au rattachement. Chargés seulement quand la
+   * modale est ouverte, et limités aux clients actifs : rattacher une nouvelle
+   * affaire à un compte archivé n'a pas de sens.
+   */
+  const customers = useQuery({
+    queryKey: [...CUSTOMERS_QUERY_KEY, "selection"],
+    queryFn: () => fetchCustomers({ limit: 100, status: "ACTIVE" }),
+    enabled: open,
+  });
+
   const form = useForm<NewDealForm>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -64,6 +83,7 @@ export function NewDealModal({ open, onClose, stages, onCreate }: NewDealModalPr
       probability: "20",
       expectedCloseDate: "",
       stageId: stages[0]?.id ?? "",
+      customerId: "",
     },
   });
 
@@ -92,11 +112,12 @@ export function NewDealModal({ open, onClose, stages, onCreate }: NewDealModalPr
         amount: Number(values.amount),
         probability: Number(values.probability),
         stageId: values.stageId,
-        // Champ facultatif côté API : l'omettre vaut mieux que d'envoyer une
-        // chaîne vide, que `@IsDateString()` rejetterait.
+        // Champs facultatifs côté API : les omettre vaut mieux que d'envoyer
+        // une chaîne vide, que `@IsDateString()` rejetterait.
         ...(values.expectedCloseDate && {
           expectedCloseDate: new Date(values.expectedCloseDate).toISOString(),
         }),
+        ...(values.customerId && { customerId: values.customerId }),
       });
 
       onClose();
@@ -112,7 +133,7 @@ export function NewDealModal({ open, onClose, stages, onCreate }: NewDealModalPr
       open={open}
       onClose={onClose}
       title="Nouvelle opportunité"
-      description="Elle vous est affectée. Le rattachement à un client se fait depuis la fiche client."
+      description="Elle vous est affectée."
     >
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div>
@@ -190,6 +211,35 @@ export function NewDealModal({ open, onClose, stages, onCreate }: NewDealModalPr
               {...form.register("expectedCloseDate")}
             />
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="deal-customer">Client</Label>
+          <Select
+            id="deal-customer"
+            disabled={customers.isPending}
+            {...form.register("customerId")}
+          >
+            <option value="">
+              {customers.isPending ? "Chargement des clients…" : "Aucun — à rattacher plus tard"}
+            </option>
+            {customers.data?.data.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.companyName}
+              </option>
+            ))}
+          </Select>
+          {customers.error ? (
+            <p className="mt-1 text-xs text-danger">
+              Liste des clients indisponible. L'opportunité peut être créée sans
+              rattachement.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-muted">
+              Facultatif — le rattachement peut se faire plus tard depuis la
+              fiche client.
+            </p>
+          )}
         </div>
 
         {serverError && (

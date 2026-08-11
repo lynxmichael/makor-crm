@@ -4,7 +4,7 @@ Une section par séance, la plus récente en haut. À compléter en fin de chaqu
 
 ---
 
-## 11 août 2026 — Lot B : le pipeline s'administre depuis l'écran
+## 11 août 2026 — Le pipeline s'administre, les Clients passent sur l'API
 
 ### Fait — les cinq endpoints `pipeline-stages` sont enfin appelés
 
@@ -60,6 +60,67 @@ donc sa place au rang 2. Le pipeline actif se lit maintenant dans l'ordre : Pros
 planifié · Business Case · Bon de commande · Négociation · Closing · Perdu. Les contrôles
 destructifs se sont passés sur une colonne jetable créée pour l'occasion.
 
+### Fait — une permission ouverte sur `/customers`, découverte et fermée
+
+En ouvrant le chantier Clients : **`CustomersController` ne portait aucun `@Roles()`**. Il déclarait
+`@UseGuards(JwtAuthGuard)` — redondant depuis que les gardes sont globaux (D16), et trompeur, parce
+qu'il donnait l'impression que la protection tenait au contrôleur. **Tout utilisateur connecté
+pouvait créer, modifier et supprimer un client**, Superviseur, Admin ventes et Finance compris, à
+qui la matrice §7 ne donne que la lecture. C'est l'un des 24 contrôleurs sans `@Roles()` signalés par
+l'audit du 29/07 ; D17 le rend à cette branche.
+
+Les rôles suivent maintenant la matrice, avec une ligne de partage qui mérite d'être explicitée :
+**le Commercial crée et modifie, il ne supprime pas.** Effacer relève du niveau « total », que seul
+le Super Admin possède sur ce domaine. `@UseGuards(JwtAuthGuard)` est retiré.
+
+### Fait — le module Clients quitte les données fictives
+
+`ClientsPage.tsx` faisait `useState(mockClients)` : **toute création ou modification était perdue au
+rechargement**. L'écran affichait un CRM qui ne retenait rien.
+
+Nouveau `services/customers.ts` (types transcrits des DTO backend), `ClientsPage` réécrit, et
+`CustomerFormModal` — **`EntityFormModal` n'a pas été réutilisée** : elle tient son état dans un
+`useState`, ne valide rien et n'a aucun moyen d'afficher le refus du serveur, alors que les
+conventions du frontend imposent `react-hook-form` + `zod`.
+
+Trois points :
+
+- **La recherche passe côté serveur** (`?search=`), pas en filtrant la page déjà chargée — sinon on
+  ne chercherait que dans les 20 premiers clients, et le résultat serait faux dès le 21ᵉ. Un
+  `useDebouncedValue` évite une requête par frappe. `keepPreviousData` empêche le tableau de
+  clignoter vers un état de chargement entre deux pages.
+- **« Archiver » change le statut, ne supprime pas.** Un client inactif garde ses factures, ses
+  opportunités et son historique. La suppression définitive existe côté service mais **n'est
+  exposée par aucun écran**.
+- **Les opportunités de la fiche client viennent de `GET /deals?customerId=`.** L'ancienne version
+  les retrouvait par correspondance de nom — deux clients homonymes s'y seraient partagé les mêmes
+  affaires.
+
+**Le rattachement client de l'opportunité est fait** (point 4 du registre du 10/08) : `NewDealModal`
+porte un select alimenté par les clients **actifs**, facultatif comme le DTO backend. La description
+de la modale affirmait « le rattachement à un client se fait depuis la fiche client » — c'était faux
+et ça ne l'est plus.
+
+### Vérifié — 33 contrôles sur 33, base rendue à son état initial
+
+`npm run build` et `npm run lint` du frontend, `npx tsc --noEmit` et `npm run lint` du backend :
+**verts**.
+
+| Contrôle | Résultat |
+| --- | --- |
+| `GET /customers` sur les **cinq rôles** | 200 partout — la lecture reste ouverte |
+| `POST` et `PATCH` en **Super Admin** et **Commercial** | 201 / 200 |
+| `POST` et `PATCH` en **Admin ventes, Superviseur, Finance** | **403** sur les six appels |
+| `DELETE` en Commercial, Admin ventes, Superviseur, Finance | **403** sur les quatre |
+| `DELETE` en Super Admin | 200 |
+| Archivage (`status: INACTIVE`) | le client existe toujours en `GET /:id` |
+| `?search=` | trouve, et rend une liste vide sans erreur quand rien ne correspond |
+| `?status=ACTIVE` | aucune ligne d'un autre statut |
+| `POST /deals` avec `customerId` | 201, l'opportunité porte le client, et `GET /deals?customerId=` la retrouve |
+
+**Les données de recette ont été supprimées** : la base compte le même nombre de clients qu'au
+départ.
+
 ### Ce qui n'est pas vérifié
 
 **Le parcours navigateur n'est toujours pas passé** — en suspens depuis le 05/08. Les deux serveurs
@@ -84,16 +145,28 @@ La suite de tests backend n'a toujours pas été lancée.
    appliquer** — à trancher avant la prochaine réunion.
 3. **Trois fichiers vides dans `src/routes/`** — `AppRouter.tsx`, `index.tsx`, `PublicRoute.tsx`,
    0 octet chacun. Le routage vit entièrement dans `App.tsx`. Signalés, non supprimés.
-4. **Onze modules sur dix-huit sont encore des écrans d'attente** (`App.tsx:9-25`).
-5. Inchangé : la création d'opportunité ne rattache pas à un client ; `OpportunityQualification-
-   Modal.tsx` reste non référencé ; un `assignedToId` inexistant rend 500 au lieu de 400 sur
-   `POST /customers` ; et **D2**, **D11**, **D6**, plus l'arbitrage laissé ouvert par **D12**.
+4. **Treize modules sur dix-huit sont des écrans d'attente — le décompte de `apps/frontend/CLAUDE.md`
+   était faux** et annonçait onze. Compté sur les routes d'`App.tsx` : 7 par la fabrique `page()`,
+   6 par `ModulePlaceholder`. Corrigé. Et sur les 5 pages écrites, **trois seulement appellent
+   l'API** — Dashboard, Pipeline, Clients : Campagnes tire de `mock.ts`, Rapports de
+   `reporting-juillet-2026.ts`.
+5. **Les 23 autres contrôleurs backend restent sans `@Roles()`.** `customers` est le premier traité
+   hors des cinq de l'étape 1 ; l'audit du 29/07 en comptait 24 qui vérifient qu'un utilisateur est
+   connecté, jamais lequel. **À traiter contrôleur par contrôleur, en suivant la matrice §7.**
+6. **`mockClients` n'est plus consommé par aucun écran**, mais `src/data/mock.ts` reste en place :
+   `sectors` et `countries` y servent de vocabulaires au formulaire client, et d'autres pages
+   tirent encore de ce fichier. Rien supprimé.
+7. Inchangé : `OpportunityQualificationModal.tsx` reste non référencé ; un `assignedToId` inexistant
+   rend 500 au lieu de 400 sur `POST /customers` ; et **D2**, **D11**, **D6**, plus l'arbitrage
+   laissé ouvert par **D12**.
 
 ### Prochain chantier
 
 **Le parcours navigateur**, qui reste la seule vérification jamais faite — et qui ne demande plus
-que d'ouvrir `http://localhost:5173`. Ensuite, au choix : le rattachement client à la création
-d'opportunité (petit, l'obstacle est levé), ou l'attaque des onze écrans d'attente.
+que d'ouvrir `http://localhost:5173`. Ensuite, deux pistes qui se valent : **la passe `@Roles()` sur
+les 23 contrôleurs restants**, du même genre que celle faite ici sur `customers` et de même nature
+que la faille de l'étape 1 ; ou **les dix écrans d'attente restants**, en commençant par Prospects,
+qui partage presque tout son modèle avec Clients.
 
 ---
 

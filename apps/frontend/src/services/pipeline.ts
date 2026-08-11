@@ -150,6 +150,22 @@ export async function moveDealStage({
   return data;
 }
 
+/**
+ * Opportunités d'un client, pour la fiche client.
+ *
+ * `GET /deals` rend l'enveloppe de pagination commune au backend ; seules les
+ * premières lignes intéressent une fiche, d'où la limite basse.
+ */
+export async function fetchDealsByCustomer(
+  customerId: string,
+  limit = 10,
+): Promise<BoardDeal[]> {
+  const { data } = await api.get<{ data: BoardDeal[] }>("/deals", {
+    params: { customerId, limit },
+  });
+  return data.data;
+}
+
 export interface CreateDealInput {
   title: string;
   amount: number;
@@ -157,6 +173,11 @@ export interface CreateDealInput {
   expectedCloseDate?: string;
   /** Omis, le backend place l'opportunité sur la première étape configurée. */
   stageId?: string;
+  /**
+   * Rattachement au compte client. Facultatif comme au backend : une
+   * opportunité peut naître avant que le client n'existe en base.
+   */
+  customerId?: string;
   assignedToId: string;
 }
 

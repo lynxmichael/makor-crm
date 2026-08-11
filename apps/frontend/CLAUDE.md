@@ -98,8 +98,8 @@ en tire les conséquences sur ce qu'elle affiche. Les écrans métier, eux, rest
 
 ### Ce qui reste
 
-1. **Onze modules sur dix-huit sont des écrans d'attente.** Sept passent encore par la fabrique `page()` de `features/shared/placeholders.tsx` (données figées) ; quatre affichent honnêtement « module à venir » via `features/shared/ModulePlaceholder.tsx`. Seules 5 pages sont réelles : Dashboard, Clients, Pipeline, Campagnes, Rapports.
-2. **Les écrans métier tirent encore de `src/data/mock.ts`** — y compris la recherche globale de `Topbar`. Seuls les tableaux de bord et l'authentification appellent l'API.
+1. **Treize modules sur dix-huit sont des écrans d'attente** — décompte corrigé le 11/08, l'ancien (« onze ») était faux. Compté sur les routes de `App.tsx` : **7** viennent de la fabrique `page()` de `features/shared/placeholders.tsx` (données figées), **6** affichent « module à venir » via `features/shared/ModulePlaceholder.tsx`. Les 5 pages écrites sont Dashboard, Pipeline, Clients, Campagnes et Rapports.
+2. **Trois écrans seulement appellent l'API** (*11/08*) : les tableaux de bord, **Pipeline** et **Clients** — plus l'authentification. **Campagnes tire de `src/data/mock.ts`**, **Rapports de `src/data/reporting-juillet-2026.ts`**, et la recherche globale de `Topbar` de `mock.ts`.
 3. **Code mort dans `components/ui/`** — à reprendre au fil de la migration vers shadcn (D10).
 4. **`providers/ThemeProvider.tsx` est toujours vide**, et le mode sombre n'est pas déclaré.
 5. **Aucun test, aucune CI.**
