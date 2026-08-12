@@ -171,6 +171,8 @@ model User {
   signatureRequests SignatureRequest[] @relation("SignatureRequestedBy")
   workflows         Workflow[]         @relation("WorkflowCreatedBy")
   commissions       Commission[]       @relation("CommissionBeneficiary")
+  withdrawals       CommissionWithdrawal[] @relation("WithdrawalBeneficiary")
+  withdrawalsReviewed CommissionWithdrawal[] @relation("WithdrawalReviewer")
   commissionPlans   CommissionPlan[]   @relation("CommissionPlanUser")
   documentEvents    DocumentEvent[]    @relation("DocumentEventUser")
 
@@ -1998,4 +2000,60 @@ model DocumentEvent {
   @@index([type])
   @@index([userId])
 
+}
+
+// ===========================================================================
+// Retraits de commission (demande du 08/08/2026)
+// ===========================================================================
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+/**
+ * Demande de retrait déposée par un commercial sur ses commissions validées.
+ *
+ * Séparé du modèle `Commission` : une commission est un calcul, un retrait est
+ * une demande. Les confondre aurait empêché de demander un retrait partiel, et
+ * rendu impossible la trace de qui a autorisé quoi.
+ */
+model CommissionWithdrawal {
+  id String @id @default(cuid())
+
+  /// Bénéficiaire du retrait.
+  userId String
+  user   User   @relation("WithdrawalBeneficiary", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Montant demandé. Plafonné au solde disponible au moment de la demande,
+  /// contrôlé de nouveau à la validation — le solde a pu bouger entre-temps.
+  amount Decimal @db.Decimal(14, 2)
+
+  status WithdrawalStatus @default(PENDING)
+
+  /// Motif du retrait, saisi par le demandeur.
+  reason String?
+
+  /// Qui a autorisé ou refusé — Super Admin ou Admin ventes.
+  reviewedById String?
+  reviewedBy   User?   @relation("WithdrawalReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+
+  /// Renseigné en cas de refus : une décision sans motif est incontestable
+  /// pour de mauvaises raisons.
+  rejectionReason String?
+
+  /// Versement effectif.
+  method    String?
+  reference String?
+  paidAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([status])
 }

@@ -41,8 +41,17 @@ export function DealQualificationModal({ deal, onClose }: Props) {
 
   const [openSection, setOpenSection] = useState<string | null>(null);
   const [view, setView] = useState<"form" | "table">("form");
+
   const [qualification, setQualification] = useState<Record<string, string>>({});
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+
+  // Une qualification s'enregistre à tout moment : elle se remplit au fil des
+  // rendez-vous, pas d'une traite. Le seul cas refusé est l'absence totale de
+  // réponse, où il n'y a rien à sauvegarder.
+  const answeredCount = Object.values(qualification).filter((v) => v?.trim()).length;
+  const completedSections = qualificationSections.filter((s) =>
+    isSectionComplete(s.fields, qualification, s.stage),
+  ).length;
 
   useEffect(() => {
     if (!deal) return;
@@ -124,7 +133,16 @@ export function DealQualificationModal({ deal, onClose }: Props) {
             .slice(0, index)
             .every((s) => isSectionComplete(s.fields, qualification, s.stage));
 
-          const locked = !previousComplete && !complete;
+          // La première étape incomplète reste ouverte, même si une étape
+          // antérieure ne l'est pas : une affaire reprise en cours de route
+          // n'a pas d'historique à rattraper, et exiger qu'on remonte tout le
+          // tunnel avant de saisir le présent pousse à inventer des réponses
+          // pour débloquer l'écran.
+          const firstIncomplete = qualificationSections.findIndex(
+            (s) => !isSectionComplete(s.fields, qualification, s.stage),
+          );
+
+          const locked = !previousComplete && !complete && index !== firstIncomplete;
           const isOpen = openSection === section.stage;
 
           return (
@@ -315,21 +333,31 @@ export function DealQualificationModal({ deal, onClose }: Props) {
           emptyDetail="Notez ici ce que la grille ne capture pas : objection, contexte, décision prise en réunion."
         />
 
-        <div className="flex items-center justify-between gap-3 border-t border-line pt-4">
-          <Badge tone="neutral">
-            {qualificationSections.filter((s) =>
-              isSectionComplete(s.fields, qualification, s.stage),
-            ).length}{" "}
-            / {qualificationSections.length} étapes complètes
-          </Badge>
+        {/* Pied collant : la grille compte cinq accordéons, et le bouton
+            d'enregistrement se retrouvait hors de vue dès qu'on déroulait une
+            étape. On pouvait croire qu'il fallait tout finir pour enregistrer. */}
+        <div className="sticky bottom-0 -mx-1 flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface px-1 pt-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Badge tone={completedSections === qualificationSections.length ? "signal" : "neutral"}>
+              {completedSections} / {qualificationSections.length} étapes complètes
+            </Badge>
+
+            {answeredCount > 0 && completedSections < qualificationSections.length && (
+              <span className="text-xs text-slate">
+                Vous pouvez enregistrer maintenant et reprendre plus tard.
+              </span>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <Button variant="secondary" onClick={onClose} disabled={save.isPending}>
               Fermer
             </Button>
-            <Button onClick={() => save.mutate()} disabled={save.isPending}>
+            <Button onClick={() => save.mutate()} disabled={save.isPending || answeredCount === 0}>
               {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Enregistrer
+              {completedSections === qualificationSections.length
+                ? "Enregistrer"
+                : "Enregistrer le brouillon"}
             </Button>
           </div>
         </div>

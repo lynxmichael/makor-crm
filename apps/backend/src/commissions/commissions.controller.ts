@@ -11,6 +11,13 @@ import { CommissionsService } from './commissions.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { ComputeCommissionsDto } from './dto/compute-commissions.dto';
+import { WithdrawalsService } from './withdrawals.service';
+import {
+  FilterWithdrawalDto,
+  PayWithdrawalDto,
+  RejectWithdrawalDto,
+  RequestWithdrawalDto,
+} from './dto/withdrawal.dto';
 
 /**
  * Commissions (CDC §5 — V2).
@@ -25,12 +32,82 @@ import { ComputeCommissionsDto } from './dto/compute-commissions.dto';
 @Controller('commissions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CommissionsController {
-  constructor(private readonly commissionsService: CommissionsService) {}
+  constructor(
+    private readonly commissionsService: CommissionsService,
+    private readonly withdrawals: WithdrawalsService,
+  ) {}
 
   @Get('mine')
   @ApiOperation({ summary: 'Mes propres commissions' })
   mine(@CurrentUser() user: { id: string }) {
     return this.commissionsService.mine(user.id);
+  }
+
+  // -------------------------------------------------------------------------
+  // Retraits de commission (demande du 08/08/2026)
+  // -------------------------------------------------------------------------
+
+  @Get('withdrawals/balance')
+  @ApiOperation({ summary: 'Mon solde retirable' })
+  balance(@CurrentUser() user: { id: string }) {
+    return this.withdrawals.balance(user.id);
+  }
+
+  @Get('withdrawals')
+  @ApiOperation({ summary: 'Historique des retraits' })
+  listWithdrawals(
+    @Query() filters: FilterWithdrawalDto,
+    @CurrentUser() user: { id: string; role?: { name: string } },
+  ) {
+    // Un commercial ne voit que ses propres demandes ; les profils
+    // d'autorisation voient tout, et peuvent filtrer par bénéficiaire.
+    const scopeToUserId = user?.role?.name === 'COMMERCIAL' ? user.id : undefined;
+    return this.withdrawals.findAll({ ...filters, scopeToUserId });
+  }
+
+  @Post('withdrawals')
+  @ApiOperation({ summary: 'Demander un retrait sur ses commissions validées' })
+  requestWithdrawal(
+    @Body() dto: RequestWithdrawalDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    // Toujours pour soi-même : on ne demande pas un retrait au nom d'un tiers.
+    return this.withdrawals.request(user.id, dto.amount, dto.reason);
+  }
+
+  @Patch('withdrawals/:id/approve')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES')
+  @ApiOperation({ summary: 'Autoriser un retrait' })
+  approveWithdrawal(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.withdrawals.approve(id, user.id);
+  }
+
+  @Patch('withdrawals/:id/reject')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES')
+  @ApiOperation({ summary: 'Refuser un retrait, motif obligatoire' })
+  rejectWithdrawal(
+    @Param('id') id: string,
+    @Body() dto: RejectWithdrawalDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.withdrawals.reject(id, user.id, dto.rejectionReason);
+  }
+
+  @Patch('withdrawals/:id/pay')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'MANAGER')
+  @ApiOperation({ summary: 'Marquer un retrait comme versé' })
+  payWithdrawal(
+    @Param('id') id: string,
+    @Body() dto: PayWithdrawalDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.withdrawals.markPaid(id, user.id, dto);
+  }
+
+  @Patch('withdrawals/:id/cancel')
+  @ApiOperation({ summary: 'Annuler sa propre demande, tant qu’elle est en attente' })
+  cancelWithdrawal(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.withdrawals.cancel(id, user.id);
   }
 
   @Get('plans')

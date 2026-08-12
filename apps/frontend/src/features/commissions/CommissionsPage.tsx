@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState } from "@/components/shared/DataState";
 
 import { CommissionPlanModal } from "./CommissionPlanModal";
+import { WithdrawalsPanel } from "./WithdrawalsPanel";
 import { http } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
@@ -276,6 +277,11 @@ export function CommissionsPage() {
           )}
         </>
       )}
+
+      {/* Retraits — demande côté commercial, autorisation côté pilotage.
+          Même écran des deux côtés pour que le désaccord ne porte pas sur des
+          chiffres différents. */}
+      <WithdrawalsPanel />
 
       <CommissionPlanModal open={planOpen} onClose={() => setPlanOpen(false)} />
 

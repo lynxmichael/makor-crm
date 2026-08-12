@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
 import { MailerService } from '@nestjs-modules/mailer';
+import type { ISendMailOptions } from '@nestjs-modules/mailer';
 
 export interface MailAttachment {
   filename: string;
@@ -9,9 +10,83 @@ export interface MailAttachment {
 
 @Injectable()
 export class MailService {
+  private readonly logger = new Logger(MailService.name);
+
   constructor(
     private readonly mailer: MailerService,
   ) {}
+
+  /**
+   * Envoi effectif, avec traduction des erreurs SMTP.
+   *
+   * Nodemailer remonte des codes bruts et une trace de plusieurs dizaines de
+   * lignes. Telle quelle, l'erreur arrive à l'écran sous forme de 500
+   * illisible : l'utilisateur voit « échec » sans savoir que c'est sa
+   * configuration qui est en cause, ni laquelle.
+   *
+   * On la transforme donc en message actionnable, tout en conservant la trace
+   * complète dans les journaux du serveur pour le diagnostic.
+   */
+  private async deliver(options: ISendMailOptions) {
+    try {
+      return await this.mailer.sendMail(options);
+    } catch (error) {
+      const err = error as { code?: string; responseCode?: number; message?: string };
+
+      this.logger.error(
+        `Échec d'envoi vers ${String(options.to)} : ${err.code ?? ''} ${err.message ?? ''}`,
+      );
+
+      throw new ServiceUnavailableException(this.explain(err));
+    }
+  }
+
+  /** Traduction des échecs SMTP les plus fréquents. */
+  private explain(err: { code?: string; responseCode?: number; message?: string }): string {
+    const message = err.message ?? '';
+
+    // Gmail refuse le mot de passe de compte dès que la double
+    // authentification est active : il faut un mot de passe d'application.
+    if (err.responseCode === 534 || /application-specific password/i.test(message)) {
+      return (
+        'Le serveur de messagerie refuse le mot de passe fourni. Avec Gmail et la double ' +
+        'authentification, un mot de passe de compte ne fonctionne pas : générez un ' +
+        '« mot de passe d’application » de 16 caractères dans les paramètres de sécurité ' +
+        'Google et placez-le dans MAIL_PASSWORD.'
+      );
+    }
+
+    if (err.code === 'EAUTH' || err.responseCode === 535) {
+      return (
+        'Identifiants de messagerie refusés. Vérifiez MAIL_USER et MAIL_PASSWORD dans le ' +
+        'fichier .env du serveur, puis redémarrez-le.'
+      );
+    }
+
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'EDNS') {
+      return (
+        'Serveur de messagerie injoignable. Vérifiez MAIL_HOST et MAIL_PORT — et que le ' +
+        'serveur a bien accès à Internet.'
+      );
+    }
+
+    if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKET') {
+      return (
+        'La connexion au serveur de messagerie a expiré. Le port est peut-être bloqué par ' +
+        'un pare-feu, ou le mode de chiffrement ne correspond pas au port : 465 exige TLS ' +
+        'dès la connexion, 587 passe par STARTTLS.'
+      );
+    }
+
+    if (err.responseCode === 550 || err.responseCode === 553) {
+      return (
+        'Message refusé par le serveur destinataire. L’adresse d’expédition (MAIL_FROM) doit ' +
+        'correspondre au compte authentifié.'
+      );
+    }
+
+    return `L'envoi a échoué : ${message || 'erreur inconnue du serveur de messagerie'}.`;
+  }
 
   async sendMail(
     to: string,
@@ -19,7 +94,7 @@ export class MailService {
     html: string,
     attachment?: MailAttachment,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to,
       subject,
       html,
@@ -33,7 +108,7 @@ export class MailService {
     total: number,
     attachment?: MailAttachment,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: `Facture ${invoiceNumber}`,
@@ -57,7 +132,7 @@ export class MailService {
     quoteNumber: string,
     attachment?: MailAttachment,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: `Devis ${quoteNumber}`,
@@ -78,7 +153,7 @@ export class MailService {
     orderNumber: string,
     attachment?: MailAttachment,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: `Bon de commande ${orderNumber}`,
@@ -99,7 +174,7 @@ export class MailService {
     contractNumber: string,
     attachment?: MailAttachment,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: `Contrat ${contractNumber}`,
@@ -120,7 +195,7 @@ export class MailService {
     activityTitle: string,
     reportHtml: string,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: `Compte rendu — ${activityTitle}`,
@@ -136,7 +211,7 @@ export class MailService {
   }
 
   async send2faCode(email: string, code: string) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: 'Votre code de vérification',
@@ -158,7 +233,7 @@ export class MailService {
     email: string,
     link: string,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: 'Réinitialisation du mot de passe',
@@ -178,7 +253,7 @@ export class MailService {
   }
 
   async sendAccountLocked(email: string) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: 'Votre compte a été verrouillé',
@@ -198,7 +273,7 @@ export class MailService {
     senderIdName: string,
     status: string,
   ) {
-    return this.mailer.sendMail({
+    return this.deliver({
       to: email,
 
       subject: `Sender ID "${senderIdName}" — ${status}`,
