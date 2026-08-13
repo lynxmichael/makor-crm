@@ -24,9 +24,28 @@ import { OnEvent } from '@nestjs/event-emitter';
  *
  * CORS aligné sur FRONTEND_URL, cohérent avec le reste de l'API.
  */
+
+/**
+ * Origines autorisées pour la connexion temps réel.
+ *
+ * Deux pièges évités ici. D'abord, `process.env` est lu à l'évaluation du
+ * décorateur, avant que ConfigModule n'ait chargé le fichier .env : la valeur
+ * peut donc être absente au démarrage. Ensuite — et c'est ce qui casse la
+ * connexion — un navigateur REFUSE une origine `*` combinée à
+ * `credentials: true`. La combinaison est interdite par la spécification CORS.
+ *
+ * On énumère donc les origines : celle configurée si elle existe, plus les
+ * adresses de développement usuelles.
+ */
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+].filter(Boolean) as string[];
+
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL ?? '*',
+    origin: ALLOWED_ORIGINS,
     credentials: true,
   },
 })

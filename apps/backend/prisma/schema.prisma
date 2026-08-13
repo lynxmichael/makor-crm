@@ -175,6 +175,8 @@ model User {
   withdrawalsReviewed CommissionWithdrawal[] @relation("WithdrawalReviewer")
   commissionPlans   CommissionPlan[]   @relation("CommissionPlanUser")
   documentEvents    DocumentEvent[]    @relation("DocumentEventUser")
+  expenses          Expense[]          @relation("ExpenseAuthor")
+  expensesReviewed  Expense[]          @relation("ExpenseReviewer")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -258,6 +260,7 @@ model Customer {
   apiKeys ApiKey[]
   @@index([assignedToId])
 
+  expenses Expense[]
 }
 
 model Contact {
@@ -2095,4 +2098,77 @@ model InvoiceInstallment {
 
   @@unique([invoiceId, sequence])
   @@index([dueDate])
+}
+
+// ===========================================================================
+// Notes de frais (demande du 13/08/2026)
+// ===========================================================================
+
+enum ExpenseCategory {
+  DEPLACEMENT
+  CARBURANT
+  RESTAURATION_CLIENT
+  ECHANTILLONS
+  COMMUNICATIONS
+  HEBERGEMENT
+  AUTRE
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REIMBURSED
+}
+
+/**
+ * Frais engagé par un commercial dans le cadre de son activité.
+ *
+ * Le justificatif reste facultatif : le contexte local ne permet pas toujours
+ * d'obtenir un reçu — un taxi, par exemple. C'est la validation humaine qui
+ * fait foi, pas la pièce jointe. Le champ existe pour ceux qui en ont un.
+ */
+model Expense {
+  id String @id @default(cuid())
+
+  /// Auteur de la dépense. C'est lui qui sera remboursé.
+  userId String
+  user   User   @relation("ExpenseAuthor", fields: [userId], references: [id], onDelete: Cascade)
+
+  category ExpenseCategory
+  label    String
+  amount   Decimal  @db.Decimal(14, 2)
+  spentAt  DateTime
+
+  /// Client visité ou concerné, quand la dépense s'y rattache.
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  status ExpenseStatus @default(PENDING)
+  notes  String?
+
+  /// Justificatif facultatif — nom du fichier déposé via /files.
+  receiptPath String?
+
+  /// Qui a validé ou refusé : Super Admin ou Admin ventes.
+  reviewedById String?
+  reviewedBy   User?   @relation("ExpenseReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+
+  /// Motif obligatoire en cas de refus : un rejet sans explication ne se
+  /// discute pas et se reproduira.
+  rejectionReason String?
+
+  /// Remboursement effectif.
+  reimbursedAt DateTime?
+  method       String?
+  reference    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([status])
+  @@index([spentAt])
+  @@index([customerId])
 }

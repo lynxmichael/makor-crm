@@ -5,9 +5,9 @@ import {
   Target,
   Radio,
   FileText,
-  ClipboardList,
   FileSignature,
   Receipt,
+  ReceiptText,
   Wallet,
   Fingerprint,
   Calendar,
@@ -72,6 +72,15 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/clients", label: "Clients", icon: Building2, roles: ALL_SALES },
       { to: "/annuaire", label: "Annuaire", icon: BookUser, roles: ALL_SALES },
+      {
+        to: "/frais",
+        label: "Notes de frais",
+        icon: ReceiptText,
+        // Ceux qui engagent les frais et ceux qui les valident. Le
+        // superviseur en est exclu : il encadre l'activité commerciale,
+        // pas les remboursements.
+        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_VENTES, ROLES.COMMERCIAL],
+      },
       { to: "/prospects", label: "Prospects", icon: UserPlus, roles: ALL_SALES },
       { to: "/opportunities", label: "Pipeline", icon: Target, roles: ALL_SALES },
       { to: "/quotes", label: "Factures proforma", icon: FileText, roles: ALL_SALES },

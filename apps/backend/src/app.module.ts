@@ -50,6 +50,7 @@ import { SignaturesModule } from './signatures/signatures.module';
 import { CommissionsModule } from './commissions/commissions.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { DirectoryModule } from './directory/directory.module';
+import { ExpensesModule } from './expenses/expenses.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { CommunicationsModule } from './communications/communications.module';
@@ -85,6 +86,7 @@ import { CommunicationsModule } from './communications/communications.module';
     CommissionsModule,
     EvaluationModule,
     DirectoryModule,
+    ExpensesModule,
     WorkflowsModule,
     ScoringModule,
     CommunicationsModule,

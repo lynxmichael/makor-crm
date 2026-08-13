@@ -33,6 +33,7 @@ import { CommissionsPage } from "@/features/commissions/CommissionsPage";
 import { WorkflowsPage } from "@/features/workflows/WorkflowsPage";
 import { ScoringPage } from "@/features/scoring/ScoringPage";
 import { DirectoryPage } from "@/features/directory/DirectoryPage";
+import { ExpensesPage } from "@/features/expenses/ExpensesPage";
 import { EvaluationPage } from "@/features/evaluation/EvaluationPage";
 
 /**
@@ -65,6 +66,7 @@ export function AppRouter() {
             <Route index element={<DashboardPage />} />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="annuaire" element={<DirectoryPage />} />
+            <Route path="frais" element={<ExpensesPage />} />
             <Route path="prospects" element={<ResourceModulePage config={MODULE_CONFIGS.prospects} />} />
             <Route path="opportunities" element={<PipelinePage />} />
             <Route path="quotes" element={<QuotesPage />} />
