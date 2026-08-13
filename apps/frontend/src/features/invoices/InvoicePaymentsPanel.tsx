@@ -94,6 +94,8 @@ export function InvoicePaymentsPanel({ invoice }: { invoice: Row }) {
       setReference("");
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: QK.invoices });
+      // L'échéancier impute les versements : il doit suivre.
+      queryClient.invalidateQueries({ queryKey: ["invoices", String(invoice.id), "schedule"] });
       queryClient.invalidateQueries({ queryKey: QK.payments });
       queryClient.invalidateQueries({ queryKey: QK.dashboard });
     },

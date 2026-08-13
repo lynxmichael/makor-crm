@@ -252,6 +252,8 @@ export function PipelinePage() {
                               sur un élément `draggable`, le navigateur
                               interprète l'appui comme le début d'un glisser et
                               n'émet pas de clic. */}
+                          {/* Le nombre de réponses déjà saisies évite d'ouvrir
+                              la grille pour découvrir qu'elle est vide. */}
                           <Button
                             variant="secondary"
                             size="sm"
@@ -259,7 +261,13 @@ export function PipelinePage() {
                             onClick={() => setQualifying(deal)}
                           >
                             <ClipboardList className="h-3.5 w-3.5" />
-                            Qualifier
+                            {(() => {
+                              const answers = (deal.qualification ?? {}) as Record<string, string>;
+                              const count = Object.values(answers).filter((v) => v?.trim()).length;
+                              return count > 0
+                                ? `Qualification · ${count} réponse${count > 1 ? "s" : ""}`
+                                : "Qualifier";
+                            })()}
                           </Button>
                         </motion.article>
                       );

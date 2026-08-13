@@ -25,7 +25,10 @@ import { UpdateContactDto } from './dto/update-contact.dto';
 @ApiBearerAuth()
 @Controller('contacts')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
+// Le Financier entre dans le module en LECTURE : il ne peut pas
+// facturer sans choisir un client. Les écritures restent fermées par
+// les @Roles de méthode, qui priment sur celui de la classe.
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 

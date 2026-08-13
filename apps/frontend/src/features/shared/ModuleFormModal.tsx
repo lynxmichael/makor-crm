@@ -17,6 +17,8 @@ import {
   productsService,
   usersService,
 } from "@/services/resources";
+import { useQuery } from "@tanstack/react-query";
+import { http } from "@/services/api";
 import { QK } from "@/config/constants";
 import { CommentThread } from "@/features/collaboration/CommentThread";
 import { SignaturePanel } from "@/features/signatures/SignaturePanel";
@@ -271,7 +273,66 @@ export function ModuleFormModal({
   );
 }
 
+/**
+ * Liste déroulante alimentée par un référentiel des Paramètres.
+ *
+ * La valeur libre déjà enregistrée est conservée en tête si elle ne figure
+ * plus au référentiel : une saisie antérieure ne doit pas disparaître d'une
+ * fiche parce qu'un pays a été retiré de la liste depuis.
+ */
+function LookupSelect({
+  field,
+  value,
+  onChange,
+}: {
+  field: ModuleField;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const source = field.lookup!.source;
+
+  const query = useQuery({
+    queryKey: ["settings", source],
+    queryFn: () => http.get<{ id: string; name: string }[]>(`/settings/${source}`),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const options = query.data ?? [];
+  const orphan = value && !options.some((o) => o.name === value);
+
+  return (
+    <Select
+      id={field.key}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={query.isPending}
+    >
+      <option value="">
+        {query.isPending ? "Chargement…" : field.placeholder ?? "Sélectionner"}
+      </option>
+
+      {orphan && <option value={value}>{value} (hors référentiel)</option>}
+
+      {options.map((option) => (
+        <option key={option.id} value={option.name}>
+          {option.name}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
 function renderInput(field: ModuleField, value: unknown, onChange: (value: unknown) => void) {
+  if (field.type === "lookup" && field.lookup) {
+    return (
+      <LookupSelect
+        field={field}
+        value={String(value ?? "")}
+        onChange={(next) => onChange(next)}
+      />
+    );
+  }
+
   if (field.type === "reference" && field.reference) {
     const ref = REFERENCES[field.reference.resource];
 

@@ -59,8 +59,14 @@ export function DealQualificationModal({ deal, onClose }: Props) {
     setQualification((deal.qualification as Record<string, string>) ?? {});
     setChecklist((deal.goLiveChecklist as Record<string, boolean>) ?? {});
 
-    // On ouvre la première étape incomplète : c'est là que le travail reprend.
     const answers = (deal.qualification as Record<string, string>) ?? {};
+
+    // Une affaire déjà qualifiée s'ouvre sur le récapitulatif : on vient
+    // relire ce qui a été dit, pas ressaisir. Une affaire vierge s'ouvre sur
+    // le questionnaire, seule chose à y faire.
+    setView(Object.values(answers).some((v) => v?.trim()) ? "table" : "form");
+
+    // On déroule la première étape incomplète : c'est là que le travail reprend.
     const next = qualificationSections.find(
       (section) => !isSectionComplete(section.fields, answers, section.stage),
     );

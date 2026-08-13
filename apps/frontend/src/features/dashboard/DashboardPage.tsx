@@ -26,7 +26,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { QK, type RoleName } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatMoney, initials } from "@/lib/format";
 import type { ApiError } from "@/types/api";
 
 type Row = Record<string, unknown>;

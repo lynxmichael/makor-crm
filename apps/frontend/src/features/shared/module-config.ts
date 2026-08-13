@@ -16,7 +16,9 @@ export type FieldType =
   | "select"
   | "status"
   /** Renvoi vers une autre fiche : rendu par un sélecteur de recherche. */
-  | "reference";
+  | "reference"
+  /** Liste déroulante alimentée par un référentiel des Paramètres. */
+  | "lookup";
 
 export interface ModuleField {
   key: string;
@@ -54,6 +56,15 @@ export interface ModuleField {
   reference?: {
     resource: "customers" | "invoices" | "contracts" | "products" | "users" | "deals" | "leads";
   };
+
+  /**
+   * Pour un champ de type `lookup` : référentiel des Paramètres à charger.
+   *
+   * On stocke le libellé et non l'identifiant : les modèles portent le pays
+   * en texte (`Customer.country`, `Lead.country`), et une jointure imposerait
+   * une migration sur chaque table concernée pour un gain nul.
+   */
+  lookup?: { source: "countries" | "sectors" | "currencies" };
 }
 
 /** Contrat minimal attendu d'un service produit par `createResource`. */

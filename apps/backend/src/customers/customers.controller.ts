@@ -31,7 +31,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiBearerAuth()
 @Controller('customers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
+// Le Financier entre dans le module en LECTURE : il ne peut pas
+// facturer sans choisir un client. Les écritures restent fermées par
+// les @Roles de méthode, qui priment sur celui de la classe.
+@Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER')
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 

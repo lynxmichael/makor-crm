@@ -769,6 +769,7 @@ model Invoice {
   /// Horodatage de la dernière alerte de retard émise. Empêche de
   /// réémettre chaque matin pour la même pièce (OverdueWatcherService).
   notifiedOverdueAt DateTime?
+  installments InvoiceInstallment[]
 }
 
 model InvoiceItem {
@@ -2056,4 +2057,42 @@ model CommissionWithdrawal {
 
   @@index([userId, status])
   @@index([status])
+}
+
+// ===========================================================================
+// Échelonnement des factures (demande du 12/08/2026)
+// ===========================================================================
+
+/**
+ * Échéance d'un plan de paiement.
+ *
+ * L'échéancier est un ENGAGEMENT prévisionnel ; les `Payment` restent les
+ * versements réellement constatés. Les confondre empêcherait de répondre à la
+ * seule question qui compte en recouvrement : ce qui est dû aujourd'hui a-t-il
+ * été payé, et de combien est-on en retard.
+ *
+ * Aucun montant payé n'est stocké ici : il se déduit des versements, imputés
+ * aux échéances les plus anciennes d'abord. Stocker les deux ferait diverger
+ * la somme des échéances et la somme des encaissements.
+ */
+model InvoiceInstallment {
+  id String @id @default(cuid())
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  /// Rang dans l'échéancier, à partir de 1.
+  sequence Int
+
+  amount  Decimal  @db.Decimal(14, 2)
+  dueDate DateTime
+
+  /// Libellé facultatif : « Acompte », « Solde à la livraison »…
+  label String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([invoiceId, sequence])
+  @@index([dueDate])
 }

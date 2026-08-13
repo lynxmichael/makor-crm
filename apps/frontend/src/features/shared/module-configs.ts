@@ -83,6 +83,9 @@ export const prospectsConfig: ModuleConfig = {
     { key: "country", label: "Pays" },
     { key: "phone", label: "Téléphone" },
     { key: "value", label: "Potentiel", type: "money", align: "right" },
+    // Origine : distingue un prospect saisi ici d'un prospect venu de
+    // l'annuaire ou d'un import de fichier.
+    { key: "source", label: "Origine" },
     { key: "status", label: "Statut", type: "status" },
   ],
   fields: [
@@ -93,7 +96,13 @@ export const prospectsConfig: ModuleConfig = {
     { key: "email", label: "E-mail", type: "email" },
     { key: "phone", label: "Téléphone", type: "tel" },
     { key: "sector", label: "Secteur d'activité" },
-    { key: "country", label: "Pays", placeholder: "Côte d'Ivoire" },
+    {
+      key: "country",
+      label: "Pays",
+      type: "lookup",
+      lookup: { source: "countries" },
+      placeholder: "Sélectionner un pays",
+    },
     { key: "city", label: "Ville", placeholder: "Abidjan" },
     { key: "decisionMaker", label: "Décideur" },
     { key: "value", label: "Potentiel estimé (FCFA)", type: "money" },
@@ -345,7 +354,9 @@ export const senderIdConfig: ModuleConfig = {
     {
       key: "partnerCountry",
       label: "Pays du partenaire",
-      placeholder: "Côte d'Ivoire",
+      type: "lookup",
+      lookup: { source: "countries" },
+      placeholder: "Sélectionner un pays",
       // L'homologation se fait pays par pays : la même demande doit être
       // reprise auprès de chaque régulateur, et son statut peut différer.
       hint: "Le Sender ID s'homologue auprès du régulateur de chaque pays.",

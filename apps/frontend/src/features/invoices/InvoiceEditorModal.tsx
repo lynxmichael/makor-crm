@@ -11,6 +11,7 @@ import { Field, Select } from "@/components/ui/Field";
 import { EntitySelect } from "@/components/shared/EntitySelect";
 import { CommentThread } from "@/features/collaboration/CommentThread";
 import { InvoicePaymentsPanel } from "./InvoicePaymentsPanel";
+import { InvoiceSchedulePanel } from "./InvoiceSchedulePanel";
 
 import {
   contractsService,
@@ -375,6 +376,8 @@ export function InvoiceEditorModal({ open, onClose, invoice }: Props) {
         {isEdit && invoice?.id && (
           <div className="space-y-4 border-t border-line pt-5">
             <InvoicePaymentsPanel invoice={invoice} />
+
+            <InvoiceSchedulePanel invoice={invoice} />
 
             <CommentThread
               entityType="INVOICE"

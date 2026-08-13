@@ -23,6 +23,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import { InvoicesService } from './invoices.service';
 import { InvoicePdfService } from './invoice-pdf.service';
+import { InstallmentsService } from './installments.service';
+import { GenerateInstallmentsDto } from './dto/generate-installments.dto';
 
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
@@ -36,6 +38,7 @@ export class InvoicesController {
   constructor(
     private readonly invoicesService: InvoicesService,
     private readonly invoicePdfService: InvoicePdfService,
+    private readonly installments: InstallmentsService,
   ) {}
 
   @Post()
@@ -64,6 +67,37 @@ export class InvoicesController {
       status,
       customerId,
     });
+  }
+
+  @Get(':id/schedule')
+  @ApiOperation({ summary: 'Échéancier de la facture, versements imputés' })
+  schedule(@Param('id') id: string) {
+    return this.installments.schedule(id);
+  }
+
+  @Post(':id/schedule')
+  @ApiOperation({ summary: 'Créer ou remplacer l’échéancier' })
+  generateSchedule(
+    @Param('id') id: string,
+    @Body() dto: GenerateInstallmentsDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.installments.generate(
+      id,
+      {
+        count: dto.count,
+        everyDays: dto.everyDays,
+        firstDueDate: dto.firstDueDate ? new Date(dto.firstDueDate) : undefined,
+        downPayment: dto.downPayment,
+      },
+      user.id,
+    );
+  }
+
+  @Delete(':id/schedule')
+  @ApiOperation({ summary: 'Supprimer l’échéancier sans toucher aux versements' })
+  clearSchedule(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.installments.clear(id, user.id);
   }
 
   @Get(':id')

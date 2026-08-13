@@ -10,6 +10,7 @@ import { InvoicesController } from './invoices.controller';
 import { InvoicesService } from './invoices.service';
 import { InvoiceNumberService } from './invoice-number.service';
 import { InvoicePdfService } from './invoice-pdf.service';
+import { InstallmentsService } from './installments.service';
 
 @Module({
   imports: [
@@ -22,8 +23,8 @@ import { InvoicePdfService } from './invoice-pdf.service';
 
   controllers: [InvoicesController],
 
-  providers: [InvoicesService, InvoiceNumberService, InvoicePdfService],
+  providers: [InvoicesService, InvoiceNumberService, InvoicePdfService, InstallmentsService],
 
-  exports: [InvoicesService, InvoiceNumberService, InvoicePdfService],
+  exports: [InvoicesService, InvoiceNumberService, InvoicePdfService, InstallmentsService],
 })
 export class InvoicesModule {}
