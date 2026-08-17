@@ -68,12 +68,15 @@ export class ExpensesController {
   @Patch(':id')
   @ApiOperation({ summary: 'Modifier sa note, tant qu’elle est en attente' })
   update(@Param('id') id: string, @Body() dto: UpdateExpenseDto, @CurrentUser() user: Actor) {
-  const { spentAt, ...rest } = dto;
+    // `spentAt` est extrait plutôt que surchargé après l'étalement : un
+    // `...dto` suivi d'une réécriture laisse le type d'origine (une chaîne)
+    // dans l'union déduite, et le service attend une Date.
+    const { spentAt, ...rest } = dto;
 
-return this.expenses.update(id, user, {
-  ...rest,
-  ...(spentAt ? { spentAt: new Date(spentAt) } : {}),
-});
+    return this.expenses.update(id, user, {
+      ...rest,
+      ...(spentAt ? { spentAt: new Date(spentAt) } : {}),
+    });
   }
 
   @Patch(':id/approve')

@@ -25,6 +25,13 @@ export class CreateDocumentDto {
   @IsEnum(DocumentType)
   type!: DocumentType;
 
+  /**
+   * Déposant — renseigné par le serveur depuis le jeton, jamais par le client.
+   *
+   * Laissé au client, ce champ permettait d'attribuer un dépôt à un collègue :
+   * la colonne « Déposé par » et le journal devenaient déclaratifs.
+   */
+  @IsOptional()
   @IsString()
-  uploadedById!: string;
+  uploadedById?: string;
 }

@@ -492,6 +492,9 @@ export const documentsConfig: ModuleConfig = {
   fields: [],
   readOnly: true,
   statsPanel: { path: "/documents/:id/stats" },
+  // Aperçu dans un onglet, ou enregistrement sous le nom du document.
+  fileActions: { pathKey: "path", nameKey: "fileName" },
+  uploadAction: { label: "Déposer un document" },
   emptyTitle: "Aucun document",
   emptyDetail: "Les documents déposés depuis les fiches client apparaîtront ici.",
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from "lucide-react";
 
 import { Button, buttonStyles } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,12 @@ export function LoginPage() {
     onSuccess: (session) => {
       setSession(session);
       navigate(redirectTo, { replace: true });
+    },
+    onError: () => {
+      // Le champ se vide après un refus : l'envoi étant automatique au
+      // sixième chiffre, un code erroné laissé en place empêcherait toute
+      // nouvelle tentative — la longueur ne changerait plus.
+      setCode("");
     },
   });
 
@@ -168,20 +174,45 @@ export function LoginPage() {
                     // Chiffres alignés et espacés : on lit un code, pas un mot.
                     className="pl-9 font-mono-tabular text-lg tracking-[0.3em]"
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))}
+                    onChange={(e) => {
+                      const next = e.target.value.replace(/\s/g, "");
+                      setCode(next);
+
+                      // Validation dès le sixième chiffre : le code TOTP fait
+                      // toujours six caractères, et demander une confirmation
+                      // après une saisie de longueur connue n'apporte rien.
+                      // Le collage depuis l'application d'authentification
+                      // déclenche donc l'envoi immédiatement.
+                      if (/^\d{6}$/.test(next) && !twoFactorMutation.isPending) {
+                        twoFactorMutation.mutate();
+                      }
+                    }}
                   />
                 </div>
               </Field>
 
               <FormError message={error?.message} />
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={twoFactorMutation.isPending || code.length < 6}
-              >
-                {twoFactorMutation.isPending ? "Vérification…" : "Vérifier"}
-              </Button>
+              {/* Conservé pour les codes de secours, qui ne font pas six
+                  chiffres et ne peuvent donc pas déclencher l'envoi
+                  automatique. Masqué pendant la vérification d'un code TOTP,
+                  où il n'a plus d'objet. */}
+              {!/^\d{6}$/.test(code) && (
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={twoFactorMutation.isPending || code.length < 6}
+                >
+                  {twoFactorMutation.isPending ? "Vérification…" : "Vérifier"}
+                </Button>
+              )}
+
+              {twoFactorMutation.isPending && /^\d{6}$/.test(code) && (
+                <p className="flex items-center justify-center gap-2 py-2.5 text-sm text-slate">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Vérification…
+                </p>
+              )}
 
               <Button
                 type="button"

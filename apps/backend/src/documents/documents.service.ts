@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { DocumentEventType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,6 +11,12 @@ export class DocumentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   upload(file: Express.Multer.File, dto: CreateDocumentDto) {
+    // Sans ce garde-fou, un envoi sans pièce plante sur `file.filename` avec
+    // une erreur illisible côté client.
+    if (!file) {
+      throw new BadRequestException('Aucun fichier reçu.');
+    }
+
     return this.prisma.document.create({
       data: {
         name: dto.name ?? file.originalname,
@@ -53,39 +59,76 @@ export class DocumentsService {
     });
   }
 
-  findAll(params?: {
+  /**
+   * Liste paginée.
+   *
+   * La réponse suit la forme `{ data, total, page, limit, totalPages }`
+   * commune à tous les modules : l'écran générique lit `data`, et un tableau
+   * nu lui donnait une liste vide quel que soit le contenu réel.
+   */
+  async findAll(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
     customerId?: string;
     dealId?: string;
     quoteId?: string;
     contractId?: string;
     scopeToUserId?: string;
   }) {
-    return this.prisma.document.findMany({
-      where: {
-        customerId: params?.customerId,
-        dealId: params?.dealId,
-        quoteId: params?.quoteId,
-        contractId: params?.contractId,
-        // Périmètre : un commercial ne voit que les documents des clients
-        // dont il a la charge. Un document sans client rattaché n'apparaît
-        // pas — faute de pouvoir établir à qui il appartient.
-        ...(params?.scopeToUserId
-          ? { customer: { assignedToId: params.scopeToUserId } }
-          : {}),
-      },
+    const page = Math.max(1, Number(params?.page) || 1);
+    const limit = Math.min(200, Math.max(1, Number(params?.limit) || 20));
 
-      include: {
-        customer: true,
-        deal: true,
-        quote: true,
-        contract: true,
-        uploadedBy: true,
-      },
+    const where = {
+      ...(params?.customerId ? { customerId: params.customerId } : {}),
+      ...(params?.dealId ? { dealId: params.dealId } : {}),
+      ...(params?.quoteId ? { quoteId: params.quoteId } : {}),
+      ...(params?.contractId ? { contractId: params.contractId } : {}),
+      ...(params?.type ? { type: params.type as never } : {}),
+      ...(params?.search
+        ? {
+            OR: [
+              { name: { contains: params.search, mode: 'insensitive' as const } },
+              { fileName: { contains: params.search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
 
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+      // Périmètre : un commercial ne voit que les documents des clients dont
+      // il a la charge, plus ceux qu'il a lui-même déposés. Sans cette
+      // seconde condition, un document déposé sans client rattaché
+      // disparaissait pour son propre auteur.
+      ...(params?.scopeToUserId
+        ? {
+            OR: [
+              { customer: { assignedToId: params.scopeToUserId } },
+              { uploadedById: params.scopeToUserId },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.document.findMany({
+        where,
+        include: {
+          customer: true,
+          deal: true,
+          quote: true,
+          contract: true,
+          uploadedBy: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.document.count({ where }),
+    ]);
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 
   async findOne(id: string) {

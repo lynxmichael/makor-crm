@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PrismaModule } from '../prisma/prisma.module';
 
 import { MailerModule } from '@nestjs-modules/mailer';
 
 import { MailController } from './mail.controller';
 import { MailService } from './mail.service';
+import { InboundMailService } from './inbound-mail.service';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { MailService } from './mail.service';
      * configuré avec des valeurs indéfinies, et l'envoi échouait sans que
      * la cause soit visible.
      */
+    PrismaModule,
+
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -51,8 +55,8 @@ import { MailService } from './mail.service';
 
   controllers: [MailController],
 
-  providers: [MailService],
+  providers: [MailService, InboundMailService],
 
-  exports: [MailService],
+  exports: [MailService, InboundMailService],
 })
 export class MailModule {}

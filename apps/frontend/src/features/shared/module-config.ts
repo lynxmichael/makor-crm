@@ -157,6 +157,23 @@ export interface ModuleConfig {
   /** Affiche un panneau de statistiques par ligne (documents). */
   statsPanel?: { path: string };
 
+  /**
+   * Aperçu et téléchargement d'un fichier attaché à la ligne.
+   *
+   * `pathKey` désigne le champ portant le chemin du fichier, `nameKey` celui
+   * du nom à proposer à l'enregistrement.
+   */
+  fileActions?: { pathKey: string; nameKey?: string };
+
+  /**
+   * Dépôt de fichier par une modale dédiée.
+   *
+   * Nécessaire pour les modules en lecture seule, dont le formulaire
+   * générique est désactivé : le dépôt passe par un envoi multipart que
+   * `ModuleFormModal` ne sait pas produire.
+   */
+  uploadAction?: { label: string };
+
   panels?: {
     entityType: string;
     comments?: boolean;

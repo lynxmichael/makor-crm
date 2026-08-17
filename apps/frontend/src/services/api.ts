@@ -57,6 +57,15 @@ export function connectAuthBridge(next: TokenBridge) {
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = bridge.getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  // Envoi de fichier : l'instance impose `application/json` par défaut, ce qui
+  // fait échouer tout multipart — le serveur annonce du JSON, ne trouve aucune
+  // pièce et rejette la requête. On efface l'en-tête pour que le navigateur
+  // pose lui-même `multipart/form-data` avec sa « boundary », qu'il est le
+  // seul à pouvoir calculer.
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
   return config;
 });
 
@@ -225,16 +234,87 @@ export async function openFile(path: string, filename?: string): Promise<void> {
     return;
   }
 
-  const name = path.replace(/^\/?uploads\/?/, "");
-  const response = await api.get(`/files/${name}`, { responseType: "blob" });
+  // L'onglet d'aperçu est réservé MAINTENANT, tant que le clic de
+  // l'utilisateur est encore le contexte courant. Ouvert après le
+  // téléchargement du fichier, il serait tenu pour une fenêtre surgissante
+  // spontanée et bloqué à chaque fois — le geste ayant expiré pendant
+  // l'attente réseau.
+  const tab = filename ? null : window.open("", "_blank", "noopener");
 
-  const url = URL.createObjectURL(response.data as Blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.target = "_blank";
-  link.rel = "noopener";
-  if (filename) link.download = filename;
-  link.click();
+  // Un onglet vide inquiète sur un fichier volumineux : on y annonce
+  // l'attente le temps du téléchargement.
+  if (tab) {
+    tab.document.write(
+      '<!doctype html><meta charset="utf-8"><title>Ouverture du document…</title>' +
+        '<body style="font:15px system-ui;color:#475569;padding:2rem">' +
+        'Ouverture du document…</body>',
+    );
+    tab.document.close();
+  }
+
+  // Le chemin vient de multer et suit le séparateur du système : « uploads/x »
+  // sur Linux, « uploads\\x » sur Windows. La route sert par NOM de fichier,
+  // on ne garde donc que le dernier segment, quel que soit le séparateur.
+  const name = path.split(/[\\/]/).filter(Boolean).pop() ?? "";
+
+  if (!name) return;
+
+  // `filename` distingue les deux usages : sans lui on veut voir le fichier,
+  // avec lui on veut le conserver. Le serveur adapte son en-tête en
+  // conséquence — un PDF s'affiche dans un onglet ou part au téléchargement.
+  let response;
+
+  try {
+    response = await api.get(`/files/${encodeURIComponent(name)}`, {
+      responseType: "blob",
+      params: filename ? { download: "1" } : undefined,
+    });
+  } catch (error) {
+    // L'onglet réservé doit être refermé si le fichier n'arrive pas : sinon
+    // l'utilisateur se retrouve devant une page blanche sans explication,
+    // tandis que le message d'erreur s'affiche dans l'onglet d'origine.
+    tab?.close();
+    throw error;
+  }
+
+  // Le type est réattaché au blob : axios le renvoie parfois sans, et un blob
+  // sans type s'ouvre en page blanche au lieu d'afficher le PDF.
+  const blob = new Blob([response.data as BlobPart], {
+    type: response.headers["content-type"] ?? "application/octet-stream",
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  if (filename) {
+    // Téléchargement : l'ancre doit être DANS le document. Firefox ignore un
+    // clic programmé sur un élément détaché — c'est ce qui faisait que le
+    // bouton ne produisait rien.
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } else if (tab) {
+    // L'onglet réservé plus haut reçoit le fichier.
+    tab.location.href = url;
+  } else {
+    // Onglet refusé malgré tout : plutôt qu'un message d'erreur à chaque
+    // aperçu, on retombe sur une ancre `target="_blank"`, que les
+    // navigateurs traitent comme une navigation et non comme une fenêtre
+    // surgissante.
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
   // Laisser au navigateur le temps d'ouvrir avant de libérer l'URL.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);

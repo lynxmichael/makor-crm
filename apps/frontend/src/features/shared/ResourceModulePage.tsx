@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import {
   Check,
   BarChart3,
+  Download,
+  Eye,
   CirclePause,
   CircleStop,
   Plus,
@@ -10,6 +12,7 @@ import {
   Send,
   SlidersHorizontal,
   Trash2,
+  Upload,
   Pencil,
   type LucideIcon,
 } from "lucide-react";
@@ -23,9 +26,10 @@ import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataS
 
 import { ModuleFormModal } from "./ModuleFormModal";
 import { DocumentStatsPanel } from "@/features/documents/DocumentStatsPanel";
+import { DocumentUploadModal } from "@/features/documents/DocumentUploadModal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { http } from "@/services/api";
+import { http, openFile } from "@/services/api";
 import { useResourceList, useResourceMutations } from "@/hooks/use-resource";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -62,6 +66,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
   const [toSend, setToSend] = useState<Row | null>(null);
   const [rowAction, setRowAction] = useState<{ row: Row; index: number } | null>(null);
   const [statsFor, setStatsFor] = useState<Row | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const debouncedSearch = useDebounced(search, 350);
 
@@ -143,6 +148,13 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
             {query.isPending ? "Chargement…" : config.subtitle(total)}
           </p>
         </div>
+
+        {config.uploadAction && (
+          <Button onClick={() => setUploadOpen(true)}>
+            <Upload className="h-4 w-4" />
+            {config.uploadAction.label}
+          </Button>
+        )}
 
         {canWrite && (
           <Button
@@ -244,7 +256,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                       {column.label}
                     </th>
                   ))}
-                  {(canWrite || config.statsPanel) && (
+                  {(canWrite || config.statsPanel || config.fileActions) && (
                     <th className="px-4 py-3 text-right">Actions</th>
                   )}
                 </tr>
@@ -275,9 +287,46 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                       </td>
                     ))}
 
-                    {(canWrite || config.statsPanel) && (
+                    {(canWrite || config.statsPanel || config.fileActions) && (
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
+                          {config.fileActions && row[config.fileActions.pathKey] ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  void openFile(
+                                    String(row[config.fileActions!.pathKey]),
+                                  ).catch((error) =>
+                                    toast.error((error as ApiError).message),
+                                  )
+                                }
+                                aria-label="Prévisualiser"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  void openFile(
+                                    String(row[config.fileActions!.pathKey]),
+                                    String(
+                                      row[config.fileActions!.nameKey ?? "name"] ?? "document",
+                                    ),
+                                  ).catch((error) =>
+                                    toast.error((error as ApiError).message),
+                                  )
+                                }
+                                aria-label="Télécharger"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : null}
+
                           {config.statsPanel && (
                             <Button
                               variant="ghost"
@@ -430,6 +479,10 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
             </Button>
           </div>
         </Modal>
+      )}
+
+      {config.uploadAction && (
+        <DocumentUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
       )}
 
       {config.statsPanel && (

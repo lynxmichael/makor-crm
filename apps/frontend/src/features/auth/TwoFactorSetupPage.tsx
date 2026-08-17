@@ -71,7 +71,13 @@ export function TwoFactorSetupPage() {
       setRecoveryCodes(result.recoveryCodes);
       setStep("recovery");
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => {
+      toast.error((error as ApiError).message);
+      // L'envoi partant seul au sixième chiffre, un code refusé laissé en
+      // place empêcherait toute nouvelle tentative : la longueur ne
+      // changerait plus.
+      setCode("");
+    },
   });
 
   function finish() {
@@ -211,7 +217,13 @@ export function TwoFactorSetupPage() {
               <Input
                 id="code"
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => {
+                  const next = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setCode(next);
+
+                  // Activation dès le sixième chiffre, comme à la connexion.
+                  if (next.length === 6 && !enable.isPending) enable.mutate();
+                }}
                 placeholder="000000"
                 inputMode="numeric"
                 autoComplete="one-time-code"
@@ -227,13 +239,16 @@ export function TwoFactorSetupPage() {
               <Button variant="secondary" onClick={() => setStep("scan")}>
                 Retour
               </Button>
+              {/* L'activation part seule au sixième chiffre. Le bouton reste
+                  pour rejouer un code après un échec — sans lui, il faudrait
+                  effacer puis ressaisir pour relancer la tentative. */}
               <Button
                 className="flex-1"
                 onClick={() => enable.mutate()}
                 disabled={enable.isPending || code.length !== 6}
               >
                 {enable.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Activer
+                {enable.isPending ? "Activation…" : "Réessayer"}
               </Button>
             </div>
           </div>

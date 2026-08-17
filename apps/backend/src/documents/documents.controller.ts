@@ -69,13 +69,19 @@ export class DocumentsController {
   upload(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateDocumentDto,
+    @CurrentUser() user: { id: string },
   ) {
-    return this.documentsService.upload(file, dto);
+    // Le déposant est celui qui est authentifié, quoi qu'annonce le corps.
+    return this.documentsService.upload(file, { ...dto, uploadedById: user.id });
   }
 
   @Get()
   @ApiOperation({ summary: 'Liste des documents, filtrable par fiche liée' })
   findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('type') type?: string,
     @Query('customerId') customerId?: string,
     @Query('dealId') dealId?: string,
     @Query('quoteId') quoteId?: string,
@@ -83,6 +89,10 @@ export class DocumentsController {
     @CurrentUser() user?: any,
   ) {
     return this.documentsService.findAll({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      type,
       customerId,
       dealId,
       quoteId,

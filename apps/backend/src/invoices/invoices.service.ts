@@ -1,4 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -15,6 +17,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
@@ -265,6 +269,14 @@ export class InvoicesService {
       { filename: `${invoice.number}.pdf`, content: pdf },
     );
 
+    // Archivage de l'exemplaire envoyé.
+    //
+    // Les PDF sont normalement régénérés à la demande, ce qui garantit qu'ils
+    // reflètent la facture actuelle. Mais une facture peut être corrigée après
+    // coup : on ne saurait alors plus ce que le client a réellement reçu.
+    // L'exemplaire figé sert précisément à ça, et n'est écrit qu'à l'envoi.
+    await this.archiveSentCopy(invoice, pdf, userId);
+
     // Une facture déjà réglée peut être renvoyée sur demande du client sans
     // repasser en « émise » : on ne régresse jamais un statut acquis.
     const updated = await this.prisma.invoice.update({
@@ -306,6 +318,58 @@ export class InvoicesService {
     });
 
     return updated;
+  }
+
+  /**
+   * Enregistre l'exemplaire envoyé comme document, rattaché au client.
+   *
+   * L'échec de l'archivage n'annule pas l'envoi : le message est parti, et
+   * refuser la transaction laisserait la facture en brouillon alors que le
+   * client l'a reçue. On journalise et on continue.
+   */
+  private async archiveSentCopy(
+    invoice: { id: string; number: string; customerId: string },
+    pdf: Buffer,
+    userId?: string,
+  ): Promise<void> {
+    try {
+      const root = join(process.cwd(), 'uploads');
+      if (!existsSync(root)) mkdirSync(root, { recursive: true });
+
+      // Horodatage dans le nom : un renvoi ne doit pas écraser l'exemplaire
+      // précédent, chacun témoignant d'un envoi distinct.
+      const fileName = `facture-${invoice.number}-${Date.now()}.pdf`;
+      writeFileSync(join(root, fileName), pdf);
+
+      await this.prisma.document.create({
+        data: {
+          name: `Facture ${invoice.number} — exemplaire envoyé`,
+          fileName,
+          path: `uploads/${fileName}`,
+          mimeType: 'application/pdf',
+          size: pdf.length,
+          type: 'INVOICE',
+          customerId: invoice.customerId,
+          uploadedById: userId ?? (await this.anyAdminId()),
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Archivage de la facture ${invoice.number} impossible : ${
+          error instanceof Error ? error.message : 'erreur inconnue'
+        }`,
+      );
+    }
+  }
+
+  /** Repli quand l'envoi n'a pas d'auteur : `Document.uploadedById` est requis. */
+  private async anyAdminId(): Promise<string> {
+    const admin = await this.prisma.user.findFirst({
+      where: { role: { name: 'SUPER_ADMIN' } },
+      select: { id: true },
+    });
+
+    return admin!.id;
   }
 
   async markAsPaid(id: string) {

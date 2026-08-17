@@ -1,9 +1,10 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { join } from 'path';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -38,6 +39,15 @@ async function bootstrap() {
     origin: config.getOrThrow<string>('FRONTEND_URL'),
     credentials: true,
   });
+
+  // Dossier de dépôt créé au démarrage : multer ne crée pas sa destination et
+  // échoue silencieusement à l'écriture si elle manque — le document semble
+  // alors ne jamais arriver, sans erreur explicite côté client.
+  const uploadsRoot = join(process.cwd(), 'uploads');
+  if (!existsSync(uploadsRoot)) {
+    mkdirSync(uploadsRoot, { recursive: true });
+    Logger.log(`Dossier de dépôt créé : ${uploadsRoot}`, 'Bootstrap');
+  }
 
   app.setGlobalPrefix('api/v1');
 

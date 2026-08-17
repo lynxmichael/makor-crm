@@ -41,9 +41,7 @@ export function DirectoryImportModal({
       if (customerId) form.append("customerId", customerId);
 
       // Content-Type laissé au navigateur : le fixer omettrait la « boundary ».
-      const response = await api.post<Report>("/directory/import", form, {
-        headers: { "Content-Type": undefined },
-      });
+      const response = await api.post<Report>("/directory/import", form);
       return response.data;
     },
     onSuccess: (result) => {
