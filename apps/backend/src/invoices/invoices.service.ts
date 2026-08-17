@@ -341,7 +341,7 @@ export class InvoicesService {
       const fileName = `facture-${invoice.number}-${Date.now()}.pdf`;
       writeFileSync(join(root, fileName), pdf);
 
-      await this.prisma.document.create({
+      const archived = await this.prisma.document.create({
         data: {
           name: `Facture ${invoice.number} — exemplaire envoyé`,
           fileName,
@@ -351,6 +351,16 @@ export class InvoicesService {
           type: 'INVOICE',
           customerId: invoice.customerId,
           uploadedById: userId ?? (await this.anyAdminId()),
+        },
+      });
+
+      // L'envoi est le premier événement de la vie du document : sans lui, le
+      // compteur « Envois » resterait à zéro alors que le client l'a reçu.
+      await this.prisma.documentEvent.create({
+        data: {
+          documentId: archived.id,
+          type: 'SENT',
+          userId: userId ?? null,
         },
       });
     } catch (error) {

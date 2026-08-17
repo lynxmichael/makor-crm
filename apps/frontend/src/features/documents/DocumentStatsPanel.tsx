@@ -13,7 +13,6 @@ type Row = Record<string, unknown> & { id?: unknown };
 interface Stats {
   document: Row;
   counts: { viewed: number; previewed: number; downloaded: number; sent: number };
-  firstClientAccessAt: string | null;
   recent: Row[];
 }
 
@@ -51,7 +50,7 @@ export function DocumentStatsPanel({ documentId }: { documentId: string }) {
     return <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />;
   }
 
-  const { counts, firstClientAccessAt, recent } = query.data;
+  const { counts, recent } = query.data;
 
   return (
     <div className="space-y-5">
@@ -74,21 +73,25 @@ export function DocumentStatsPanel({ documentId }: { documentId: string }) {
         ))}
       </dl>
 
+      {/* L'accès du client n'est pas mesurable : le PDF part en pièce jointe,
+          et la route qui sert les fichiers exige une session. On annonce donc
+          ce qui est constaté — l'envoi — sans prétendre savoir s'il a été
+          ouvert. */}
       <div
         className={`flex items-start gap-2 rounded-xl px-4 py-3 text-sm leading-relaxed ${
-          firstClientAccessAt ? "bg-signal/10 text-signal" : "bg-paper text-slate"
+          counts.sent > 0 ? "bg-signal/10 text-signal" : "bg-paper text-slate"
         }`}
       >
         <MailCheck className="mt-0.5 h-4 w-4 shrink-0" />
-        {firstClientAccessAt ? (
+        {counts.sent > 0 ? (
           <span>
-            Ouvert par le client le{" "}
-            <strong>{formatDateTime(firstClientAccessAt)}</strong>.
+            Transmis au client{" "}
+            {counts.sent > 1 ? `à ${counts.sent} reprises` : "une fois"}. L'ouverture par le
+            destinataire n'est pas mesurable : le fichier part en pièce jointe.
           </span>
         ) : (
           <span>
-            Aucune ouverture côté client pour l'instant — soit le document n'a pas été envoyé,
-            soit il n'a pas encore été consulté.
+            Pas encore transmis au client. Les accès ci-dessus sont ceux des agents.
           </span>
         )}
       </div>
@@ -116,7 +119,7 @@ export function DocumentStatsPanel({ documentId }: { documentId: string }) {
                   <span className="text-xs text-slate">
                     {user
                       ? `${String(user.firstName ?? "")} ${String(user.lastName ?? "")}`
-                      : "Client"}
+                      : "Système"}
                   </span>
                   <span className="ml-auto text-xs text-slate">
                     {formatDateTime(event.createdAt as string)}

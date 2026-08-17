@@ -4,7 +4,9 @@ import {
   Get,
   NotFoundException,
   Param,
+  Logger,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +18,7 @@ import { basename, extname, join } from 'path';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * Types servis en aperçu. Volontairement restreint : un fichier inconnu part
@@ -55,6 +58,9 @@ const MIME_TYPES: Record<string, string> = {
 @UseGuards(JwtAuthGuard)
 export class FilesController {
   private readonly root = join(process.cwd(), 'uploads');
+  private readonly logger = new Logger(FilesController.name);
+
+  constructor(private readonly prisma: PrismaService) {}
 
   @Get(':name')
   @ApiOperation({ summary: 'Télécharger un fichier déposé (authentification requise)' })
@@ -62,6 +68,7 @@ export class FilesController {
     @Param('name') name: string,
     @Res() res: Response,
     @Query('download') download?: string,
+    @Req() request?: any,
   ) {
     // `basename` neutralise toute tentative de remontée d'arborescence :
     // « ../../.env » se réduit à « .env », qui n'existe pas dans /uploads.
@@ -93,6 +100,61 @@ export class FilesController {
       `${download === '1' ? 'attachment' : 'inline'}; filename="${encodeURIComponent(safe)}"`,
     );
 
+    // Consultation enregistrée ici plutôt que depuis l'interface : c'est le
+    // seul point de passage obligé. Un appel côté client pourrait être omis,
+    // rejoué, ou contourné en visitant l'URL directement.
+    void this.track(safe, download === '1', request);
+
     createReadStream(path).pipe(res);
+  }
+
+  /**
+   * Journalise l'accès, si le fichier correspond à un document de la GED.
+   *
+   * Les pièces jointes de messagerie et les ressources partagent le même
+   * dossier sans être des documents : l'absence de correspondance n'est donc
+   * pas une anomalie, on ne journalise rien.
+   *
+   * L'écriture ne bloque pas le flux : un échec de suivi ne doit pas empêcher
+   * la lecture du fichier.
+   */
+  private async track(
+    fileName: string,
+    isDownload: boolean,
+    request: { user?: { id?: string }; ip?: string; headers: Record<string, unknown> },
+  ): Promise<void> {
+    try {
+      const document = await this.prisma.document.findFirst({
+        where: { fileName },
+        select: { id: true },
+      });
+
+      if (!document) return;
+
+      await this.prisma.documentEvent.create({
+        data: {
+          documentId: document.id,
+          // Trois types pour trois gestes : le client destinataire n'a pas de
+          // session, ses accès sont donc les seuls sans `userId` — c'est ce
+          // qui alimente `firstClientAccessAt`. Un agent qui ouvre l'aperçu
+          // depuis le CRM est compté en PREVIEWED, un accès sans session en
+          // VIEWED.
+          type: isDownload
+            ? 'DOWNLOADED'
+            : request.user?.id
+              ? 'PREVIEWED'
+              : 'VIEWED',
+          userId: request.user?.id ?? null,
+          ipAddress: request.ip ?? null,
+          userAgent: String(request.headers['user-agent'] ?? ''),
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Suivi de consultation impossible pour ${fileName} : ${
+          error instanceof Error ? error.message : 'erreur inconnue'
+        }`,
+      );
+    }
   }
 }
