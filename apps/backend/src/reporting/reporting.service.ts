@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import ExcelJS from 'exceljs';
 
@@ -25,6 +25,15 @@ export interface ReportFilters {
  * finale change (CSV / Excel / PDF), pour garantir la cohérence entre
  * les trois formats.
  */
+/** Aperçu d'un rapport : un échantillon de lignes et le total réel. */
+export interface ReportPreview {
+  title: string;
+  subtitle?: string;
+  columns: { key: string; label: string }[];
+  rows: Record<string, unknown>[];
+  total: number;
+}
+
 @Injectable()
 export class ReportingService {
   constructor(
@@ -41,13 +50,73 @@ export class ReportingService {
     };
   }
 
+  /**
+   * Format de sortie interne. Quand il vaut `preview`, `render` renvoie les
+   * données au lieu de produire un fichier : l'aperçu emprunte ainsi le même
+   * chemin que l'export, et ne peut pas diverger de ce qui sera téléchargé.
+   */
+  private previewBuffer: ReportPreview | null = null;
+
+  /**
+   * Aperçu d'un rapport avant export.
+   *
+   * On rejoue la méthode d'export en mode `preview` plutôt que de dupliquer
+   * les requêtes : un aperçu qui ne passerait pas par le même code finirait
+   * par montrer autre chose que le fichier produit.
+   */
+  async preview(
+    report: 'customers' | 'deals' | 'invoices' | 'recharges' | 'sales-performance',
+    filters: ReportFilters,
+  ): Promise<ReportPreview> {
+    this.previewBuffer = null;
+
+    switch (report) {
+      case 'customers':
+        await this.customers('preview' as ExportFormat, filters);
+        break;
+      case 'deals':
+        await this.deals('preview' as ExportFormat, filters);
+        break;
+      case 'invoices':
+        await this.invoices('preview' as ExportFormat, filters);
+        break;
+      case 'recharges':
+        await this.recharges('preview' as ExportFormat, filters);
+        break;
+      case 'sales-performance':
+        await this.salesPerformance('preview' as ExportFormat, filters);
+        break;
+    }
+
+    if (!this.previewBuffer) {
+      throw new NotFoundException('Rapport inconnu.');
+    }
+
+    return this.previewBuffer;
+  }
+
   private async render(
-    format: ExportFormat,
+    format: ExportFormat | 'preview',
     title: string,
     columns: ExportColumn[],
     rows: Record<string, unknown>[],
     subtitle?: string,
   ): Promise<ExportFile> {
+    if (format === 'preview') {
+      this.previewBuffer = {
+        title,
+        subtitle,
+        columns: columns.map((c) => ({ key: c.key, label: c.label })),
+        // Vingt lignes suffisent à juger du contenu ; le total dit s'il y a
+        // matière à exporter.
+        rows: rows.slice(0, 20),
+        total: rows.length,
+      };
+
+      // Sortie factice : l'appelant n'utilise pas ce retour en mode aperçu.
+      return { buffer: Buffer.alloc(0), contentType: 'application/json', extension: 'json' };
+    }
+
     if (format === 'csv') {
       return {
         buffer: buildCsv(columns, rows),

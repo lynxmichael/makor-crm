@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy, Loader2, RotateCw, Sparkles, X } from "lucide-react";
@@ -17,6 +18,7 @@ import {
   quotesService,
 } from "@/services/resources";
 import { QK } from "@/config/constants";
+import { useAiContextStore } from "@/store/ai-context.store";
 import { formatMoney } from "@/lib/format";
 import { EASE_OUT } from "@/lib/motion";
 import type { ApiError } from "@/types/api";
@@ -74,6 +76,22 @@ const TASK_SOURCES: Record<
   },
 };
 
+/**
+ * Tâches proposées selon l'écran ouvert.
+ *
+ * La première de chaque liste devient la tâche par défaut : sur les
+ * campagnes, on veut rédiger un message, pas une introduction de devis. Les
+ * autres restent accessibles — un écran ne dicte pas ce qu'on a le droit de
+ * demander, il dit seulement ce qui est probable.
+ */
+const ROUTE_TASKS: { match: RegExp; tasks: AiTaskType[] }[] = [
+  { match: /^\/campaigns/, tasks: ["CAMPAIGN_MESSAGE", "CAMPAIGN_VARIANTS"] },
+  { match: /^\/quotes/, tasks: ["QUOTE_INTRO", "QUOTE_TERMS", "EMAIL_DRAFT"] },
+  { match: /^\/contracts/, tasks: ["CONTRACT_BODY", "CONTRACT_CLAUSE"] },
+  { match: /^\/opportunities/, tasks: ["MEETING_SUMMARY"] },
+  { match: /^\/invoicing/, tasks: ["EMAIL_DRAFT"] },
+];
+
 const RESOURCES = {
   quotes: {
     service: quotesService,
@@ -122,11 +140,36 @@ const RESOURCES = {
  * ne transite depuis le navigateur.
  */
 export function AiAssistantModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [task, setTask] = useState<AiTaskType>("QUOTE_INTRO");
+  const { pathname } = useLocation();
+  const openContext = useAiContextStore((s) => s.context);
+
+  // Tâches pertinentes ici. À défaut de correspondance, tout est proposé
+  // dans l'ordre habituel.
+  const suggested = ROUTE_TASKS.find((entry) => entry.match.test(pathname))?.tasks ?? null;
+
+  const [task, setTask] = useState<AiTaskType>(suggested?.[0] ?? "QUOTE_INTRO");
   const [entityId, setEntityId] = useState("");
   const [instruction, setInstruction] = useState("");
   const [output, setOutput] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!open || !suggested) return;
+
+    // À la réouverture depuis un autre écran, on repart sur la tâche
+    // probable — sans quoi l'assistant garderait le choix d'un contexte
+    // qu'on a quitté.
+    setTask(suggested[0]);
+    setOutput(null);
+
+    // Si une fiche est ouverte et qu'elle relève de la tâche retenue, elle
+    // est reprise d'office : la rechercher à la main quand elle est sous les
+    // yeux n'a pas de sens.
+    const target = TASK_SOURCES[suggested[0]];
+    setEntityId(
+      openContext && openContext.resource === target.resource ? openContext.entityId : "",
+    );
+  }, [open, pathname, openContext]);
 
   const source = TASK_SOURCES[task];
   const resource = RESOURCES[source.resource];
@@ -186,13 +229,36 @@ export function AiAssistantModal({ open, onClose }: { open: boolean; onClose: ()
                 setOutput(null);
               }}
             >
-              {Object.entries(AI_TASK_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {/* Les tâches liées à l'écran passent devant, regroupées :
+                  le reste demeure accessible plus bas. */}
+              {suggested && (
+                <optgroup label="Sur cet écran">
+                  {suggested.map((value) => (
+                    <option key={value} value={value}>
+                      {AI_TASK_LABELS[value]}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+
+              <optgroup label={suggested ? "Autres rédactions" : "Rédactions"}>
+                {(Object.keys(AI_TASK_LABELS) as AiTaskType[])
+                  .filter((value) => !suggested?.includes(value))
+                  .map((value) => (
+                    <option key={value} value={value}>
+                      {AI_TASK_LABELS[value]}
+                    </option>
+                  ))}
+              </optgroup>
             </Select>
           </Field>
+
+          {openContext && openContext.resource === source.resource && (
+            <p className="flex items-center gap-2 rounded-lg bg-wire/10 px-3 py-2 text-xs text-wire">
+              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+              Repris depuis la fiche ouverte : {openContext.label}
+            </p>
+          )}
 
           <Field
             label="Sur quelle pièce ?"

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Field, Select, Textarea } from "@/components/ui/Field";
 import type { ApiError } from "@/types/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useAiContextStore } from "@/store/ai-context.store";
 import { EntitySelect } from "@/components/shared/EntitySelect";
 import {
   contractsService,
@@ -115,6 +116,25 @@ export function ModuleFormModal({
   pending,
   error,
 }: Props) {
+  // Fiche ouverte signalée à l'assistant, pour les modules qui le déclarent
+  // via `panels.entityType` — les contrats aujourd'hui.
+  const setAiContext = useAiContextStore((s) => s.setContext);
+  const clearAiContext = useAiContextStore((s) => s.clearContext);
+
+  useEffect(() => {
+    const entityType = config.panels?.entityType;
+    if (!row?.id || entityType !== "CONTRACT") return;
+
+    const id = String(row.id);
+    setAiContext({
+      resource: "contracts",
+      entityId: id,
+      label: String(row.number ?? row.title ?? ""),
+    });
+
+    return () => clearAiContext(id);
+  }, [row, config.panels?.entityType, setAiContext, clearAiContext]);
+
   const isEdit = Boolean(row);
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [values, setValues] = useState<Row>({});

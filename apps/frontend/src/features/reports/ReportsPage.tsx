@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
+  Eye,
   BarChart3,
   Building2,
   Download,
@@ -16,8 +18,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, Select } from "@/components/ui/Field";
+import { Modal } from "@/components/ui/Modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/shared/DataState";
 
-import { api } from "@/services/api";
+import { api, http } from "@/services/api";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import type { ApiError } from "@/types/api";
@@ -103,21 +108,32 @@ export function ReportsPage() {
   const [country, setCountry] = useState("");
   const [sector, setSector] = useState("");
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [previewOf, setPreviewOf] = useState<ReportDef | null>(null);
+
+  /**
+   * Filtres transmis à la route, aperçu comme export.
+   *
+   * On ne transmet que ceux que la route accepte : le backend tourne en
+   * liste blanche, un paramètre en trop est rejeté.
+   */
+  function buildParams(report: ReportDef, withFormat: boolean): Record<string, string> {
+    const params: Record<string, string> = withFormat ? { format } : {};
+
+    if (report.filters.includes("period")) {
+      if (from) params.from = from;
+      if (to) params.to = to;
+    }
+    if (report.filters.includes("country") && country) params.country = country;
+    if (report.filters.includes("sector") && sector) params.sector = sector;
+
+    return params;
+  }
 
   async function download(report: ReportDef) {
     setDownloading(report.key);
 
     try {
-      // On ne transmet que les filtres que la route accepte : le backend
-      // tourne en liste blanche, un paramètre en trop est rejeté.
-      const params: Record<string, string> = { format };
-
-      if (report.filters.includes("period")) {
-        if (from) params.from = from;
-        if (to) params.to = to;
-      }
-      if (report.filters.includes("country") && country) params.country = country;
-      if (report.filters.includes("sector") && sector) params.sector = sector;
+      const params = buildParams(report, true);
 
       const response = await api.get(report.path, { params, responseType: "blob" });
 
@@ -228,19 +244,130 @@ export function ReportsPage() {
                   {format.toUpperCase()}
                 </span>
 
-                <Button size="sm" onClick={() => void download(report)} disabled={busy}>
-                  {busy ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" />
-                  )}
-                  Exporter
-                </Button>
+                <div className="flex gap-2">
+                  {/* L'aperçu évite d'exporter à l'aveugle : on voit le
+                      nombre de lignes et les premières valeurs avant de
+                      produire un fichier. */}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setPreviewOf(report)}
+                    disabled={busy}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Aperçu
+                  </Button>
+
+                  <Button size="sm" onClick={() => void download(report)} disabled={busy}>
+                    {busy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    Exporter
+                  </Button>
+                </div>
               </div>
             </motion.article>
           );
         })}
       </motion.div>
+
+      <ReportPreviewModal
+        report={previewOf}
+        params={previewOf ? buildParams(previewOf, false) : {}}
+        onClose={() => setPreviewOf(null)}
+      />
     </div>
+  );
+}
+
+interface Preview {
+  title: string;
+  subtitle?: string;
+  columns: { key: string; label: string }[];
+  rows: Record<string, unknown>[];
+  total: number;
+}
+
+/**
+ * Aperçu avant export.
+ *
+ * Il emprunte le même chemin que l'export côté serveur : ce qu'on voit ici
+ * est exactement ce que contiendra le fichier, aux vingt premières lignes
+ * près.
+ */
+function ReportPreviewModal({
+  report,
+  params,
+  onClose,
+}: {
+  report: ReportDef | null;
+  params: Record<string, string>;
+  onClose: () => void;
+}) {
+  const query = useQuery({
+    queryKey: ["reporting", "preview", report?.key, params],
+    queryFn: () => http.get<Preview>(`/reporting/preview/${report!.key}`, { params }),
+    enabled: Boolean(report),
+  });
+
+  return (
+    <Modal
+      open={Boolean(report)}
+      onClose={onClose}
+      title={report?.title ?? ""}
+      description="Vingt premières lignes du rapport, telles qu'elles seront exportées."
+      className="max-w-4xl"
+    >
+      {query.isPending ? (
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </div>
+      ) : query.isError ? (
+        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+      ) : (query.data?.total ?? 0) === 0 ? (
+        <p className="rounded-xl bg-paper px-4 py-10 text-center text-sm text-slate">
+          Aucune donnée sur ce périmètre. Élargissez la période ou les filtres avant d'exporter.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-slate">
+            <strong className="text-ink">{query.data!.total}</strong> ligne
+            {query.data!.total > 1 ? "s" : ""} au total
+            {query.data!.total > query.data!.rows.length &&
+              ` — ${query.data!.rows.length} affichées ici`}
+          </p>
+
+          <div className="scrollbar-thin max-h-[60vh] overflow-auto rounded-xl border border-line">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-surface">
+                <tr className="border-b border-line text-left font-medium uppercase tracking-wide text-slate">
+                  {query.data!.columns.map((column) => (
+                    <th key={column.key} className="whitespace-nowrap px-3 py-2">
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                {query.data!.rows.map((row, index) => (
+                  <tr key={index} className="border-b border-line last:border-0">
+                    {query.data!.columns.map((column) => (
+                      <td key={column.key} className="whitespace-nowrap px-3 py-1.5 text-ink">
+                        {String(row[column.key] ?? "")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }

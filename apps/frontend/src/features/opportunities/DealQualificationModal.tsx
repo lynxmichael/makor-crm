@@ -16,6 +16,7 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ApiError } from "@/types/api";
 import { CommentThread } from "@/features/collaboration/CommentThread";
+import { useAiContextStore } from "@/store/ai-context.store";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -37,6 +38,23 @@ interface Props {
  * questions relèvent de la méthode commerciale et évoluent sans migration.
  */
 export function DealQualificationModal({ deal, onClose }: Props) {
+  // Fiche ouverte signalée à l'assistant de rédaction.
+  const setAiContext = useAiContextStore((s) => s.setContext);
+  const clearAiContext = useAiContextStore((s) => s.clearContext);
+
+  useEffect(() => {
+    if (!deal?.id) return;
+
+    const id = String(deal.id);
+    setAiContext({
+      resource: "deals",
+      entityId: id,
+      label: String(deal.title ?? ""),
+    });
+
+    return () => clearAiContext(id);
+  }, [deal, setAiContext, clearAiContext]);
+
   const queryClient = useQueryClient();
 
   const [openSection, setOpenSection] = useState<string | null>(null);

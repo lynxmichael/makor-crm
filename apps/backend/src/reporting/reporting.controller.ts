@@ -33,6 +33,26 @@ export class ReportingController {
     res.send(file.buffer);
   }
 
+  @Get('preview/:report')
+  @ApiOperation({
+    summary: 'Aperçu d’un rapport avant export — 20 premières lignes et total',
+  })
+  preview(
+    @Param('report')
+    report: 'customers' | 'deals' | 'invoices' | 'recharges' | 'sales-performance',
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('country') country?: string,
+    @Query('sector') sector?: string,
+  ) {
+    return this.reportingService.preview(report, {
+      from,
+      to,
+      country,
+      sector,
+    });
+  }
+
   @Get('customers')
   @ApiOperation({ summary: 'Export du portefeuille clients' })
   async customers(

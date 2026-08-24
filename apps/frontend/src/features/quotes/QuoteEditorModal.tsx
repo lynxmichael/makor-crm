@@ -18,6 +18,7 @@ import { formatMoney } from "@/lib/format";
 import type { ApiError } from "@/types/api";
 import { SignaturePanel } from "@/features/signatures/SignaturePanel";
 import { CommentThread } from "@/features/collaboration/CommentThread";
+import { useAiContextStore } from "@/store/ai-context.store";
 
 interface QuoteLine {
   /** Clé de rendu uniquement — le backend ne la reçoit pas. */
@@ -45,6 +46,23 @@ const emptyLine = (): QuoteLine => ({
 });
 
 export function QuoteEditorModal({ open, onClose, quote }: Props) {
+  // Fiche ouverte signalée à l'assistant de rédaction.
+  const setAiContext = useAiContextStore((s) => s.setContext);
+  const clearAiContext = useAiContextStore((s) => s.clearContext);
+
+  useEffect(() => {
+    if (!quote?.id) return;
+
+    const id = String(quote.id);
+    setAiContext({
+      resource: "quotes",
+      entityId: id,
+      label: String(quote.number ?? ""),
+    });
+
+    return () => clearAiContext(id);
+  }, [quote, setAiContext, clearAiContext]);
+
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isEdit = Boolean(quote);

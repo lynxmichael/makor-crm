@@ -13,6 +13,7 @@ import { campaignsService, productsService } from "@/services/resources";
 import { QK } from "@/config/constants";
 import type { ApiError } from "@/types/api";
 import { AiGeneratePanel } from "@/features/ai/AiGeneratePanel";
+import { useAiContextStore } from "@/store/ai-context.store";
 import { RecipientPickerModal } from "./RecipientPickerModal";
 
 type Row = Record<string, unknown> & { id?: unknown };
@@ -36,6 +37,20 @@ type CampaignType = keyof typeof TYPES;
 export function CampaignEditorModal({ open, onClose, campaign }: Props) {
   const queryClient = useQueryClient();
   const isEdit = Boolean(campaign);
+
+  // La campagne ouverte est signalée à l'assistant de rédaction, qui la
+  // reprend au lieu de faire chercher dans une liste.
+  const setAiContext = useAiContextStore((s) => s.setContext);
+  const clearAiContext = useAiContextStore((s) => s.clearContext);
+
+  useEffect(() => {
+    if (!open || !campaign?.id) return;
+
+    const id = String(campaign.id);
+    setAiContext({ resource: "campaigns", entityId: id, label: String(campaign.name ?? "") });
+
+    return () => clearAiContext(id);
+  }, [open, campaign, setAiContext, clearAiContext]);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<CampaignType>("SMS");
