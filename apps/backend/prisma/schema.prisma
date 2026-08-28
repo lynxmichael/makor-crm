@@ -184,6 +184,13 @@ model User {
 
   @@index([roleId])
   @@index([departmentId])
+
+  /// Réception par e-mail des notifications du CRM (demande du 13/08/2026).
+  ///
+  /// Activée par défaut : un agent qui n'ouvre pas le CRM de la journée doit
+  /// être prévenu quelque part. Désactivable individuellement — la seule
+  /// notification utile est celle qu'on lit.
+  emailNotifications Boolean @default(true)
 }
 
 model RefreshToken {
@@ -2171,4 +2178,63 @@ model Expense {
   @@index([status])
   @@index([spentAt])
   @@index([customerId])
+}
+
+// ===========================================================================
+// Veille des réseaux sociaux (demande du 13/08/2026)
+// ===========================================================================
+
+enum SocialSource {
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
+  TIKTOK
+  SNAPCHAT
+  X
+  YOUTUBE
+  WHATSAPP_BUSINESS
+  GOOGLE
+  AUTRE
+}
+
+/**
+ * Notification d'une plateforme sociale, reçue par e-mail.
+ *
+ * Aucune intégration d'API n'est en jeu : ces plateformes n'exposent pas les
+ * notifications personnelles, et leurs API demanderaient une validation
+ * d'application par chaque éditeur. On lit leurs e-mails, comme le ferait une
+ * boîte de réception — c'est le seul canal réellement disponible, et il ne
+ * dépend d'aucune autorisation.
+ *
+ * Séparé de `Notification` : celle-ci relaie l'activité du CRM et appelle une
+ * action. Une actualité sociale s'observe. Les mêler ferait perdre les
+ * secondes dans le flot des premières.
+ */
+model SocialUpdate {
+  id String @id @default(cuid())
+
+  source SocialSource
+
+  /// Objet du message reçu, tel qu'envoyé par la plateforme.
+  title String
+
+  /// Extrait du corps, nettoyé de son habillage.
+  summary String?
+
+  /// Lien vers la publication ou la notification d'origine, si repérable.
+  link String?
+
+  /// Expéditeur réel, utile quand la source retombe sur AUTRE.
+  fromAddress String
+
+  receivedAt DateTime
+  isRead     Boolean  @default(false)
+
+  /// Empreinte du message, pour ne pas réintroduire le même à chaque relève.
+  messageKey String @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([source, receivedAt])
+  @@index([isRead])
 }

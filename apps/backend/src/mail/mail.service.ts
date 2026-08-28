@@ -210,6 +210,66 @@ export class MailService {
     });
   }
 
+
+  /**
+   * Notification du CRM relayée par e-mail.
+   *
+   * Le message reprend exactement le libellé affiché dans l'application : deux
+   * formulations différentes pour le même événement obligeraient à
+   * réinterpréter, et feraient douter qu'il s'agisse bien de la même chose.
+   *
+   * Le lien renvoie vers le CRM plutôt que de tout détailler : l'e-mail
+   * signale, il ne remplace pas l'outil.
+   */
+  async sendNotification(
+    to: string,
+    notification: { title: string; message: string; type?: string },
+    link?: string,
+  ) {
+    const accent =
+      notification.type === 'ERROR'
+        ? '#DC2626'
+        : notification.type === 'WARNING'
+          ? '#F39304'
+          : notification.type === 'SUCCESS'
+            ? '#16A34A'
+            : '#0A4A78';
+
+    return this.deliver({
+      to,
+      subject: `MAKOR CRM — ${notification.title}`,
+      html: `
+        <div style="font-family:system-ui,-apple-system,sans-serif;max-width:520px">
+          <div style="border-left:3px solid ${accent};padding:0 0 0 14px">
+            <h2 style="margin:0 0 6px;font-size:17px;color:#1A1B2E">
+              ${notification.title}
+            </h2>
+            <p style="margin:0;font-size:15px;line-height:1.55;color:#334155">
+              ${notification.message}
+            </p>
+          </div>
+
+          ${
+            link
+              ? `<p style="margin:22px 0 0">
+                   <a href="${link}"
+                      style="display:inline-block;background:#F39304;color:#fff;
+                             text-decoration:none;padding:10px 18px;border-radius:8px;
+                             font-size:14px">Ouvrir dans le CRM</a>
+                 </p>`
+              : ''
+          }
+
+          <p style="margin:26px 0 0;font-size:12px;color:#94A3B8">
+            Vous recevez ce message parce que les notifications par e-mail sont
+            actives sur votre compte. Vous pouvez les désactiver dans vos
+            paramètres.
+          </p>
+        </div>
+      `,
+    });
+  }
+
   async send2faCode(email: string, code: string) {
     return this.deliver({
       to: email,

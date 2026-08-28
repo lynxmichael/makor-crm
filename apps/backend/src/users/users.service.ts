@@ -289,6 +289,19 @@ export class UsersService {
   /** Désactivation logique (CDC §3 : "désactivation des comptes"). */
   /** Désactivation — on ne supprime jamais un compte : ses opportunités,
    *  devis et écritures d'audit lui restent rattachés. */
+  /** Préférences personnelles — sans droit d'administration requis. */
+  async updatePreferences(userId: string, prefs: { emailNotifications?: boolean }) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(prefs.emailNotifications !== undefined
+          ? { emailNotifications: prefs.emailNotifications }
+          : {}),
+      },
+      select: { id: true, emailNotifications: true },
+    });
+  }
+
   async remove(id: string, actorRole?: string) {
     const target = await this.findById(id);
 

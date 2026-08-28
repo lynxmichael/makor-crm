@@ -4,6 +4,7 @@ import {
   UserPlus,
   Target,
   Radio,
+  Rss,
   FileText,
   FileSignature,
   Receipt,
@@ -100,6 +101,13 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Opérations",
     items: [
       { to: "/campaigns", label: "Campagnes", icon: Radio, roles: ALL_SALES },
+      {
+        to: "/actualites",
+        label: "Actualités",
+        icon: Rss,
+        // Veille de marque : ceux qui pilotent la communication.
+        roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_VENTES, ROLES.SUPERVISEUR],
+      },
       { to: "/sender-id", label: "Sender ID", icon: Fingerprint, roles: ALL_SALES },
       { to: "/documents", label: "Documents", icon: FolderOpen, roles: ALL_SALES },
     ],

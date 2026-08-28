@@ -4,6 +4,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { ConfigService } from '@nestjs/config';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import {
   SMS_WHATSAPP_GATEWAY,
   SmsWhatsappGateway,
@@ -29,7 +31,62 @@ export class NotificationsService {
     @Inject(SMS_WHATSAPP_GATEWAY)
     private readonly gateway: SmsWhatsappGateway,
     private readonly events: EventEmitter2,
+    private readonly realtime: RealtimeGateway,
+    private readonly config: ConfigService,
   ) {}
+
+
+  /**
+   * Double une notification in-app par un e-mail, comme le font les réseaux
+   * sociaux (demande du 13/08/2026).
+   *
+   * Deux conditions, et elles comptent autant l'une que l'autre :
+   *
+   * — l'agent a laissé la réception par e-mail active ;
+   * — il n'a PAS le CRM ouvert en ce moment.
+   *
+   * La seconde évite l'écueil habituel : recevoir dans sa boîte la copie
+   * d'une alerte qu'on vient de voir à l'écran pousse à couper les e-mails,
+   * et donc à ne plus rien recevoir du tout. L'e-mail sert à rattraper
+   * l'absent, pas à répéter au présent.
+   */
+  private async relayByEmail(notification: {
+    id: string;
+    userId: string;
+    title: string;
+    message: string;
+    type: string;
+  }): Promise<void> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: notification.userId },
+        select: { email: true, emailNotifications: true, isActive: true },
+      });
+
+      if (!user?.email || !user.isActive || !user.emailNotifications) return;
+
+      if (await this.realtime.isUserOnline(notification.userId)) return;
+
+      await this.mailService.sendNotification(
+        user.email,
+        notification,
+        this.config.get<string>('FRONTEND_URL'),
+      );
+
+      await this.prisma.notification.update({
+        where: { id: notification.id },
+        data: { sentAt: new Date() },
+      });
+    } catch (error) {
+      // Un e-mail perdu ne doit pas faire perdre la notification : elle reste
+      // visible dans le CRM, qui est la source de vérité.
+      this.logger.warn(
+        `Relais e-mail de la notification ${notification.id} impossible : ${
+          (error as Error).message
+        }`,
+      );
+    }
+  }
 
   async create(dto: CreateNotificationDto) {
     const channel = dto.channel ?? NotificationChannel.IN_APP;
@@ -55,6 +112,12 @@ export class NotificationsService {
 
     if (channel === NotificationChannel.IN_APP) {
       this.events.emit('notification.created', notification);
+
+      // Relais par e-mail, sans attendre : la notification in-app est déjà
+      // enregistrée et poussée, l'e-mail est un complément qui ne doit pas
+      // retarder la réponse.
+      void this.relayByEmail(notification);
+
       return notification;
     }
 

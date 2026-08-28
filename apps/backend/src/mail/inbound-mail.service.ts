@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, extname } from 'path';
 
+import { SocialSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -20,6 +21,32 @@ import { PrismaService } from '../prisma/prisma.service';
  * Ce service ne démarre que si `IMAP_HOST` est renseigné : sans configuration,
  * il reste silencieux plutôt que de faire échouer le démarrage.
  */
+
+/**
+ * Expéditeurs des plateformes sociales.
+ *
+ * Reconnaissance par domaine plutôt que par adresse : chaque plateforme émet
+ * depuis des dizaines de boîtes différentes — `notification@`, `update@`,
+ * `noreply@` — mais toujours depuis les mêmes domaines.
+ */
+const SOCIAL_SENDERS: { pattern: RegExp; source: SocialSource }[] = [
+  { pattern: /(facebookmail|facebook)\.com$/i, source: 'FACEBOOK' },
+  { pattern: /(mail\.instagram|instagram)\.com$/i, source: 'INSTAGRAM' },
+  { pattern: /linkedin\.com$/i, source: 'LINKEDIN' },
+  { pattern: /(tiktok|bytedance)\.com$/i, source: 'TIKTOK' },
+  { pattern: /snapchat\.com$/i, source: 'SNAPCHAT' },
+  { pattern: /(twitter|x)\.com$/i, source: 'X' },
+  { pattern: /youtube\.com$/i, source: 'YOUTUBE' },
+  { pattern: /business\.whatsapp\.com$/i, source: 'WHATSAPP_BUSINESS' },
+  { pattern: /(google|googlealerts)\.com$/i, source: 'GOOGLE' },
+];
+
+/** Reconnaît la plateforme émettrice, ou rien si l'adresse n'en est pas une. */
+function detectSocialSource(from: string): SocialSource | null {
+  const domain = from.split('@')[1] ?? '';
+  return SOCIAL_SENDERS.find((entry) => entry.pattern.test(domain))?.source ?? null;
+}
+
 @Injectable()
 export class InboundMailService implements OnModuleDestroy {
   private readonly logger = new Logger(InboundMailService.name);
@@ -125,6 +152,15 @@ export class InboundMailService implements OnModuleDestroy {
     const from = mail.from?.value?.[0]?.address?.toLowerCase();
     if (!from) return;
 
+    // Les plateformes sociales sont traitées à part : ce sont des actualités
+    // à observer, pas des réponses de clients à rattacher.
+    const socialSource = detectSocialSource(from);
+
+    if (socialSource) {
+      await this.ingestSocial(socialSource, from, mail);
+      return;
+    }
+
     const [customer, contact, lead] = await Promise.all([
       this.prisma.customer.findFirst({
         where: { email: { equals: from, mode: 'insensitive' } },
@@ -229,6 +265,56 @@ export class InboundMailService implements OnModuleDestroy {
       // s'il est connecté.
       this.events.emit('notification.created', notification);
     }
+  }
+
+
+  /**
+   * Enregistre une actualité de plateforme sociale.
+   *
+   * Le corps de ces messages est un habillage HTML volumineux dont on ne
+   * retient qu'un extrait lisible : le titre suffit le plus souvent, et le
+   * lien renvoie à la source pour le détail.
+   */
+  private async ingestSocial(
+    source: SocialSource,
+    from: string,
+    mail: { subject?: string; text?: string; html?: string | false; date?: Date },
+  ): Promise<void> {
+    const title = mail.subject?.trim() || '(sans objet)';
+    const receivedAt = mail.date ?? new Date();
+
+    // Empreinte : même expéditeur, même objet, même minute. Deux relèves
+    // successives sur un message resté non lu ne créent donc qu'une entrée.
+    const messageKey = `${source}:${title}:${Math.floor(receivedAt.getTime() / 60_000)}`;
+
+    const existing = await this.prisma.socialUpdate.findUnique({
+      where: { messageKey },
+      select: { id: true },
+    });
+
+    if (existing) return;
+
+    const body = (mail.text ?? '')
+      .replace(/\s+/g, ' ')
+      .replace(/https?:\/\/\S+/g, '')
+      .trim();
+
+    // Premier lien du corps : il pointe vers la publication concernée.
+    const link = (mail.text ?? '').match(/https?:\/\/\S+/)?.[0] ?? null;
+
+    await this.prisma.socialUpdate.create({
+      data: {
+        source,
+        title,
+        summary: body.slice(0, 400) || null,
+        link,
+        fromAddress: from,
+        receivedAt,
+        messageKey,
+      },
+    });
+
+    this.logger.log(`Actualité ${source} enregistrée : ${title.slice(0, 60)}`);
   }
 
   private async anyAdminId(): Promise<string> {

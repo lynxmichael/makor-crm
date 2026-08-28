@@ -67,6 +67,17 @@ export class UsersController {
    * retirer un facteur d'authentification à quelqu'un d'autre doit laisser une
    * trace nominative.
    */
+  /** Modifier ses propres préférences de notification. */
+  @Patch('me/preferences')
+  updateOwnPreferences(
+    @Body() body: { emailNotifications?: boolean },
+    @CurrentUser() user: { id: string },
+  ) {
+    // Route séparée de `PATCH /users/:id`, réservée au Super Admin : chacun
+    // règle ses propres notifications sans détenir de droit d'administration.
+    return this.usersService.updatePreferences(user.id, body);
+  }
+
   @Patch(':id/two-factor/reset')
   @Roles('SUPER_ADMIN')
   resetTwoFactor(@Param('id') id: string, @CurrentUser() actor: any) {

@@ -45,12 +45,9 @@ export class ReportingController {
     @Query('country') country?: string,
     @Query('sector') sector?: string,
   ) {
-    return this.reportingService.preview(report, {
-      from,
-      to,
-      country,
-      sector,
-    });
+    // `ReportFilters` attend des chaînes ISO : la conversion en Date se fait
+    // dans le service, au moment de bâtir la requête.
+    return this.reportingService.preview(report, { from, to, country, sector });
   }
 
   @Get('customers')

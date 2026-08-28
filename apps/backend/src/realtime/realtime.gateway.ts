@@ -151,4 +151,22 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   onCommentCreated(comment: { entityType: string; entityId: string | null }) {
     this.server.to('broadcast').emit('comment:created', comment);
   }
+
+  /**
+   * L'agent a-t-il une session ouverte en ce moment ?
+   *
+   * Sert à décider s'il faut doubler une notification par un e-mail : celui
+   * qui a le CRM sous les yeux la voit arriver, l'alerter deux fois le pousse
+   * à couper les deux canaux.
+   */
+  async isUserOnline(userId: string): Promise<boolean> {
+    try {
+      const sockets = await this.server.in(`user:${userId}`).fetchSockets();
+      return sockets.length > 0;
+    } catch {
+      // Passerelle non initialisée ou indisponible : on considère l'agent
+      // absent, quitte à envoyer un e-mail de trop plutôt que d'en perdre un.
+      return false;
+    }
+  }
 }

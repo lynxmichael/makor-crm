@@ -6,6 +6,7 @@ import {
   Check,
   Coins,
   Package,
+  BellRing,
   Globe2,
   Loader2,
   Pencil,
@@ -24,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared/DataState";
 
 import { settingsService, productsService } from "@/services/resources";
+import { http } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
 import { EASE_OUT } from "@/lib/motion";
@@ -31,10 +33,11 @@ import { formatMoney } from "@/lib/format";
 import type { ApiError } from "@/types/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
-type Tab = "organization" | "products" | "sectors" | "countries" | "currencies";
+type Tab = "organization" | "notifications" | "products" | "sectors" | "countries" | "currencies";
 
 const TABS: { key: Tab; label: string; icon: typeof Building2 }[] = [
   { key: "organization", label: "Organisation", icon: Building2 },
+  { key: "notifications", label: "Mes notifications", icon: BellRing },
   { key: "products", label: "Produits", icon: Package },
   { key: "sectors", label: "Secteurs", icon: Tags },
   { key: "countries", label: "Pays", icon: Globe2 },
@@ -74,6 +77,8 @@ export function SettingsPage() {
 
       {tab === "organization" ? (
         <OrganizationPanel canEdit={isSuperAdmin} />
+      ) : tab === "notifications" ? (
+        <NotificationPreferencesPanel />
       ) : tab === "products" ? (
         <ProductsPanel canEdit={isSuperAdmin} />
       ) : (
@@ -731,6 +736,77 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// Préférences de notification
+// ---------------------------------------------------------------------------
+
+/**
+ * Réception des notifications par e-mail (demande du 13/08/2026).
+ *
+ * Chacun règle les siennes : c'est un choix personnel, pas un paramètre
+ * d'organisation. La route dédiée n'exige donc aucun droit d'administration.
+ */
+function NotificationPreferencesPanel() {
+  const queryClient = useQueryClient();
+
+  const me = useQuery({
+    queryKey: ["users", "me"],
+    queryFn: () => http.get<{ emailNotifications?: boolean }>("/users/me"),
+  });
+
+  const update = useMutation({
+    mutationFn: (emailNotifications: boolean) =>
+      http.patch("/users/me/preferences", { emailNotifications }),
+    onSuccess: (_data, value) => {
+      toast.success(
+        value ? "Notifications par e-mail activées" : "Notifications par e-mail désactivées",
+      );
+      queryClient.invalidateQueries({ queryKey: ["users", "me"] });
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
+
+  const enabled = me.data?.emailNotifications !== false;
+
+  return (
+    <div className="rounded-xl border border-line bg-surface">
+      <header className="border-b border-line px-5 py-4">
+        <h2 className="font-display text-sm font-semibold text-ink">Mes notifications</h2>
+        <p className="mt-0.5 text-xs text-slate">
+          Ce que vous recevez, et par quel canal.
+        </p>
+      </header>
+
+      <div className="p-5">
+        {me.isPending ? (
+          <Skeleton className="h-16 w-full" />
+        ) : (
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => update.mutate(e.target.checked)}
+              disabled={update.isPending}
+              className="mt-0.5 h-4 w-4 rounded border-line accent-wire"
+            />
+            <span>
+              <span className="text-sm font-medium text-ink">
+                Recevoir mes notifications par e-mail
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed text-slate">
+                L'e-mail ne part que si vous n'avez pas le CRM ouvert au moment de la
+                notification. Quand vous êtes connecté, vous la voyez arriver à l'écran et
+                votre boîte reste tranquille.
+              </span>
+            </span>
+          </label>
+        )}
+      </div>
     </div>
   );
 }
