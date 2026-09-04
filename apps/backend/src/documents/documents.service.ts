@@ -80,34 +80,48 @@ export class DocumentsService {
     const page = Math.max(1, Number(params?.page) || 1);
     const limit = Math.min(200, Math.max(1, Number(params?.limit) || 20));
 
-    const where = {
-      ...(params?.customerId ? { customerId: params.customerId } : {}),
-      ...(params?.dealId ? { dealId: params.dealId } : {}),
-      ...(params?.quoteId ? { quoteId: params.quoteId } : {}),
-      ...(params?.contractId ? { contractId: params.contractId } : {}),
-      ...(params?.type ? { type: params.type as never } : {}),
-      ...(params?.search
-        ? {
-            OR: [
-              { name: { contains: params.search, mode: 'insensitive' as const } },
-              { fileName: { contains: params.search, mode: 'insensitive' as const } },
-            ],
-          }
-        : {}),
+    // Chaque condition est poussée dans un `AND` plutôt que fusionnée par
+    // étalement d'objet : deux clauses `OR` (recherche, périmètre) sur le
+    // même niveau s'écraseraient l'une l'autre, la seconde gagnant toujours.
+    const conditions: Record<string, unknown>[] = [];
 
+    if (params?.customerId) conditions.push({ customerId: params.customerId });
+    if (params?.dealId) conditions.push({ dealId: params.dealId });
+    if (params?.quoteId) conditions.push({ quoteId: params.quoteId });
+    if (params?.contractId) conditions.push({ contractId: params.contractId });
+    if (params?.type) conditions.push({ type: params.type as never });
+
+    if (params?.search) {
+      conditions.push({
+        OR: [
+          { name: { contains: params.search, mode: 'insensitive' as const } },
+          { fileName: { contains: params.search, mode: 'insensitive' as const } },
+        ],
+      });
+    }
+
+    if (params?.scopeToUserId) {
       // Périmètre : un commercial ne voit que les documents des clients dont
       // il a la charge, plus ceux qu'il a lui-même déposés. Sans cette
       // seconde condition, un document déposé sans client rattaché
       // disparaissait pour son propre auteur.
-      ...(params?.scopeToUserId
-        ? {
-            OR: [
-              { customer: { assignedToId: params.scopeToUserId } },
-              { uploadedById: params.scopeToUserId },
-            ],
-          }
-        : {}),
-    };
+      conditions.push({
+        OR: [
+          { customer: { assignedToId: params.scopeToUserId } },
+          { uploadedById: params.scopeToUserId },
+        ],
+      });
+
+      // Les factures archivées (envoi d'une facture, cf. InvoicesService)
+      // sont rattachées au client comme n'importe quel document — mais un
+      // commercial n'a jamais accès à la facturation, même via la GED.
+      // Réservé au Financier et au Super Admin. Même filtrée explicitement
+      // (`type=INVOICE`), la clause au-dessus reste incompatible : la liste
+      // revient vide plutôt qu'en erreur.
+      conditions.push({ type: { not: 'INVOICE' } as never });
+    }
+
+    const where = conditions.length ? { AND: conditions } : {};
 
     const [data, total] = await Promise.all([
       this.prisma.document.findMany({
@@ -131,7 +145,12 @@ export class DocumentsService {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 
-  async findOne(id: string) {
+  /**
+   * `scopeToUserId` reproduit la règle de `findAll` sur un accès direct par
+   * identifiant : un commercial hors périmètre reçoit un 404, pas un 403 —
+   * un refus explicite confirmerait qu'une facture existe à cette adresse.
+   */
+  async findOne(id: string, scopeToUserId?: string) {
     const document =
       await this.prisma.document.findUnique({
         where: {
@@ -147,7 +166,7 @@ export class DocumentsService {
         },
       });
 
-    if (!document) {
+    if (!document || (scopeToUserId && document.type === 'INVOICE')) {
       throw new NotFoundException('Document introuvable');
     }
 
@@ -222,13 +241,15 @@ export class DocumentsService {
   }
 
   /** Statistiques de consultation d'un document. */
-  async stats(documentId: string) {
+  async stats(documentId: string, scopeToUserId?: string) {
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       select: { id: true, name: true, type: true, createdAt: true },
     });
 
-    if (!document) throw new NotFoundException('Document introuvable.');
+    if (!document || (scopeToUserId && document.type === 'INVOICE')) {
+      throw new NotFoundException('Document introuvable.');
+    }
 
     const [grouped, recent, firstView] = await Promise.all([
       this.prisma.documentEvent.groupBy({

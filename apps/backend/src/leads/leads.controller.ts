@@ -38,8 +38,8 @@ export class LeadsController {
   @Post()
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Créer un prospect' })
-  create(@Body() dto: CreateLeadDto) {
-    return this.leadsService.create(dto);
+  create(@Body() dto: CreateLeadDto, @CurrentUser() user: { id: string }) {
+    return this.leadsService.create(dto, user.id);
   }
 
   @Get()
@@ -82,5 +82,15 @@ export class LeadsController {
   @ApiOperation({ summary: 'Supprimer un prospect' })
   remove(@Param('id') id: string, @CurrentUser() user?: any) {
     return this.leadsService.remove(id, user?.role?.name === 'COMMERCIAL' ? user.id : undefined);
+  }
+
+  @Post(':id/convert')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
+  @ApiOperation({ summary: 'Convertir un prospect en client' })
+  convert(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.leadsService.convertToCustomer(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 }

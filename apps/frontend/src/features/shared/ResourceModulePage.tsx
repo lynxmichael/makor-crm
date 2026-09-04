@@ -29,7 +29,7 @@ import { DocumentStatsPanel } from "@/features/documents/DocumentStatsPanel";
 import { DocumentUploadModal } from "@/features/documents/DocumentUploadModal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { http, openFile } from "@/services/api";
+import { http, openFile, openGeneratedPdf } from "@/services/api";
 import { useResourceList, useResourceMutations } from "@/hooks/use-resource";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -106,8 +106,12 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
       return action.method === "post" ? http.post(url) : http.patch(url);
     },
     onSuccess: (_data, variables) => {
-      toast.success(config.rowActions![variables.index].successMessage);
+      const action = config.rowActions![variables.index];
+      toast.success(action.successMessage);
       queryClient.invalidateQueries({ queryKey: config.queryKey });
+      for (const key of action.invalidates ?? []) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
     },
     onError: (error) => toast.error((error as ApiError).message),
   });
@@ -195,11 +199,15 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
             aria-label="Filtrer par statut"
           >
             <option value="">Tous les statuts</option>
-            {Object.entries(config.statuses).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
+            {Object.entries(config.statuses)
+              .filter(
+                ([value]) => !(role && config.hiddenStatusesForRoles?.[role]?.includes(value)),
+              )
+              .map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
           </Select>
         )}
 
@@ -287,9 +295,40 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                       </td>
                     ))}
 
-                    {(canWrite || config.statsPanel || config.fileActions) && (
+                    {(canWrite || config.statsPanel || config.fileActions || config.pdfAction) && (
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
+                          {config.pdfAction ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  void openGeneratedPdf(
+                                    config.pdfAction!.path.replace(":id", String(row.id)),
+                                  ).catch((error) => toast.error((error as ApiError).message))
+                                }
+                                aria-label="Prévisualiser le PDF"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  void openGeneratedPdf(
+                                    config.pdfAction!.path.replace(":id", String(row.id)),
+                                    `${String(row[config.pdfAction!.filenameKey ?? "number"] ?? "document")}.pdf`,
+                                  ).catch((error) => toast.error((error as ApiError).message))
+                                }
+                                aria-label="Télécharger le PDF"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : null}
+
                           {config.fileActions && row[config.fileActions.pathKey] ? (
                             <>
                               <Button

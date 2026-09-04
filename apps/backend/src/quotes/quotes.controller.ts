@@ -68,8 +68,11 @@ export class QuotesController {
 
   @Get(':id/pdf')
   @ApiOperation({ summary: 'Télécharger le devis au format PDF' })
-  async downloadPdf(@Param('id') id: string, @Res() res: Response) {
-    const { pdf, number } = await this.quotesService.getPdf(id);
+  async downloadPdf(@Param('id') id: string, @Res() res: Response, @CurrentUser() user?: any) {
+    const { pdf, number } = await this.quotesService.getPdf(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -89,22 +92,26 @@ export class QuotesController {
   @Post(':id/send')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Envoyer le devis par email au client (PDF joint)' })
-  send(@Param('id') id: string, @CurrentUser() user: { id: string }) {
-    return this.quotesService.send(id, user?.id);
+  send(@Param('id') id: string, @CurrentUser() user: { id: string; role?: { name?: string } }) {
+    return this.quotesService.send(
+      id,
+      user?.id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Patch(':id/accept')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Marquer le devis comme accepté par le client' })
-  accept(@Param('id') id: string) {
-    return this.quotesService.accept(id);
+  accept(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.quotesService.accept(id, user?.role?.name === 'COMMERCIAL' ? user.id : undefined);
   }
 
   @Patch(':id/reject')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Marquer le devis comme refusé par le client' })
-  reject(@Param('id') id: string) {
-    return this.quotesService.reject(id);
+  reject(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.quotesService.reject(id, user?.role?.name === 'COMMERCIAL' ? user.id : undefined);
   }
 
   @Delete(':id')

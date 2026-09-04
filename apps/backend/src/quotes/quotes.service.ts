@@ -197,8 +197,8 @@ export class QuotesService {
     return this.prisma.quote.delete({ where: { id } });
   }
 
-  private async buildPdf(quoteId: string): Promise<Buffer> {
-    const quote = await this.findOne(quoteId);
+  private async buildPdf(quoteId: string, scopeToUserId?: string): Promise<Buffer> {
+    const quote = await this.findOne(quoteId, scopeToUserId);
     const org = await this.settingsService.getOrganizationSettings();
 
     return this.pdfService.generateCommercialDocument(
@@ -235,15 +235,15 @@ export class QuotesService {
     );
   }
 
-  async getPdf(id: string) {
-    const quote = await this.findOne(id);
-    const pdf = await this.buildPdf(id);
+  async getPdf(id: string, scopeToUserId?: string) {
+    const quote = await this.findOne(id, scopeToUserId);
+    const pdf = await this.buildPdf(id, scopeToUserId);
     return { pdf, number: quote.number };
   }
 
   /** Envoie le devis par email au client, en pièce jointe PDF (CDC §4.8). */
-  async send(id: string, userId?: string) {
-    const quote = await this.findOne(id);
+  async send(id: string, userId?: string, scopeToUserId?: string) {
+    const quote = await this.findOne(id, scopeToUserId);
 
     if (!quote.customer.email) {
       throw new BadRequestException(
@@ -251,7 +251,7 @@ export class QuotesService {
       );
     }
 
-    const pdf = await this.buildPdf(id);
+    const pdf = await this.buildPdf(id, scopeToUserId);
 
     await this.mailService.sendQuote(quote.customer.email, quote.number, {
       filename: `${quote.number}.pdf`,
@@ -289,8 +289,8 @@ export class QuotesService {
     return updated;
   }
 
-  async accept(id: string) {
-    const quote = await this.findOne(id);
+  async accept(id: string, scopeToUserId?: string) {
+    const quote = await this.findOne(id, scopeToUserId);
 
     if (quote.status !== 'SENT') {
       throw new BadRequestException(
@@ -319,8 +319,8 @@ export class QuotesService {
     return updated;
   }
 
-  async reject(id: string) {
-    const quote = await this.findOne(id);
+  async reject(id: string, scopeToUserId?: string) {
+    const quote = await this.findOne(id, scopeToUserId);
 
     if (quote.status !== 'SENT') {
       throw new BadRequestException(

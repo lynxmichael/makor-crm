@@ -109,15 +109,24 @@ export class InvoicesController {
   }
 
   @Get(':id/pdf')
-  @ApiOperation({ summary: 'Télécharger la facture au format PDF' })
+  @ApiOperation({ summary: 'Télécharger ou prévisualiser la facture au format PDF' })
   @Header('Content-Type', 'application/pdf')
-  async downloadPdf(@Param('id') id: string, @Res() res: Response) {
+  async downloadPdf(
+    @Param('id') id: string,
+    @Query('inline') inline: string | undefined,
+    @Res() res: Response,
+  ) {
     const invoice = await this.invoicesService.findOne(id);
     const buffer = await this.invoicePdfService.generate(id);
 
+    // `?inline=1` affiche le PDF dans l'onglet plutôt que de le télécharger —
+    // sans le paramètre, comportement historique de cette route (pièce
+    // jointe), conservé pour ne pas casser les appels existants.
+    const disposition = inline ? 'inline' : 'attachment';
+
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${invoice.number}.pdf"`,
+      `${disposition}; filename="${invoice.number}.pdf"`,
     );
 
     res.send(buffer);

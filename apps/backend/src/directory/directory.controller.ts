@@ -42,10 +42,11 @@ export class DirectoryController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Contacts et prospects, filtrables par pays' })
+  @ApiOperation({ summary: 'Contacts et prospects, filtrables par pays et secteur' })
   findAll(
     @Query('search') search?: string,
     @Query('country') country?: string,
+    @Query('sector') sector?: string,
     @Query('kind') kind?: 'CONTACT' | 'LEAD',
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -53,6 +54,7 @@ export class DirectoryController {
     return this.directory.findAll({
       search,
       country,
+      sector,
       kind,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
@@ -63,6 +65,12 @@ export class DirectoryController {
   @ApiOperation({ summary: 'Pays représentés, avec le nombre d’entrées' })
   countries() {
     return this.directory.countries();
+  }
+
+  @Get('sectors')
+  @ApiOperation({ summary: 'Secteurs d’activité représentés, avec le nombre d’entrées' })
+  sectors() {
+    return this.directory.sectors();
   }
 
   @Post()

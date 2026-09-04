@@ -289,33 +289,55 @@ export class DealsService {
    * Convertit un prospect (Lead) qualifié en client (Customer) sans
    * ressaisie des informations déjà saisies, et relie le deal gagné au
    * nouveau client.
+   *
+   * Le prospect a pu être converti manuellement entre-temps depuis la page
+   * Prospects (`LeadsService.convertToCustomer`) — bouton accessible au
+   * commercial, indépendant du pipeline. `Customer.email` et `Customer.phone`
+   * étant uniques, recréer une fiche planterait alors la clôture du deal avec
+   * une erreur de contrainte, sur une action qui n'a rien à voir avec la
+   * conversion elle-même. On rattache donc le deal au client existant plutôt
+   * que d'en recréer un.
    */
   private async convertLeadToCustomer(leadId: string, dealId: string) {
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
 
     if (!lead) return;
 
-    const customer = await this.prisma.customer.create({
-      data: {
-        code: `CUST-${Date.now()}`,
-        companyName: lead.company ?? `${lead.firstName} ${lead.lastName}`,
-        sector: lead.sector,
-        email: lead.email,
-        phone: lead.phone,
-        assignedToId: lead.assignedToId,
-        contacts: {
-          create: {
-            firstName: lead.firstName,
-            lastName: lead.lastName,
-            email: lead.email,
-            phone: lead.phone,
-            jobTitle: lead.jobTitle,
-            isPrimary: true,
-            assignedToId: lead.assignedToId,
+    const existing =
+      lead.email || lead.phone
+        ? await this.prisma.customer.findFirst({
+            where: {
+              OR: [
+                ...(lead.email ? [{ email: lead.email }] : []),
+                ...(lead.phone ? [{ phone: lead.phone }] : []),
+              ],
+            },
+          })
+        : null;
+
+    const customer =
+      existing ??
+      (await this.prisma.customer.create({
+        data: {
+          code: `CUST-${Date.now()}`,
+          companyName: lead.company ?? `${lead.firstName} ${lead.lastName}`,
+          sector: lead.sector,
+          email: lead.email,
+          phone: lead.phone,
+          assignedToId: lead.assignedToId,
+          contacts: {
+            create: {
+              firstName: lead.firstName,
+              lastName: lead.lastName,
+              email: lead.email,
+              phone: lead.phone,
+              jobTitle: lead.jobTitle,
+              isPrimary: true,
+              assignedToId: lead.assignedToId,
+            },
           },
         },
-      },
-    });
+      }));
 
     await this.prisma.$transaction([
       this.prisma.deal.update({ where: { id: dealId }, data: { customerId: customer.id } }),

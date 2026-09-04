@@ -235,9 +235,10 @@ export class ContractsService {
     };
   }
 
-  async findOne(id: string) {
-    const contract = await this.prisma.contract.findUnique({
-      where: { id },
+  /** Un contrat hors périmètre renvoie 404 : un 403 confirmerait son existence. */
+  async findOne(id: string, scopeToUserId?: string) {
+    const contract = await this.prisma.contract.findFirst({
+      where: { id, ...(scopeToUserId ? { customer: { assignedToId: scopeToUserId } } : {}) },
       include: this.include,
     });
 
@@ -248,8 +249,8 @@ export class ContractsService {
     return contract;
   }
 
-  async update(id: string, dto: UpdateContractDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateContractDto, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.contract.update({
       where: { id },
@@ -277,8 +278,8 @@ export class ContractsService {
     });
   }
 
-  async remove(id: string) {
-    const existing = await this.findOne(id);
+  async remove(id: string, scopeToUserId?: string) {
+    const existing = await this.findOne(id, scopeToUserId);
 
     if (existing.status === 'ACTIVE') {
       throw new BadRequestException(
@@ -289,8 +290,8 @@ export class ContractsService {
     return this.prisma.contract.delete({ where: { id } });
   }
 
-  private async buildPdf(id: string): Promise<Buffer> {
-    const contract = await this.findOne(id);
+  private async buildPdf(id: string, scopeToUserId?: string): Promise<Buffer> {
+    const contract = await this.findOne(id, scopeToUserId);
     const org = await this.settingsService.getOrganizationSettings();
 
     return this.pdfService.generateCommercialDocument(
@@ -322,15 +323,15 @@ export class ContractsService {
     );
   }
 
-  async getPdf(id: string) {
-    const contract = await this.findOne(id);
-    const pdf = await this.buildPdf(id);
+  async getPdf(id: string, scopeToUserId?: string) {
+    const contract = await this.findOne(id, scopeToUserId);
+    const pdf = await this.buildPdf(id, scopeToUserId);
     return { pdf, number: contract.number };
   }
 
   /** Transmet le contrat au client par email, directement depuis le CRM (CDC §4.9). */
-  async send(id: string, userId?: string) {
-    const contract = await this.findOne(id);
+  async send(id: string, userId?: string, scopeToUserId?: string) {
+    const contract = await this.findOne(id, scopeToUserId);
 
     if (!contract.customer.email) {
       throw new BadRequestException(
@@ -338,7 +339,7 @@ export class ContractsService {
       );
     }
 
-    const pdf = await this.buildPdf(id);
+    const pdf = await this.buildPdf(id, scopeToUserId);
 
     await this.mailService.sendContract(contract.customer.email, contract.number, {
       filename: `${contract.number}.pdf`,
@@ -360,8 +361,8 @@ export class ContractsService {
    * Enregistre la signature du contrat par le client (V1 : retour signé
    * par email/GED — signature électronique intégrée en V2, cf. CDC §5).
    */
-  async markSigned(id: string, userId?: string) {
-    const contract = await this.findOne(id);
+  async markSigned(id: string, userId?: string, scopeToUserId?: string) {
+    const contract = await this.findOne(id, scopeToUserId);
 
     if (contract.status !== 'DRAFT') {
       throw new BadRequestException(
@@ -401,8 +402,8 @@ export class ContractsService {
     return updated;
   }
 
-  async suspend(id: string) {
-    await this.findOne(id);
+  async suspend(id: string, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.contract.update({
       where: { id },
@@ -411,8 +412,8 @@ export class ContractsService {
     });
   }
 
-  async terminate(id: string) {
-    await this.findOne(id);
+  async terminate(id: string, scopeToUserId?: string) {
+    await this.findOne(id, scopeToUserId);
 
     return this.prisma.contract.update({
       where: { id },

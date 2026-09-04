@@ -52,13 +52,14 @@ export class DirectoryService {
   async findAll(params: {
     search?: string;
     country?: string;
+    sector?: string;
     kind?: 'CONTACT' | 'LEAD';
     page?: number;
     limit?: number;
     /** Restreint au portefeuille d'un commercial, quand la règle l'exige. */
     scopeToUserId?: string;
   }) {
-    const { search, country, kind, scopeToUserId } = params;
+    const { search, country, sector, kind, scopeToUserId } = params;
     const page = Math.max(1, Number(params.page) || 1);
     const limit = Math.min(200, Math.max(1, Number(params.limit) || 25));
 
@@ -69,14 +70,25 @@ export class DirectoryService {
     const wantContacts = kind !== 'LEAD';
     const wantLeads = kind !== 'CONTACT';
 
+    // Le pays et le secteur d'un contact sont ceux de son client : il n'en
+    // porte pas en propre. Un seul objet `customer` pour les trois — le
+    // fusionner en trois `...(x ? {customer: {...}} : {})` séparés ferait
+    // que le dernier écrase les précédents (l'affectation, par exemple)
+    // plutôt que de les combiner : filtrer par pays ET secteur en même
+    // temps aurait perdu le scoping du portefeuille commercial.
+    const contactCustomerFilter = {
+      ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}),
+      ...(country ? { country } : {}),
+      ...(sector ? { sector: { equals: sector, mode: 'insensitive' as const } } : {}),
+    };
+
     const [contacts, leads] = await Promise.all([
       wantContacts
         ? this.prisma.contact.findMany({
             where: {
-              ...(scopeToUserId ? { customer: { assignedToId: scopeToUserId } } : {}),
-              // Le pays d'un contact est celui de son client : il n'en porte
-              // pas en propre.
-              ...(country ? { customer: { country } } : {}),
+              ...(Object.keys(contactCustomerFilter).length
+                ? { customer: contactCustomerFilter }
+                : {}),
               ...(like
                 ? {
                     OR: [
@@ -104,6 +116,7 @@ export class DirectoryService {
             where: {
               ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}),
               ...(country ? { country } : {}),
+              ...(sector ? { sector: { equals: sector, mode: 'insensitive' } } : {}),
               ...(like
                 ? {
                     OR: [
@@ -208,6 +221,44 @@ export class DirectoryService {
 
     return [...tally.entries()]
       .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /**
+   * Répartition par secteur d'activité, pour le sélecteur de filtre.
+   *
+   * Le secteur est un champ libre (pas un référentiel Paramètres) : les
+   * valeurs viennent telles que saisies. On les agrège telles quelles plutôt
+   * que d'imposer une liste fermée, qui figerait la saisie existante.
+   */
+  async sectors(scopeToUserId?: string) {
+    const [customerRows, leadRows] = await Promise.all([
+      this.prisma.customer.groupBy({
+        by: ['sector'],
+        where: {
+          sector: { not: null },
+          ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}),
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.lead.groupBy({
+        by: ['sector'],
+        where: {
+          sector: { not: null },
+          ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}),
+        },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const tally = new Map<string, number>();
+    for (const row of [...customerRows, ...leadRows]) {
+      if (!row.sector) continue;
+      tally.set(row.sector, (tally.get(row.sector) ?? 0) + row._count._all);
+    }
+
+    return [...tally.entries()]
+      .map(([sector, count]) => ({ sector, count }))
       .sort((a, b) => b.count - a.count);
   }
 

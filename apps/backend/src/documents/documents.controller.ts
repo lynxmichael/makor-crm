@@ -103,8 +103,11 @@ export class DocumentsController {
 
   @Get(':id/stats')
   @ApiOperation({ summary: 'Statistiques de consultation d’un document' })
-  stats(@Param('id') id: string) {
-    return this.documentsService.stats(id);
+  stats(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.documentsService.stats(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Post(':id/track')
@@ -124,8 +127,11 @@ export class DocumentsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.documentsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.documentsService.findOne(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Patch(':id')

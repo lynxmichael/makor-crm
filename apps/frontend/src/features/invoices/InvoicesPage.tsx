@@ -5,6 +5,7 @@ import {
   Ban,
   CheckCircle2,
   Download,
+  Eye,
   PenLine,
   Plus,
   Receipt,
@@ -25,7 +26,7 @@ import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataS
 import { InvoiceEditorModal } from "./InvoiceEditorModal";
 import { settledAmount } from "./InvoicePaymentsPanel";
 import { invoicesService } from "@/services/resources";
-import { api, http } from "@/services/api";
+import { http, openGeneratedPdf } from "@/services/api";
 import { useResourceList } from "@/hooks/use-resource";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -110,18 +111,20 @@ export function InvoicesPage() {
     onError: (error) => toast.error((error as ApiError).message),
   });
 
+  async function previewPdf(invoice: Row) {
+    try {
+      await openGeneratedPdf(`/invoices/${String(invoice.id)}/pdf`);
+    } catch (error) {
+      toast.error((error as ApiError).message);
+    }
+  }
+
   async function downloadPdf(invoice: Row) {
     try {
-      const response = await api.get(`/invoices/${String(invoice.id)}/pdf`, {
-        responseType: "blob",
-      });
-
-      const url = URL.createObjectURL(response.data as Blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${String(invoice.number ?? "facture")}.pdf`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      await openGeneratedPdf(
+        `/invoices/${String(invoice.id)}/pdf`,
+        `${String(invoice.number ?? "facture")}.pdf`,
+      );
     } catch (error) {
       toast.error((error as ApiError).message);
     }
@@ -314,6 +317,15 @@ export function InvoicesPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void previewPdf(invoice)}
+                            aria-label="Prévisualiser la facture"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+
                           <Button
                             variant="ghost"
                             size="sm"

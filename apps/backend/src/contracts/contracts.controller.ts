@@ -88,13 +88,19 @@ export class ContractsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.contractsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.contractsService.findOne(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Get(':id/pdf')
-  async downloadPdf(@Param('id') id: string, @Res() res: Response) {
-    const { pdf, number } = await this.contractsService.getPdf(id);
+  async downloadPdf(@Param('id') id: string, @Res() res: Response, @CurrentUser() user?: any) {
+    const { pdf, number } = await this.contractsService.getPdf(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -106,39 +112,60 @@ export class ContractsController {
 
   @Patch(':id')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
-  update(@Param('id') id: string, @Body() dto: UpdateContractDto) {
-    return this.contractsService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateContractDto, @CurrentUser() user?: any) {
+    return this.contractsService.update(
+      id,
+      dto,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Post(':id/send')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Transmettre le contrat au client par email' })
-  send(@Param('id') id: string, @CurrentUser() user: { id: string }) {
-    return this.contractsService.send(id, user?.id);
+  send(@Param('id') id: string, @CurrentUser() user: { id: string; role?: { name?: string } }) {
+    return this.contractsService.send(
+      id,
+      user?.id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Patch(':id/mark-signed')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
   @ApiOperation({ summary: 'Marquer le contrat comme signé par le client' })
-  markSigned(@Param('id') id: string, @CurrentUser() user: { id: string }) {
-    return this.contractsService.markSigned(id, user?.id);
+  markSigned(@Param('id') id: string, @CurrentUser() user: { id: string; role?: { name?: string } }) {
+    return this.contractsService.markSigned(
+      id,
+      user?.id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Patch(':id/suspend')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
-  suspend(@Param('id') id: string) {
-    return this.contractsService.suspend(id);
+  suspend(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.contractsService.suspend(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Patch(':id/terminate')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
-  terminate(@Param('id') id: string) {
-    return this.contractsService.terminate(id);
+  terminate(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.contractsService.terminate(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL')
-  remove(@Param('id') id: string) {
-    return this.contractsService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user?: any) {
+    return this.contractsService.remove(
+      id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
   }
 }

@@ -116,6 +116,26 @@ export const prospectsConfig: ModuleConfig = {
     "Les rendez-vous et opportunités rattachés à ce prospect seront également supprimés.",
   panels: { entityType: "LEAD", comments: true },
   toasts: { created: "Prospect créé", updated: "Prospect mis à jour", deleted: "Prospect supprimé" },
+  rowActions: [
+    {
+      path: "/leads/:id/convert",
+      method: "post",
+      label: "Convertir en client",
+      icon: "check",
+      tone: "signal",
+      // Un prospect déjà gagné ou perdu ne se convertit plus — gagné l'est
+      // déjà (par ce bouton ou par une affaire conclue), perdu ne le
+      // deviendra pas.
+      visibleWhen: ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"],
+      confirmBody:
+        "Une fiche client est créée à partir des informations du prospect, avec un contact principal — sans ressaisie. Le prospect passe alors au statut « Gagné ».",
+      successMessage: "Prospect converti en client",
+      // Sans ceci, la nouvelle fiche n'apparaît dans « Clients » qu'après
+      // expiration du cache (30 s) — trop tard pour l'enchaînement naturel
+      // après une conversion.
+      invalidates: [QK.customers],
+    },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -175,6 +195,7 @@ export const contractsConfig: ModuleConfig = {
   emptyTitle: "Aucun contrat",
   emptyDetail: "Les contrats sont généralement issus d'une facture proforma acceptée.",
   deleteWarning: "Les factures rattachées à ce contrat perdront leur lien.",
+  pdfAction: { path: "/contracts/:id/pdf", filenameKey: "number" },
   rowActions: [
     {
       path: "/contracts/:id/mark-signed",
@@ -491,6 +512,9 @@ export const documentsConfig: ModuleConfig = {
   // pas dans le formulaire générique, d'où la lecture seule ici.
   fields: [],
   readOnly: true,
+  // Le commercial n'a jamais accès à la facturation — le backend exclut déjà
+  // les documents de type facture de ses résultats (`DocumentsService`).
+  hiddenStatusesForRoles: { COMMERCIAL: ["INVOICE"] },
   statsPanel: { path: "/documents/:id/stats" },
   // Aperçu dans un onglet, ou enregistrement sous le nom du document.
   fileActions: { pathKey: "path", nameKey: "fileName" },

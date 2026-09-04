@@ -226,20 +226,18 @@ export const http = {
 };
 
 /**
- * Ouvre un fichier déposé dans un nouvel onglet.
+ * Récupère un fichier par blob et l'ouvre dans un onglet, ou le télécharge
+ * sous `filename` si fourni.
  *
- * `/files/:name` exige un jeton, porté par un en-tête. Un `window.open` sur
- * l'URL n'emporterait pas cet en-tête et se solderait par un 401 : on récupère
- * donc le fichier par l'instance axios — qui gère aussi le renouvellement de
- * session — puis on l'ouvre depuis une URL d'objet locale.
+ * Factorisé hors de `openFile` : la même mécanique sert aussi à l'aperçu des
+ * factures (`openInvoicePdf`), dont l'URL ne suit pas le schéma `/files/:name`.
+ * `fetchBlob` porte donc la requête, celle-ci n'ayant qu'à orchestrer l'onglet
+ * et le blob qui en résulte.
  */
-export async function openFile(path: string, filename?: string): Promise<void> {
-  if (!path) return;
-  if (path.startsWith("http")) {
-    window.open(path, "_blank", "noopener");
-    return;
-  }
-
+async function openBlob(
+  fetchBlob: () => Promise<{ data: unknown; headers: Record<string, unknown> }>,
+  filename?: string,
+): Promise<void> {
   // L'onglet d'aperçu est réservé MAINTENANT, tant que le clic de
   // l'utilisateur est encore le contexte courant. Ouvert après le
   // téléchargement du fichier, il serait tenu pour une fenêtre surgissante
@@ -258,23 +256,10 @@ export async function openFile(path: string, filename?: string): Promise<void> {
     tab.document.close();
   }
 
-  // Le chemin vient de multer et suit le séparateur du système : « uploads/x »
-  // sur Linux, « uploads\\x » sur Windows. La route sert par NOM de fichier,
-  // on ne garde donc que le dernier segment, quel que soit le séparateur.
-  const name = path.split(/[\\/]/).filter(Boolean).pop() ?? "";
-
-  if (!name) return;
-
-  // `filename` distingue les deux usages : sans lui on veut voir le fichier,
-  // avec lui on veut le conserver. Le serveur adapte son en-tête en
-  // conséquence — un PDF s'affiche dans un onglet ou part au téléchargement.
   let response;
 
   try {
-    response = await api.get(`/files/${encodeURIComponent(name)}`, {
-      responseType: "blob",
-      params: filename ? { download: "1" } : undefined,
-    });
+    response = await fetchBlob();
   } catch (error) {
     // L'onglet réservé doit être refermé si le fichier n'arrive pas : sinon
     // l'utilisateur se retrouve devant une page blanche sans explication,
@@ -286,7 +271,7 @@ export async function openFile(path: string, filename?: string): Promise<void> {
   // Le type est réattaché au blob : axios le renvoie parfois sans, et un blob
   // sans type s'ouvre en page blanche au lieu d'afficher le PDF.
   const blob = new Blob([response.data as BlobPart], {
-    type: response.headers["content-type"] ?? "application/octet-stream",
+    type: (response.headers["content-type"] as string | undefined) ?? "application/octet-stream",
   });
 
   const url = URL.createObjectURL(blob);
@@ -324,4 +309,55 @@ export async function openFile(path: string, filename?: string): Promise<void> {
 
   // Laisser au navigateur le temps d'ouvrir avant de libérer l'URL.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * Ouvre un fichier déposé dans un nouvel onglet.
+ *
+ * `/files/:name` exige un jeton, porté par un en-tête. Un `window.open` sur
+ * l'URL n'emporterait pas cet en-tête et se solderait par un 401 : on récupère
+ * donc le fichier par l'instance axios — qui gère aussi le renouvellement de
+ * session — puis on l'ouvre depuis une URL d'objet locale.
+ */
+export async function openFile(path: string, filename?: string): Promise<void> {
+  if (!path) return;
+  if (path.startsWith("http")) {
+    window.open(path, "_blank", "noopener");
+    return;
+  }
+
+  // Le chemin vient de multer et suit le séparateur du système : « uploads/x »
+  // sur Linux, « uploads\\x » sur Windows. La route sert par NOM de fichier,
+  // on ne garde donc que le dernier segment, quel que soit le séparateur.
+  const name = path.split(/[\\/]/).filter(Boolean).pop() ?? "";
+
+  if (!name) return;
+
+  // `filename` distingue les deux usages : sans lui on veut voir le fichier,
+  // avec lui on veut le conserver. Le serveur adapte son en-tête en
+  // conséquence — un PDF s'affiche dans un onglet ou part au téléchargement.
+  return openBlob(
+    () =>
+      api.get(`/files/${encodeURIComponent(name)}`, {
+        responseType: "blob",
+        params: filename ? { download: "1" } : undefined,
+      }),
+    filename,
+  );
+}
+
+/**
+ * Ouvre en aperçu le PDF d'une pièce générée à la volée par le serveur —
+ * facture, facture proforma, contrat — ou le télécharge sous `filename`.
+ *
+ * Générique par construction : `/invoices/:id/pdf`, `/quotes/:id/pdf` et
+ * `/contracts/:id/pdf` partagent le même contrat (jeton requis, PDF renvoyé
+ * tel quel), donc le même appel suffit aux trois. Le rôle est déjà porté par
+ * la route elle-même — cette fonction ne fait qu'ouvrir ce que le serveur
+ * accepte de renvoyer.
+ */
+export async function openGeneratedPdf(url: string, filename?: string): Promise<void> {
+  if (!url) return;
+
+  return openBlob(() => api.get(url, { responseType: "blob" }), filename);
 }

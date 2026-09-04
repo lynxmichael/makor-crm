@@ -61,6 +61,7 @@ export function DirectoryPage() {
 
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState("");
+  const [sector, setSector] = useState("");
   const [kind, setKind] = useState<"" | "CONTACT" | "LEAD">("");
   const [page, setPage] = useState(1);
   const [importOpen, setImportOpen] = useState(false);
@@ -76,9 +77,10 @@ export function DirectoryPage() {
       limit: 25,
       ...(debouncedSearch ? { search: debouncedSearch } : {}),
       ...(country ? { country } : {}),
+      ...(sector ? { sector } : {}),
       ...(kind ? { kind } : {}),
     }),
-    [page, debouncedSearch, country, kind],
+    [page, debouncedSearch, country, sector, kind],
   );
 
   const query = useQuery({
@@ -89,6 +91,11 @@ export function DirectoryPage() {
   const countries = useQuery({
     queryKey: ["directory", "countries"],
     queryFn: () => http.get<{ country: string; count: number }[]>("/directory/countries"),
+  });
+
+  const sectors = useQuery({
+    queryKey: ["directory", "sectors"],
+    queryFn: () => http.get<{ sector: string; count: number }[]>("/directory/sectors"),
   });
 
   const remove = useMutation({
@@ -103,11 +110,12 @@ export function DirectoryPage() {
   const rows = query.data?.data ?? [];
   const total = query.data?.total ?? 0;
   const totalPages = query.data?.totalPages ?? 1;
-  const hasFilters = Boolean(debouncedSearch || country || kind);
+  const hasFilters = Boolean(debouncedSearch || country || sector || kind);
 
   function resetFilters() {
     setSearch("");
     setCountry("");
+    setSector("");
     setKind("");
     setPage(1);
   }
@@ -207,6 +215,23 @@ export function DirectoryPage() {
           <option value="LEAD">Prospects</option>
         </Select>
 
+        <Select
+          value={sector}
+          onChange={(e) => {
+            setSector(e.target.value);
+            setPage(1);
+          }}
+          className="w-auto min-w-[180px]"
+          aria-label="Filtrer par secteur d'activité"
+        >
+          <option value="">Tous les secteurs</option>
+          {(sectors.data ?? []).map((entry) => (
+            <option key={entry.sector} value={entry.sector}>
+              {entry.sector} ({entry.count})
+            </option>
+          ))}
+        </Select>
+
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={resetFilters}>
             Réinitialiser
@@ -228,7 +253,7 @@ export function DirectoryPage() {
           title={hasFilters ? "Aucun résultat" : "Annuaire vide"}
           detail={
             hasFilters
-              ? "Élargissez la recherche ou changez de pays."
+              ? "Élargissez la recherche, ou changez de pays ou de secteur."
               : "Importez un fichier de contacts, ou créez vos premiers prospects."
           }
           action={
@@ -249,6 +274,7 @@ export function DirectoryPage() {
           <p className="text-sm text-slate">
             {total} entrée{total > 1 ? "s" : ""}
             {country && ` — ${country}`}
+            {sector && ` — ${sector}`}
           </p>
 
           <motion.div

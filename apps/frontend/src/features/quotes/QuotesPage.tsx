@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   Check,
   Download,
+  Eye,
   FileOutput,
   FileText,
   Pencil,
@@ -25,7 +26,7 @@ import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataS
 
 import { QuoteEditorModal } from "./QuoteEditorModal";
 import { quotesService } from "@/services/resources";
-import { api, http } from "@/services/api";
+import { http, openGeneratedPdf } from "@/services/api";
 import { useResourceList } from "@/hooks/use-resource";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -137,20 +138,23 @@ export function QuotesPage() {
   }
 
   /**
-   * Le PDF est généré à la volée par le serveur et exige un jeton : on passe
-   * donc par l'instance axios plutôt que par un lien direct, qui n'emporterait
-   * pas l'en-tête d'authentification.
+   * `openGeneratedPdf` porte le jeton via axios : un lien direct sur l'URL
+   * n'emporterait pas l'en-tête d'authentification.
    */
+  async function previewPdf(quote: Row) {
+    try {
+      await openGeneratedPdf(`/quotes/${String(quote.id)}/pdf`);
+    } catch (error) {
+      toast.error((error as ApiError).message ?? "Aperçu impossible.");
+    }
+  }
+
   async function downloadPdf(quote: Row) {
     try {
-      const response = await api.get(`/quotes/${quote.id}/pdf`, { responseType: "blob" });
-
-      const url = URL.createObjectURL(response.data as Blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${String(quote.number ?? "proforma")}.pdf`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      await openGeneratedPdf(
+        `/quotes/${String(quote.id)}/pdf`,
+        `${String(quote.number ?? "proforma")}.pdf`,
+      );
     } catch (error) {
       toast.error((error as ApiError).message ?? "Téléchargement impossible.");
     }
@@ -298,6 +302,15 @@ export function QuotesPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void previewPdf(quote)}
+                            aria-label="Prévisualiser la facture proforma"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+
                           <Button
                             variant="ghost"
                             size="sm"

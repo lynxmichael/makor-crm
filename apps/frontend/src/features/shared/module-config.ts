@@ -99,6 +99,15 @@ export interface ModuleConfig {
   statusFilterKey?: string;
   extraParams?: Record<string, unknown>;
 
+  /**
+   * Valeurs de `statuses` retirées du filtre pour certains rôles — les
+   * factures archivées (documents) ne concernent jamais le commercial, par
+   * exemple. Purement cosmétique : le serveur les exclut déjà des résultats
+   * (`RolesGuard` et le scoping de service), donc l'option n'apporterait
+   * qu'une liste vide si elle restait visible.
+   */
+  hiddenStatusesForRoles?: Record<string, string[]>;
+
   emptyTitle: string;
   emptyDetail: string;
   deleteWarning?: string;
@@ -152,6 +161,12 @@ export interface ModuleConfig {
     visibleWhen?: string[];
     confirmBody: string;
     successMessage: string;
+    /**
+     * Clés de requête additionnelles à invalider au succès, au-delà de
+     * `config.queryKey` — la conversion d'un prospect en client, par
+     * exemple, doit aussi rafraîchir la liste Clients.
+     */
+    invalidates?: readonly (readonly string[])[];
   }[];
 
   /** Affiche un panneau de statistiques par ligne (documents). */
@@ -164,6 +179,15 @@ export interface ModuleConfig {
    * du nom à proposer à l'enregistrement.
    */
   fileActions?: { pathKey: string; nameKey?: string };
+
+  /**
+   * Aperçu et téléchargement d'un PDF généré à la volée par le serveur —
+   * contrat, facture proforma… `:id` est remplacé par l'identifiant de la
+   * ligne. Contrairement à `fileActions`, qui pointe un fichier déjà déposé,
+   * chaque appel déclenche une génération côté serveur ; `filenameKey`
+   * (« number » par défaut) fournit le nom proposé au téléchargement.
+   */
+  pdfAction?: { path: string; filenameKey?: string };
 
   /**
    * Dépôt de fichier par une modale dédiée.
