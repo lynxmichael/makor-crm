@@ -16,6 +16,19 @@ model OrganizationSettings {
   phone       String?
   logoUrl     String?
 
+  /** Registre du commerce et du crédit mobilier — affiché en en-tête des PDF commerciaux. */
+  rccm String?
+
+  /** Coordonnées bancaires, affichées comme modalités de paiement sur devis/contrats/factures. */
+  bankName    String?
+  bankAccount String?
+
+  /** Mentions légales / CGV, imprimées en pied de page des PDF commerciaux. */
+  legalMentions String?
+
+  /** Mise en page des PDF commerciaux — voir PdfTemplate dans le service PDF. */
+  pdfTemplate String @default("CLASSIC")
+
   vatRate         Decimal @default(0.18) @db.Decimal(5, 4)
   defaultCurrency String  @default("XOF")
 
@@ -1020,6 +1033,8 @@ enum DocumentType {
   INVOICE
   QUOTE
   PURCHASE_ORDER
+  /// Proposition commerciale déposée par un commercial, à envoyer au client.
+  PROPOSAL
   IMAGE
   PDF
   WORD

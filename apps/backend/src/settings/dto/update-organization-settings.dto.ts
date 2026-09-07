@@ -1,4 +1,4 @@
-import { IsEmail, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsEmail, IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateOrganizationSettingsDto {
   @IsOptional()
@@ -20,6 +20,26 @@ export class UpdateOrganizationSettingsDto {
   @IsOptional()
   @IsString()
   logoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  rccm?: string;
+
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccount?: string;
+
+  @IsOptional()
+  @IsString()
+  legalMentions?: string;
+
+  @IsOptional()
+  @IsIn(['CLASSIC', 'MODERN', 'MINIMAL'])
+  pdfTemplate?: string;
 
   @IsOptional()
   @IsNumber()

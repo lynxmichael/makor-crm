@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { PdfService } from '../common/pdf/pdf.service';
+import { PdfService, PdfTemplate } from '../common/pdf/pdf.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -32,6 +32,11 @@ export class InvoicePdfService {
         address: org?.address,
         email: org?.email,
         phone: org?.phone,
+        logoUrl: org?.logoUrl,
+        rccm: org?.rccm,
+        bankName: org?.bankName,
+        bankAccount: org?.bankAccount,
+        legalMentions: org?.legalMentions,
       },
       {
         documentTitle: 'FACTURE',
@@ -56,6 +61,7 @@ export class InvoicePdfService {
         total: Number(invoice.total),
         currency: org?.defaultCurrency ?? 'XOF',
       },
+      (org?.pdfTemplate as PdfTemplate) ?? 'CLASSIC',
     );
   }
 }

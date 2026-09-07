@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -20,12 +20,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Field } from "@/components/ui/Field";
+import { Field, Select, Textarea } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared/DataState";
 
 import { settingsService, productsService } from "@/services/resources";
-import { http } from "@/services/api";
+import { api, http } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
 import { EASE_OUT } from "@/lib/motion";
@@ -109,7 +109,11 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
       address: String(query.data.address ?? ""),
       email: String(query.data.email ?? ""),
       phone: String(query.data.phone ?? ""),
-      logoUrl: String(query.data.logoUrl ?? ""),
+      rccm: String(query.data.rccm ?? ""),
+      bankName: String(query.data.bankName ?? ""),
+      bankAccount: String(query.data.bankAccount ?? ""),
+      legalMentions: String(query.data.legalMentions ?? ""),
+      pdfTemplate: String(query.data.pdfTemplate ?? "CLASSIC"),
       // Le backend stocke un ratio (0,18) ; on présente un pourcentage.
       vatRate: String(Number(query.data.vatRate ?? 0) * 100),
       defaultCurrency: String(query.data.defaultCurrency ?? ""),
@@ -226,15 +230,80 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
           />
         </Field>
 
+        <Field
+          label="RCCM / n° d'immatriculation"
+          htmlFor="s-rccm"
+          hint="Affiché en en-tête des devis, contrats et factures."
+        >
+          <Input
+            id="s-rccm"
+            value={form.rccm ?? ""}
+            onChange={(e) => set("rccm", e.target.value)}
+            disabled={!canEdit}
+          />
+        </Field>
+
+        <Field
+          label="Mise en page des PDF"
+          htmlFor="s-template"
+          hint="Appliquée aux devis, contrats et factures générés."
+        >
+          <Select
+            id="s-template"
+            value={form.pdfTemplate ?? "CLASSIC"}
+            onChange={(e) => set("pdfTemplate", e.target.value)}
+            disabled={!canEdit}
+          >
+            <option value="CLASSIC">Classique</option>
+            <option value="MODERN">Moderne</option>
+            <option value="MINIMAL">Minimaliste</option>
+          </Select>
+        </Field>
+
+        <Field label="Nom de la banque" htmlFor="s-bank-name">
+          <Input
+            id="s-bank-name"
+            value={form.bankName ?? ""}
+            onChange={(e) => set("bankName", e.target.value)}
+            disabled={!canEdit}
+          />
+        </Field>
+
+        <Field
+          label="Numéro de compte / IBAN"
+          htmlFor="s-bank-account"
+          hint="Affiché comme modalité de paiement sur devis, contrats et factures."
+        >
+          <Input
+            id="s-bank-account"
+            value={form.bankAccount ?? ""}
+            onChange={(e) => set("bankAccount", e.target.value)}
+            disabled={!canEdit}
+          />
+        </Field>
+
         <div className="sm:col-span-2">
-          <Field label="Logo (URL)" htmlFor="s-logo" hint="Affiché sur les factures proforma et factures PDF.">
-            <Input
-              id="s-logo"
-              value={form.logoUrl ?? ""}
-              onChange={(e) => set("logoUrl", e.target.value)}
+          <Field
+            label="Mentions légales / CGV"
+            htmlFor="s-legal"
+            hint="Imprimées en petit, en pied de page de chaque PDF."
+          >
+            <Textarea
+              id="s-legal"
+              rows={3}
+              value={form.legalMentions ?? ""}
+              onChange={(e) => set("legalMentions", e.target.value)}
               disabled={!canEdit}
             />
           </Field>
+        </div>
+
+        <div className="sm:col-span-2">
+          <LogoField
+            logoUrl={String(query.data?.logoUrl ?? "")}
+            canEdit={canEdit}
+            onUploaded={() => queryClient.invalidateQueries({ queryKey: QK.settings })}
+          />
         </div>
       </div>
 
@@ -247,6 +316,116 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Aperçu et dépôt du logo affiché sur les devis, contrats et factures PDF.
+ *
+ * `/files/:name` exige le jeton d'authentification, qu'une simple balise
+ * `<img src="...">` n'enverrait pas — d'où la récupération en blob plutôt
+ * qu'une URL directe, comme pour l'aperçu des PDF.
+ */
+function LogoField({
+  logoUrl,
+  canEdit,
+  onUploaded,
+}: {
+  logoUrl: string;
+  canEdit: boolean;
+  onUploaded: () => void;
+}) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!logoUrl) {
+      setPreview(null);
+      return;
+    }
+
+    const name = logoUrl.split(/[\\/]/).filter(Boolean).pop();
+    if (!name) {
+      setPreview(null);
+      return;
+    }
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    api
+      .get(`/files/${encodeURIComponent(name)}`, { responseType: "blob" })
+      .then((response) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(response.data as Blob);
+        setPreview(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setPreview(null);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [logoUrl]);
+
+  const upload = useMutation({
+    mutationFn: (file: File) => settingsService.uploadLogo(file),
+    onSuccess: () => {
+      toast.success("Logo mis à jour");
+      onUploaded();
+    },
+    onError: (error) => toast.error((error as ApiError).message),
+  });
+
+  return (
+    <Field
+      label="Logo"
+      htmlFor="s-logo"
+      hint="JPEG ou PNG, affiché en en-tête des devis, contrats et factures PDF."
+    >
+      <div className="flex items-center gap-3">
+        {preview ? (
+          <img
+            src={preview}
+            alt="Logo de l'entreprise"
+            className="h-14 w-14 rounded-md border border-line bg-white object-contain p-1"
+          />
+        ) : (
+          <div className="flex h-14 w-14 items-center justify-center rounded-md border border-dashed border-line text-[10px] text-slate">
+            Aucun logo
+          </div>
+        )}
+
+        {canEdit && (
+          <div>
+            <input
+              ref={fileInput}
+              id="s-logo"
+              type="file"
+              accept="image/png,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) upload.mutate(file);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => fileInput.current?.click()}
+              disabled={upload.isPending}
+            >
+              {upload.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {logoUrl ? "Changer le logo" : "Déposer un logo"}
+            </Button>
+          </div>
+        )}
+      </div>
+    </Field>
   );
 }
 

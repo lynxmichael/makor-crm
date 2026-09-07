@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -32,6 +32,22 @@ export class SettingsService {
     });
   }
 
+  /**
+   * Enregistre le logo déposé. Seul le nom de fichier est conservé — comme
+   * pour les documents de la GED — afin de rester lisible par
+   * `PdfService.generateCommercialDocument`, qui va le relire directement sur
+   * disque plutôt que par une requête HTTP authentifiée.
+   */
+  async setLogo(file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException(
+        "Aucun fichier reçu — formats acceptés : PNG, JPG, WEBP, SVG.",
+      );
+    }
+
+    return this.updateOrganizationSettings({ logoUrl: file.filename });
+  }
+
   /** Taux de TVA courant, utilisé par les modules Devis / BC / Factures. */
   async getVatRate(): Promise<number> {
     const settings = await this.getOrganizationSettings();
@@ -40,7 +56,27 @@ export class SettingsService {
 
   // --- Secteurs d'activité ---
 
-  createSector(dto: CreateSectorDto) {
+  /**
+   * `Sector.name` est unique en base, mais la contrainte SQL est sensible à
+   * la casse : « Informatique » et « informatique » passeraient comme deux
+   * secteurs distincts. Un doublon de casse fragmente ensuite le filtre par
+   * secteur de l'annuaire en plusieurs repères pour la même valeur.
+   */
+  private async ensureSectorNameAvailable(name: string, excludeId?: string) {
+    const duplicate = await this.prisma.sector.findFirst({
+      where: {
+        name: { equals: name, mode: 'insensitive' },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+
+    if (duplicate) {
+      throw new ConflictException(`Un secteur « ${duplicate.name} » existe déjà.`);
+    }
+  }
+
+  async createSector(dto: CreateSectorDto) {
+    await this.ensureSectorNameAvailable(dto.name);
     return this.prisma.sector.create({ data: dto });
   }
 
@@ -50,6 +86,7 @@ export class SettingsService {
 
   async updateSector(id: string, dto: UpdateSectorDto) {
     await this.ensureSectorExists(id);
+    if (dto.name) await this.ensureSectorNameAvailable(dto.name, id);
     return this.prisma.sector.update({ where: { id }, data: dto });
   }
 
@@ -66,7 +103,22 @@ export class SettingsService {
 
   // --- Pays ---
 
-  createCountry(dto: CreateCountryDto) {
+  /** Même règle que les secteurs : le nom est unique, insensible à la casse. */
+  private async ensureCountryNameAvailable(name: string, excludeId?: string) {
+    const duplicate = await this.prisma.country.findFirst({
+      where: {
+        name: { equals: name, mode: 'insensitive' },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+
+    if (duplicate) {
+      throw new ConflictException(`Un pays « ${duplicate.name} » existe déjà.`);
+    }
+  }
+
+  async createCountry(dto: CreateCountryDto) {
+    await this.ensureCountryNameAvailable(dto.name);
     return this.prisma.country.create({
       data: { ...dto, code: dto.code.toUpperCase() },
     });
@@ -78,6 +130,7 @@ export class SettingsService {
 
   async updateCountry(id: string, dto: UpdateCountryDto) {
     await this.ensureCountryExists(id);
+    if (dto.name) await this.ensureCountryNameAvailable(dto.name, id);
     return this.prisma.country.update({
       where: { id },
       data: { ...dto, code: dto.code ? dto.code.toUpperCase() : undefined },

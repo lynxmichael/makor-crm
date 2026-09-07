@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
 import { SettingsService } from '../settings/settings.service';
-import { PdfService } from '../common/pdf/pdf.service';
+import { PdfService, PdfTemplate } from '../common/pdf/pdf.service';
 import { MailService } from '../mail/mail.service';
 import { AuditService } from '../audit/audit.service';
 
@@ -207,6 +207,11 @@ export class QuotesService {
         address: org.address,
         email: org.email,
         phone: org.phone,
+        logoUrl: org.logoUrl,
+        rccm: org.rccm,
+        bankName: org.bankName,
+        bankAccount: org.bankAccount,
+        legalMentions: org.legalMentions,
       },
       {
         documentTitle: 'DEVIS',
@@ -232,6 +237,7 @@ export class QuotesService {
         currency: org.defaultCurrency,
         notes: quote.notes,
       },
+      (org.pdfTemplate as PdfTemplate) ?? 'CLASSIC',
     );
   }
 

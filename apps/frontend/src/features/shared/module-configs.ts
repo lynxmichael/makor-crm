@@ -478,11 +478,12 @@ export const agendaConfig: ModuleConfig = {
 // Documents (CDC §4.14) — dépôt via le module GED, consultation ici
 // ---------------------------------------------------------------------------
 
-const DOCUMENT_TYPES = {
+export const DOCUMENT_TYPES = {
   CONTRACT: "Contrat",
   INVOICE: "Facture",
   QUOTE: "Factures proforma",
   PURCHASE_ORDER: "Bon de commande",
+  PROPOSAL: "Proposition commerciale",
   IMAGE: "Image",
   PDF: "PDF",
   WORD: "Word",
@@ -518,6 +519,17 @@ export const documentsConfig: ModuleConfig = {
   statsPanel: { path: "/documents/:id/stats" },
   // Aperçu dans un onglet, ou enregistrement sous le nom du document.
   fileActions: { pathKey: "path", nameKey: "fileName" },
+  // Un commercial dépose une proposition commerciale (ou tout autre
+  // document rattaché à un client) et l'envoie par e-mail sans quitter la
+  // GED — jusqu'ici il fallait la joindre manuellement depuis sa messagerie.
+  sendAction: {
+    path: "/documents/:id/send",
+    label: "Envoyer au client",
+    confirmTitle: "Envoyer ce document au client ?",
+    confirmBody:
+      "Le document part par e-mail à l'adresse enregistrée sur la fiche client, en pièce jointe. Le document doit être rattaché à un client ayant une adresse e-mail.",
+    successMessage: "Document envoyé au client",
+  },
   uploadAction: { label: "Déposer un document" },
   emptyTitle: "Aucun document",
   emptyDetail: "Les documents déposés depuis les fiches client apparaîtront ici.",

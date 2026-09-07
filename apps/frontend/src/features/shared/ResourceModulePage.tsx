@@ -295,7 +295,11 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                       </td>
                     ))}
 
-                    {(canWrite || config.statsPanel || config.fileActions || config.pdfAction) && (
+                    {(canWrite ||
+                      config.statsPanel ||
+                      config.fileActions ||
+                      config.pdfAction ||
+                      config.sendAction) && (
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
                           {config.pdfAction ? (
@@ -411,7 +415,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                             );
                           })}
 
-                          {canWrite && config.sendAction && (
+                          {config.sendAction && (
                             <Button
                               variant="ghost"
                               size="sm"

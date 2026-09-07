@@ -1,14 +1,20 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { existsSync, readFileSync } from 'fs';
+import { basename, join } from 'path';
 
 import { DocumentEventType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   upload(file: Express.Multer.File, dto: CreateDocumentDto) {
     // Sans ce garde-fou, un envoi sans pièce plante sur `file.filename` avec
@@ -295,5 +301,48 @@ export class DocumentsService {
         id,
       },
     });
+  }
+
+  /**
+   * Envoie le document au client par email, en pièce jointe.
+   *
+   * Réutilise `findOne` (mêmes règles de périmètre et de 404 qu'ailleurs
+   * dans ce service) plutôt qu'une requête dédiée : un commercial ne doit
+   * pas pouvoir envoyer un document hors de son portefeuille en devinant un
+   * identifiant, pas plus qu'il ne peut le consulter.
+   */
+  async sendToCustomer(
+    id: string,
+    userId?: string,
+    scopeToUserId?: string,
+  ) {
+    const document = await this.findOne(id, scopeToUserId);
+
+    if (!document.customer) {
+      throw new BadRequestException("Ce document n'est rattaché à aucun client.");
+    }
+
+    if (!document.customer.email) {
+      throw new BadRequestException("Le client n'a pas d'adresse email enregistrée.");
+    }
+
+    const filePath = join(process.cwd(), 'uploads', basename(document.path));
+
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('Le fichier déposé est introuvable sur le serveur.');
+    }
+
+    await this.mailService.sendMail(
+      document.customer.email,
+      document.name,
+      `
+        <p>Vous trouverez ci-joint le document <b>${document.name}</b>.</p>
+      `,
+      { filename: document.fileName, content: readFileSync(filePath) },
+    );
+
+    await this.trackEvent(id, DocumentEventType.SENT, { userId });
+
+    return { sent: true, customerEmail: document.customer.email };
   }
 }

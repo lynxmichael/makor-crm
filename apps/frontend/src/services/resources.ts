@@ -143,6 +143,13 @@ export const searchService = {
 export const settingsService = {
   organization: () => http.get<Row>("/settings/organization"),
   updateOrganization: (body: Row) => http.patch<Row>("/settings/organization", body),
+  uploadLogo: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    // Content-Type laissé au navigateur, comme pour l'upload de documents :
+    // le fixer omettrait la « boundary » du multipart.
+    return http.post<Row>("/settings/organization/logo", form);
+  },
 
   sectors: () => http.get<Row[]>("/settings/sectors"),
   createSector: (body: Row) => http.post<Row>("/settings/sectors", body),

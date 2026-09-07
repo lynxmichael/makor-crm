@@ -8,7 +8,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
-import { PdfService } from '../common/pdf/pdf.service';
+import { PdfService, PdfTemplate } from '../common/pdf/pdf.service';
 import { SettingsService } from '../settings/settings.service';
 import { MailService } from '../mail/mail.service';
 import { AuditService } from '../audit/audit.service';
@@ -300,6 +300,11 @@ export class ContractsService {
         address: org.address,
         email: org.email,
         phone: org.phone,
+        logoUrl: org.logoUrl,
+        rccm: org.rccm,
+        bankName: org.bankName,
+        bankAccount: org.bankAccount,
+        legalMentions: org.legalMentions,
       },
       {
         documentTitle: 'CONTRAT',
@@ -320,6 +325,7 @@ export class ContractsService {
             : []),
         ],
       },
+      (org.pdfTemplate as PdfTemplate) ?? 'CLASSIC',
     );
   }
 

@@ -126,6 +126,17 @@ export class DocumentsController {
     });
   }
 
+  @Post(':id/send')
+  @Roles('SUPER_ADMIN', 'ADMIN_VENTES', 'SUPERVISEUR', 'COMMERCIAL', 'MANAGER')
+  @ApiOperation({ summary: 'Envoyer le document au client par email' })
+  send(@Param('id') id: string, @CurrentUser() user: { id: string; role?: { name?: string } }) {
+    return this.documentsService.sendToCustomer(
+      id,
+      user?.id,
+      user?.role?.name === 'COMMERCIAL' ? user.id : undefined,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user?: any) {
     return this.documentsService.findOne(

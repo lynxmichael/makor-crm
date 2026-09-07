@@ -1,11 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
+import { existsSync } from 'fs';
+import { basename, join } from 'path';
+
+/** Mise en page appliquée aux PDF commerciaux — choisie en Paramètres > Organisation. */
+export type PdfTemplate = 'CLASSIC' | 'MODERN' | 'MINIMAL';
 
 export interface OrganizationHeaderInfo {
   companyName: string;
   address?: string | null;
   email?: string | null;
   phone?: string | null;
+  /** Nom du fichier déposé via `POST /settings/organization/logo` — pas une URL. */
+  logoUrl?: string | null;
+  /** Registre du commerce et du crédit mobilier. */
+  rccm?: string | null;
+  bankName?: string | null;
+  bankAccount?: string | null;
+  /** Mentions légales / CGV, imprimées en petit en pied de page. */
+  legalMentions?: string | null;
 }
 
 export interface PdfLineItem {
@@ -37,6 +50,34 @@ export interface CommercialDocumentData {
 }
 
 /**
+ * Traits visuels qui distinguent les trois mises en page. Un seul code de
+ * dessin pour les trois plutôt que trois méthodes quasi identiques : un
+ * correctif sur le tableau ou les totaux n'a besoin d'être fait qu'une fois.
+ */
+interface PdfTheme {
+  /** Couleur d'accent : titre, en-tête du tableau, bandeau. */
+  accent: string;
+  /** Bandeau coloré derrière tout l'en-tête, plutôt qu'un fond blanc. */
+  headerBanner: boolean;
+  /** Lignes alternées grisées dans le tableau des lignes. */
+  zebraRows: boolean;
+  /** Ligne de séparation fine sous l'en-tête. */
+  headerDivider: boolean;
+}
+
+const THEMES: Record<PdfTemplate, PdfTheme> = {
+  // Sobre, proche de la maquette d'origine : bandeau sombre uniquement sur
+  // l'en-tête du tableau, pas de fond coloré ailleurs.
+  CLASSIC: { accent: '#1f2937', headerBanner: false, zebraRows: true, headerDivider: true },
+  // Plus affirmé : un bandeau de couleur derrière tout l'en-tête (logo,
+  // raison sociale, titre du document).
+  MODERN: { accent: '#0f766e', headerBanner: true, zebraRows: true, headerDivider: false },
+  // Le moins chargé : pas de fond coloré du tout, juste des filets fins et
+  // du texte noir — pensé pour l'impression noir et blanc.
+  MINIMAL: { accent: '#111111', headerBanner: false, zebraRows: false, headerDivider: true },
+};
+
+/**
  * Génère les PDF commerciaux (devis, bons de commande, contrats, factures).
  * Service volontairement indépendant de Prisma : les modules appelants lui
  * fournissent des données déjà assemblées, ce qui le rend testable et
@@ -48,7 +89,15 @@ export class PdfService {
     const formatted = new Intl.NumberFormat('fr-FR', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
-    }).format(value);
+    })
+      .format(value)
+      // Le séparateur de milliers que produit la locale fr-FR est une espace
+      // fine insécable (U+202F). Les polices standard des PDF (Helvetica et
+      // consorts, en WinAnsiEncoding) n'ont pas ce glyphe : PDFKit le
+      // remplace alors par un caractère arbitraire de la police plutôt que
+      // d'échouer — d'où les « / » au lieu des espaces entre les milliers.
+      // Une espace normale existe dans toutes les polices.
+      .replace(/[\u00A0\u202F]/g, ' ');
 
     return `${formatted} ${currency}`;
   }
@@ -56,6 +105,7 @@ export class PdfService {
   generateCommercialDocument(
     org: OrganizationHeaderInfo,
     data: CommercialDocumentData,
+    template: PdfTemplate = 'CLASSIC',
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -66,31 +116,70 @@ export class PdfService {
       doc.on('error', reject);
 
       const currency = data.currency ?? 'XOF';
+      const theme = THEMES[template] ?? THEMES.CLASSIC;
 
       // --- En-tête ---
-      doc.fontSize(18).font('Helvetica-Bold').text(org.companyName, 50, 50);
+      const headerHeight = 130;
 
-      doc.fontSize(9).font('Helvetica').fillColor('#555555');
+      if (theme.headerBanner) {
+        doc.rect(0, 0, 595.28, headerHeight).fill(theme.accent);
+      }
+
+      const onHeader = theme.headerBanner ? '#ffffff' : '#111111';
+      const onHeaderMuted = theme.headerBanner ? '#e5e7eb' : '#555555';
+
+      // Le logo n'est jamais lu via `/files/:name` (authentifié) : le
+      // document se génère côté serveur, sans session à porter, donc
+      // directement depuis /uploads. `basename` neutralise toute tentative
+      // de remontée d'arborescence, comme pour `FilesController`.
+      const logoPath = org.logoUrl
+        ? join(process.cwd(), 'uploads', basename(org.logoUrl))
+        : null;
+      const hasLogo = Boolean(logoPath && existsSync(logoPath));
+      const textX = hasLogo ? 155 : 50;
+
+      if (hasLogo && logoPath) {
+        try {
+          doc.image(logoPath, 50, 45, { fit: [90, 50] });
+        } catch {
+          // Fichier présent mais illisible par PDFKit (SVG complexe, format
+          // corrompu…) : le document continue sans logo plutôt que
+          // d'échouer sur un devis ou une facture qui, sinon, seraient
+          // parfaitement valides.
+        }
+      }
+
+      doc
+        .fontSize(18)
+        .font('Helvetica-Bold')
+        .fillColor(onHeader)
+        .text(org.companyName, textX, 50);
+
+      doc.fontSize(9).font('Helvetica').fillColor(onHeaderMuted);
       let y = 72;
       if (org.address) {
-        doc.text(org.address, 50, y);
+        doc.text(org.address, textX, y);
         y += 12;
       }
       const contactLine = [org.email, org.phone].filter(Boolean).join('  •  ');
       if (contactLine) {
-        doc.text(contactLine, 50, y);
+        doc.text(contactLine, textX, y);
+        y += 12;
+      }
+      if (org.rccm) {
+        doc.text(`RCCM : ${org.rccm}`, textX, y);
       }
 
       doc
         .fontSize(20)
         .font('Helvetica-Bold')
-        .fillColor('#111111')
+        .fillColor(onHeader)
         .text(data.documentTitle, 350, 50, { align: 'right' });
 
       doc
         .fontSize(10)
         .font('Helvetica')
-        .fillColor('#333333')
+        .fillColor(onHeaderMuted)
         .text(`N° ${data.number}`, 350, 78, { align: 'right' })
         .text(`Date : ${data.date.toLocaleDateString('fr-FR')}`, 350, 92, {
           align: 'right',
@@ -109,7 +198,9 @@ export class PdfService {
         doc.text(`Statut : ${data.status}`, 350, 120, { align: 'right' });
       }
 
-      doc.moveTo(50, 140).lineTo(545, 140).strokeColor('#dddddd').stroke();
+      if (theme.headerDivider) {
+        doc.moveTo(50, 140).lineTo(545, 140).strokeColor('#dddddd').stroke();
+      }
 
       // --- Bloc client ---
       doc
@@ -147,7 +238,7 @@ export class PdfService {
           .font('Helvetica-Bold')
           .fillColor('#ffffff')
           .rect(50, tableTop, 495, 20)
-          .fill('#1f2937');
+          .fill(theme.accent);
 
         doc
           .fillColor('#ffffff')
@@ -162,7 +253,7 @@ export class PdfService {
 
         data.items.forEach((item, idx) => {
           const rowHeight = 20;
-          if (idx % 2 === 1) {
+          if (theme.zebraRows && idx % 2 === 1) {
             doc.rect(50, rowY, 495, rowHeight).fill('#f3f4f6');
             doc.fillColor('#222222');
           }
@@ -222,6 +313,7 @@ export class PdfService {
         doc
           .font('Helvetica-Bold')
           .fontSize(12)
+          .fillColor('#111111')
           .text('TOTAL', totalsX, cursorY);
         doc.text(this.formatAmount(data.total, currency), totalsX + 100, cursorY, {
           align: 'right',
@@ -232,6 +324,7 @@ export class PdfService {
         doc
           .font('Helvetica-Bold')
           .fontSize(12)
+          .fillColor('#111111')
           .text('MONTANT', 360, cursorY);
         doc.text(this.formatAmount(data.total, currency), 460, cursorY, {
           align: 'right',
@@ -250,12 +343,46 @@ export class PdfService {
         cursorY += 10;
       }
 
+      // --- Modalités de paiement ---
+      if (org.bankName || org.bankAccount) {
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(9)
+          .fillColor('#111111')
+          .text('Modalités de paiement', 50, cursorY);
+        cursorY += 13;
+
+        doc.font('Helvetica').fontSize(9).fillColor('#333333');
+        if (org.bankName) {
+          doc.text(org.bankName, 50, cursorY, { width: 495 });
+          cursorY += doc.heightOfString(org.bankName, { width: 495 }) + 2;
+        }
+        if (org.bankAccount) {
+          doc.text(org.bankAccount, 50, cursorY, { width: 495 });
+          cursorY += doc.heightOfString(org.bankAccount, { width: 495 }) + 2;
+        }
+        cursorY += 8;
+      }
+
       if (data.notes) {
         doc
           .font('Helvetica-Oblique')
           .fontSize(9)
           .fillColor('#555555')
           .text(data.notes, 50, cursorY, { width: 495 });
+        cursorY += doc.heightOfString(data.notes, { width: 495 }) + 10;
+      }
+
+      // --- Pied de page ---
+      // Position fixe plutôt qu'à la suite de `cursorY` : les mentions
+      // légales doivent rester au bas de la page même sur un document court,
+      // pas juste sous le dernier bloc de contenu.
+      if (org.legalMentions) {
+        doc
+          .fontSize(7)
+          .font('Helvetica')
+          .fillColor('#999999')
+          .text(org.legalMentions, 50, 748, { width: 495, align: 'center' });
       }
 
       doc

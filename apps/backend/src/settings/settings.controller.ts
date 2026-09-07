@@ -6,9 +6,14 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -43,6 +48,40 @@ export class SettingsController {
   @Roles('SUPER_ADMIN')
   updateOrganization(@Body() dto: UpdateOrganizationSettingsDto) {
     return this.settingsService.updateOrganizationSettings(dto);
+  }
+
+  @Post('organization/logo')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Déposer le logo affiché sur les devis, contrats et factures' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+
+        filename(req, file, cb) {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1000000);
+          cb(null, `logo-${unique}${extname(file.originalname)}`);
+        },
+      }),
+
+      // Un logo n'a pas vocation à peser lourd ; borne large pour rester
+      // tolérant sans laisser passer un fichier aberrant.
+      limits: { fileSize: 5 * 1024 * 1024 },
+
+      fileFilter(req, file, cb) {
+        // PDFKit ne sait intégrer que du JPEG/PNG dans un document (pas de
+        // SVG, pas de WebP) — un format non supporté accepté ici
+        // s'afficherait dans Paramètres mais jamais sur un PDF, ce qui
+        // serait plus trompeur qu'un refus à l'envoi.
+        const allowed = ['.png', '.jpg', '.jpeg'];
+        cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
+      },
+    }),
+  )
+  uploadLogo(@UploadedFile() file: Express.Multer.File) {
+    return this.settingsService.setLogo(file);
   }
 
   @Get('sectors')

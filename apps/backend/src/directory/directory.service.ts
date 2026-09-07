@@ -78,7 +78,7 @@ export class DirectoryService {
     // temps aurait perdu le scoping du portefeuille commercial.
     const contactCustomerFilter = {
       ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}),
-      ...(country ? { country } : {}),
+      ...(country ? { country: { equals: country, mode: 'insensitive' as const } } : {}),
       ...(sector ? { sector: { equals: sector, mode: 'insensitive' as const } } : {}),
     };
 
@@ -115,7 +115,7 @@ export class DirectoryService {
         ? this.prisma.lead.findMany({
             where: {
               ...(scopeToUserId ? { assignedToId: scopeToUserId } : {}),
-              ...(country ? { country } : {}),
+              ...(country ? { country: { equals: country, mode: 'insensitive' } } : {}),
               ...(sector ? { sector: { equals: sector, mode: 'insensitive' } } : {}),
               ...(like
                 ? {
@@ -187,14 +187,43 @@ export class DirectoryService {
   }
 
   /**
+   * Fusionne les variantes de casse d'une même valeur libre (« Côte d'Ivoire »,
+   * « COTE D'IVOIRE », « cote d'ivoire »…) en une seule entrée, recalée sur le
+   * libellé du référentiel Paramètres quand il y en a un — sinon sur la
+   * première variante rencontrée. `Country.name`/`Sector.name` sont uniques
+   * en base, mais la contrainte est sensible à la casse : plusieurs saisies
+   * de la même valeur en Paramètres, ou un import qui a contourné le
+   * référentiel, produisent sinon un repère de filtre distinct par variante.
+   */
+  private mergeCaseInsensitiveTally(
+    rows: { value: string; count: number }[],
+    canonicalLabels: string[],
+  ): { value: string; count: number }[] {
+    const canonicalByLower = new Map(canonicalLabels.map((label) => [label.toLowerCase(), label]));
+    const tally = new Map<string, { label: string; count: number }>();
+
+    for (const { value, count } of rows) {
+      const lower = value.toLowerCase();
+      const existing = tally.get(lower);
+      const label = canonicalByLower.get(lower) ?? existing?.label ?? value;
+      tally.set(lower, { label, count: (existing?.count ?? 0) + count });
+    }
+
+    return [...tally.values()]
+      .map(({ label, count }) => ({ value: label, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /**
    * Répartition par pays, pour le sélecteur de filtre.
    *
    * Construite depuis les données réelles plutôt que depuis le référentiel
    * Paramètres : un pays configuré mais sans aucun contact n'a pas à
-   * encombrer la liste.
+   * encombrer la liste. Le référentiel sert uniquement à choisir le libellé
+   * affiché quand plusieurs variantes de casse coexistent.
    */
   async countries(scopeToUserId?: string) {
-    const [customerRows, leadRows] = await Promise.all([
+    const [customerRows, leadRows, canonical] = await Promise.all([
       this.prisma.customer.groupBy({
         by: ['country'],
         where: {
@@ -211,28 +240,29 @@ export class DirectoryService {
         },
         _count: { _all: true },
       }),
+      this.prisma.country.findMany({ select: { name: true } }),
     ]);
 
-    const tally = new Map<string, number>();
-    for (const row of [...customerRows, ...leadRows]) {
-      if (!row.country) continue;
-      tally.set(row.country, (tally.get(row.country) ?? 0) + row._count._all);
-    }
+    const rows = [...customerRows, ...leadRows]
+      .filter((row) => Boolean(row.country))
+      .map((row) => ({ value: row.country as string, count: row._count._all }));
 
-    return [...tally.entries()]
-      .map(([country, count]) => ({ country, count }))
-      .sort((a, b) => b.count - a.count);
+    return this.mergeCaseInsensitiveTally(
+      rows,
+      canonical.map((c) => c.name),
+    ).map(({ value, count }) => ({ country: value, count }));
   }
 
   /**
    * Répartition par secteur d'activité, pour le sélecteur de filtre.
    *
-   * Le secteur est un champ libre (pas un référentiel Paramètres) : les
-   * valeurs viennent telles que saisies. On les agrège telles quelles plutôt
-   * que d'imposer une liste fermée, qui figerait la saisie existante.
+   * Le secteur reste un champ libre sur les fiches (pas de liste fermée
+   * imposée à la saisie) : les valeurs viennent telles quelles, seul le
+   * libellé affiché se recale sur le référentiel Paramètres quand il
+   * correspond.
    */
   async sectors(scopeToUserId?: string) {
-    const [customerRows, leadRows] = await Promise.all([
+    const [customerRows, leadRows, canonical] = await Promise.all([
       this.prisma.customer.groupBy({
         by: ['sector'],
         where: {
@@ -249,17 +279,17 @@ export class DirectoryService {
         },
         _count: { _all: true },
       }),
+      this.prisma.sector.findMany({ select: { name: true } }),
     ]);
 
-    const tally = new Map<string, number>();
-    for (const row of [...customerRows, ...leadRows]) {
-      if (!row.sector) continue;
-      tally.set(row.sector, (tally.get(row.sector) ?? 0) + row._count._all);
-    }
+    const rows = [...customerRows, ...leadRows]
+      .filter((row) => Boolean(row.sector))
+      .map((row) => ({ value: row.sector as string, count: row._count._all }));
 
-    return [...tally.entries()]
-      .map(([sector, count]) => ({ sector, count }))
-      .sort((a, b) => b.count - a.count);
+    return this.mergeCaseInsensitiveTally(
+      rows,
+      canonical.map((c) => c.name),
+    ).map(({ value, count }) => ({ sector: value, count }));
   }
 
   /**

@@ -12,18 +12,8 @@ import { EntitySelect } from "@/components/shared/EntitySelect";
 import { api } from "@/services/api";
 import { contractsService, customersService, quotesService } from "@/services/resources";
 import { QK } from "@/config/constants";
+import { DOCUMENT_TYPES } from "@/features/shared/module-configs";
 import type { ApiError } from "@/types/api";
-
-const DOCUMENT_TYPES: Record<string, string> = {
-  CONTRACT: "Contrat",
-  INVOICE: "Facture",
-  QUOTE: "Facture proforma",
-  IMAGE: "Image",
-  PDF: "PDF",
-  WORD: "Document Word",
-  EXCEL: "Classeur Excel",
-  OTHER: "Autre",
-};
 
 /**
  * Type déduit de l'extension.
