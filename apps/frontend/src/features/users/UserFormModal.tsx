@@ -11,7 +11,7 @@ import { Field, Select } from "@/components/ui/Field";
 import { usersService } from "@/services/resources";
 import { useAuthStore } from "@/store/auth.store";
 import { QK, roleLabel } from "@/config/constants";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -82,10 +82,10 @@ export function UserFormModal({ open, onClose, user, roles }: Props) {
       queryClient.invalidateQueries({ queryKey: QK.users });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
-  const fieldError = (name: string) => (save.error as ApiError | null)?.fieldErrors?.[name];
+  const fieldError = (name: string) => (save.error ? normalizeError(save.error) : null)?.fieldErrors?.[name];
 
   const canSubmit =
     firstName.trim().length > 1 &&
@@ -201,9 +201,9 @@ export function UserFormModal({ open, onClose, user, roles }: Props) {
           </div>
         </Field>
 
-        {save.error && !(save.error as ApiError).fieldErrors && (
+        {save.error && !(normalizeError(save.error)).fieldErrors && (
           <p role="alert" className="rounded-lg bg-alert/10 px-3 py-2 text-sm text-alert">
-            {(save.error as ApiError).message}
+            {(normalizeError(save.error)).message}
           </p>
         )}
 

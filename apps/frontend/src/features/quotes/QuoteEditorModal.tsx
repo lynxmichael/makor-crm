@@ -15,10 +15,10 @@ import { settingsService } from "@/services/resources";
 import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
 import { formatMoney } from "@/lib/format";
-import type { ApiError } from "@/types/api";
 import { SignaturePanel } from "@/features/signatures/SignaturePanel";
 import { CommentThread } from "@/features/collaboration/CommentThread";
 import { useAiContextStore } from "@/store/ai-context.store";
+import { normalizeError } from "@/services/api";
 
 interface QuoteLine {
   /** Clé de rendu uniquement — le backend ne la reçoit pas. */
@@ -139,7 +139,7 @@ export function QuoteEditorModal({ open, onClose, quote }: Props) {
       queryClient.invalidateQueries({ queryKey: QK.quotes });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function updateLine(key: string, patch: Partial<QuoteLine>) {

@@ -12,7 +12,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -99,7 +99,7 @@ export function ScoringPage() {
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : leads.length === 0 ? (
         <EmptyState
           icon={Target}

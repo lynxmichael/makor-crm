@@ -27,7 +27,7 @@ import { QK, type RoleName } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { formatDate, formatMoney, initials } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown>;
 
@@ -79,7 +79,7 @@ export function DashboardPage() {
       {query.isPending ? (
         <DashboardSkeleton />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : (
         <DashboardBody role={role} data={query.data as Row} />
       )}
@@ -423,13 +423,13 @@ function PortfolioView({ data }: { data: Row }) {
  * et versé qui appelle une action, pas le cumul.
  */
 function CommissionsByCommercial({ rows }: { rows: Row[] }) {
-  const totals = rows.reduce(
+  const totals = rows.reduce<{ pending: number; payable: number; paid: number }>(
     (acc, row) => ({
       pending: acc.pending + Number(row.pending ?? 0),
       payable: acc.payable + Number(row.payable ?? 0),
       paid: acc.paid + Number(row.paid ?? 0),
     }),
-    { pending: 0, payable: 0, paid: 0 },
+    { pending: 0, payable: 0, paid: 0 } as { pending: number; payable: number; paid: number },
   );
 
   return (

@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/Field";
 
 import { aiService } from "@/services/collab";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
 import { AI_TASK_LABELS, type AiTaskType, type CommentEntityType } from "@/types/collab";
+import { normalizeError } from "@/services/api";
 
 interface Props {
   taskType: AiTaskType;
@@ -50,7 +50,7 @@ export function AiGeneratePanel({ taskType, entityType, entityId, onAccept }: Pr
         instruction: instruction.trim() || undefined,
       }),
     onSuccess: (generation) => setProposal(generation.output),
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const history = useQuery({

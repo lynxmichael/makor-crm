@@ -20,7 +20,7 @@ import { http } from "@/services/api";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 interface TimelineEntry {
   id: string;
@@ -108,7 +108,7 @@ export function CustomerTimeline({ customerId }: { customerId: string }) {
             ))}
           </div>
         ) : query.isError ? (
-          <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+          <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
         ) : entries.length === 0 ? (
           <EmptyState
             icon={CalendarClock}

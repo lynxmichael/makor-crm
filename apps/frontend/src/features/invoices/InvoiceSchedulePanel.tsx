@@ -13,7 +13,7 @@ import { http } from "@/services/api";
 import { QK } from "@/config/constants";
 import { formatDate, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -104,7 +104,7 @@ export function InvoiceSchedulePanel({ invoice }: { invoice: Row }) {
       setOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const clear = useMutation({
@@ -113,7 +113,7 @@ export function InvoiceSchedulePanel({ invoice }: { invoice: Row }) {
       toast.success("Échéancier supprimé");
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   if (query.isPending) return <Skeleton className="h-32 w-full rounded-xl" />;

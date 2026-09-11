@@ -30,7 +30,7 @@ import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { QK, DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatDate } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -130,7 +130,7 @@ export function CampaignsPage() {
       );
       queryClient.invalidateQueries({ queryKey: QK.campaigns });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -139,7 +139,7 @@ export function CampaignsPage() {
       toast.success("Campagne supprimée");
       queryClient.invalidateQueries({ queryKey: QK.campaigns });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const total = query.data?.total ?? 0;
@@ -239,7 +239,7 @@ export function CampaignsPage() {
       {query.isPending ? (
         <TableSkeleton rows={8} columns={6} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Radio}

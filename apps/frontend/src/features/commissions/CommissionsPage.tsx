@@ -19,7 +19,7 @@ import { QK } from "@/config/constants";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatMoney, initials } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -79,7 +79,7 @@ export function CommissionsPage() {
       // un calcul ou une mise en paiement doit s'y répercuter.
       queryClient.invalidateQueries({ queryKey: QK.dashboard });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const transition = useMutation({
@@ -91,7 +91,7 @@ export function CommissionsPage() {
       // un calcul ou une mise en paiement doit s'y répercuter.
       queryClient.invalidateQueries({ queryKey: QK.dashboard });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = summary.data ?? [];
@@ -155,7 +155,7 @@ export function CommissionsPage() {
             ))}
           </div>
         ) : mine.isError ? (
-          <ErrorState error={mine.error as ApiError} onRetry={() => void mine.refetch()} />
+          <ErrorState error={normalizeError(mine.error)} onRetry={() => void mine.refetch()} />
         ) : (mine.data ?? []).length === 0 ? (
           <EmptyState
             icon={Coins}
@@ -193,7 +193,7 @@ export function CommissionsPage() {
           ))}
         </div>
       ) : summary.isError ? (
-        <ErrorState error={summary.error as ApiError} onRetry={() => void summary.refetch()} />
+        <ErrorState error={normalizeError(summary.error)} onRetry={() => void summary.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Coins}

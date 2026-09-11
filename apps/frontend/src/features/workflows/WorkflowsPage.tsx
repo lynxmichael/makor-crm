@@ -16,7 +16,7 @@ import { TRIGGER_LABELS, ACTION_LABELS } from "./workflow-labels";
 import { http } from "@/services/api";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { staggerContainer, staggerItem } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -40,7 +40,7 @@ export function WorkflowsPage() {
       toast.success(variables.isActive ? "Règle activée" : "Règle suspendue");
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -49,7 +49,7 @@ export function WorkflowsPage() {
       toast.success("Règle supprimée");
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const workflows = query.data ?? [];
@@ -79,7 +79,7 @@ export function WorkflowsPage() {
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : workflows.length === 0 ? (
         <EmptyState
           icon={Workflow}
@@ -126,7 +126,7 @@ export function WorkflowsPage() {
                     <h2 className="font-display text-sm font-semibold text-ink">
                       {String(workflow.name ?? "")}
                     </h2>
-                    {workflow.description && (
+                    {Boolean(workflow.description) && (
                       <p className="mt-0.5 text-xs text-slate">{String(workflow.description)}</p>
                     )}
 

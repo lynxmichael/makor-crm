@@ -13,7 +13,7 @@ import { http } from "@/services/api";
 import { customersService } from "@/services/resources";
 import { QK } from "@/config/constants";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Kind = "LEAD" | "CONTACT";
 
@@ -82,7 +82,7 @@ export function DirectoryEntryModal({
       queryClient.invalidateQueries({ queryKey: QK.contacts });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const canSubmit =

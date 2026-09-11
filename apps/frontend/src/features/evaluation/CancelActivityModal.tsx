@@ -10,7 +10,7 @@ import { Field, Select, Textarea } from "@/components/ui/Field";
 import { http } from "@/services/api";
 import { QK } from "@/config/constants";
 import { CANCELLATION_LABELS } from "./EvaluationPage";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -50,7 +50,7 @@ export function CancelActivityModal({
       queryClient.invalidateQueries({ queryKey: ["evaluation"] });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   return (

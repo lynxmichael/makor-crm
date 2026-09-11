@@ -14,8 +14,8 @@ import { useAuthStore } from "@/store/auth.store";
 import { formatRelative, initials } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
-import type { ApiError } from "@/types/api";
 import type { Comment, CommentEntityType } from "@/types/collab";
+import { normalizeError } from "@/services/api";
 
 interface Props {
   entityType: CommentEntityType;
@@ -65,7 +65,7 @@ export function CommentThread({ entityType, entityId, title = "Commentaires", em
       setReplyTo(null);
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const update = useMutation({
@@ -75,7 +75,7 @@ export function CommentThread({ entityType, entityId, title = "Commentaires", em
       setEditDraft("");
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -84,7 +84,7 @@ export function CommentThread({ entityType, entityId, title = "Commentaires", em
       toast.success("Commentaire supprimé");
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const comments = query.data?.data ?? [];
@@ -280,7 +280,7 @@ export function CommentThread({ entityType, entityId, title = "Commentaires", em
             ))}
           </div>
         ) : query.isError ? (
-          <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+          <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
         ) : comments.length === 0 ? (
           <EmptyState
             icon={MessageSquare}

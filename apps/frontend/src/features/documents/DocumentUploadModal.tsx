@@ -13,7 +13,7 @@ import { api } from "@/services/api";
 import { contractsService, customersService, quotesService } from "@/services/resources";
 import { QK } from "@/config/constants";
 import { DOCUMENT_TYPES } from "@/features/shared/module-configs";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 /**
  * Type déduit de l'extension.
@@ -84,7 +84,7 @@ export function DocumentUploadModal({
       queryClient.invalidateQueries({ queryKey: QK.documents });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function pick(selected: File | null) {

@@ -17,8 +17,8 @@ import { useAuthStore } from "@/store/auth.store";
 import { formatDateTime, formatRelative, initials } from "@/lib/format";
 import { openFile } from "@/services/api";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
 import type { Conversation } from "@/types/collab";
+import { normalizeError } from "@/services/api";
 
 const MAX_ATTACHMENT = 20 * 1024 * 1024;
 
@@ -66,7 +66,7 @@ export function MessagesPage() {
       setSearchParams({ with: message.recipientId }, { replace: true });
       queryClient.invalidateQueries({ queryKey: ["messages"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   // Le fil est trié du plus ancien au plus récent : on colle en bas à
@@ -195,7 +195,7 @@ export function MessagesPage() {
         <section className="flex min-h-[60vh] flex-col overflow-hidden rounded-xl border border-line bg-surface">
           {composing ? (
             <Composer
-              colleagues={colleagues.data?.data ?? []}
+              colleagues={(colleagues.data?.data ?? []) as { id: string; firstName: string; lastName: string; jobTitle?: string | null }[]}
               loading={colleagues.isPending}
               draft={draft}
               onDraft={setDraft}
@@ -227,7 +227,7 @@ export function MessagesPage() {
             </div>
           ) : thread.isError ? (
             <div className="flex-1 p-6">
-              <ErrorState error={thread.error as ApiError} onRetry={() => void thread.refetch()} />
+              <ErrorState error={normalizeError(thread.error)} onRetry={() => void thread.refetch()} />
             </div>
           ) : (
             <>

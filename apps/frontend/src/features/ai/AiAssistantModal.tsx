@@ -21,8 +21,8 @@ import { QK } from "@/config/constants";
 import { useAiContextStore } from "@/store/ai-context.store";
 import { formatMoney } from "@/lib/format";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
 import { AI_TASK_LABELS, type AiTaskType, type CommentEntityType } from "@/types/collab";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -192,7 +192,7 @@ export function AiAssistantModal({ open, onClose }: { open: boolean; onClose: ()
       setOutput(result.output);
       setCopied(false);
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   return (

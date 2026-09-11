@@ -27,8 +27,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { staggerContainer, staggerItem } from "@/lib/motion";
-import { openFile } from "@/services/api";
-import type { ApiError } from "@/types/api";
+import { openFile, normalizeError } from "@/services/api";
 import {
   RESOURCE_CATEGORY_LABELS,
   RESOURCE_TYPE_LABELS,
@@ -77,7 +76,7 @@ export function ResourcesPage() {
       toast.success("Ressource supprimée");
       queryClient.invalidateQueries({ queryKey: ["resources"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   /**
@@ -170,7 +169,7 @@ export function ResourcesPage() {
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : groups.length === 0 ? (
         <EmptyState
           icon={GraduationCap}

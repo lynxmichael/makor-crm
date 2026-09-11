@@ -18,12 +18,14 @@ import { CUSTOMER_STATUS_LABELS, CUSTOMER_STATUS_TONES } from "./customer-status
 import { customersService, usersService } from "@/services/resources";
 import { useAuthStore } from "@/store/auth.store";
 import { useResourceList, useResourceMutations } from "@/hooks/use-resource";
+import type { Resource } from "@/services/resources";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { QK, DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatDate, formatMoney, initials } from "@/lib/format";
 import type { ApiError, Customer, CustomerInput, CustomerStatus } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 export function ClientsPage() {
   const reduced = usePrefersReducedMotion();
@@ -58,10 +60,10 @@ export function ClientsPage() {
     [page, debouncedSearch, status, country, assignedToId],
   );
 
-  const query = useResourceList<Customer>(QK.customers, customersService, params);
+  const query = useResourceList<Customer>(QK.customers, customersService as Resource<Customer>, params);
   const { create, update, remove, isBusy } = useResourceMutations<Customer>(
     QK.customers,
-    customersService,
+    customersService as Resource<Customer>,
     {
       created: "Client créé",
       updated: "Client mis à jour",
@@ -202,7 +204,7 @@ export function ClientsPage() {
       {query.isPending ? (
         <TableSkeleton rows={8} columns={6} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         hasFilters ? (
           <EmptyState

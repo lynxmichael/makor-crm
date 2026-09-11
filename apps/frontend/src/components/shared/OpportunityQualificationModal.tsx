@@ -53,7 +53,7 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
   function handleAddPayment() {
     if (!paymentDraft.amount || !paymentDraft.date) return;
     const payment: Payment = {
-      id: `pay-${opportunity.id}-${Date.now()}`,
+      id: `pay-${opportunity!.id}-${Date.now()}`,
       amount: Number(paymentDraft.amount),
       date: paymentDraft.date,
       channel: paymentDraft.channel,
@@ -65,7 +65,7 @@ export function OpportunityQualificationModal({ opportunity, onClose, onSave }: 
   }
 
   function handleSave() {
-    onSave(opportunity.id, { qualification, goLiveChecklist: checklist, payments });
+    onSave(opportunity!.id, { qualification, goLiveChecklist: checklist, payments });
     onClose();
   }
 

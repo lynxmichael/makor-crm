@@ -10,12 +10,12 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { EntityFormModal, type FieldDef } from "@/components/shared/EntityFormModal";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/shared/DataState";
 import type { ModuleColumn, ModuleRow } from "@/types";
-import type { ApiError } from "@/types/api";
 import type { Resource } from "@/services/resources";
 import { useResourceList, useResourceMutations } from "@/hooks/use-resource";
 import { useDebounced } from "@/hooks/use-debounced";
 import { cn, generateRef } from "@/lib/utils";
 import { staggerContainer, staggerItem } from "@/lib/motion";
+import { normalizeError } from "@/services/api";
 
 const badgeTones: Record<string, "neutral" | "signal" | "amber" | "alert" | "wire"> = {
   Signé: "signal",
@@ -158,7 +158,7 @@ function RemoteList({
       {query.isLoading ? (
         <TableSkeleton columns={columns.length} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           title={debouncedSearch ? "Aucun résultat" : `Aucun élément dans « ${title} »`}

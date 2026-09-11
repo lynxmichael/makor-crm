@@ -148,7 +148,7 @@ export function PublicSignaturePage() {
                     ? "Ce lien a expiré"
                     : "Cette demande n'est plus active"}
               </h1>
-              {request.data?.signedAt && (
+              {Boolean(request.data?.signedAt) && (
                 <p className="mt-2 text-sm text-slate">
                   Signé le {formatDate(request.data.signedAt as string)}
                 </p>
@@ -162,7 +162,7 @@ export function PublicSignaturePage() {
                 </h1>
                 <p className="mt-1 text-sm text-slate">
                   Adressé à {String(request.data?.signerName ?? "")}
-                  {request.data?.expiresAt &&
+                  {Boolean(request.data?.expiresAt) &&
                     ` · à signer avant le ${formatDate(request.data.expiresAt as string)}`}
                 </p>
               </div>

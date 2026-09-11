@@ -23,7 +23,7 @@ import {
 import { QK } from "@/config/constants";
 import { formatMoney } from "@/lib/format";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -131,7 +131,7 @@ export function InvoiceEditorModal({ open, onClose, invoice }: Props) {
       queryClient.invalidateQueries({ queryKey: QK.invoices });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function updateLine(key: string, patch: Partial<Line>) {
@@ -373,15 +373,15 @@ export function InvoiceEditorModal({ open, onClose, invoice }: Props) {
 
         {/* Pas de signature sur une facture : elle constate une créance, elle
             ne l'engage pas — c'est le contrat ou le bon de commande qui le fait. */}
-        {isEdit && invoice?.id && (
+        {isEdit && Boolean(invoice?.id) && (
           <div className="space-y-4 border-t border-line pt-5">
-            <InvoicePaymentsPanel invoice={invoice} />
+            <InvoicePaymentsPanel invoice={invoice!} />
 
-            <InvoiceSchedulePanel invoice={invoice} />
+            <InvoiceSchedulePanel invoice={invoice!} />
 
             <CommentThread
               entityType="INVOICE"
-              entityId={String(invoice.id)}
+              entityId={String(invoice!.id)}
               emptyDetail="Notez ici une relance effectuée, un litige ou un accord de règlement."
             />
           </div>

@@ -11,10 +11,10 @@ import { EntitySelect } from "@/components/shared/EntitySelect";
 
 import { campaignsService, productsService } from "@/services/resources";
 import { QK } from "@/config/constants";
-import type { ApiError } from "@/types/api";
 import { AiGeneratePanel } from "@/features/ai/AiGeneratePanel";
 import { useAiContextStore } from "@/store/ai-context.store";
 import { RecipientPickerModal } from "./RecipientPickerModal";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -106,7 +106,7 @@ export function CampaignEditorModal({ open, onClose, campaign }: Props) {
       queryClient.invalidateQueries({ queryKey: QK.campaigns });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const recipientCount = destinations
@@ -266,18 +266,18 @@ export function CampaignEditorModal({ open, onClose, campaign }: Props) {
         {/* Rédaction assistée — sur une campagne enregistrée seulement : le
             serveur relit le canal, le pays et le produit ciblés en base pour
             composer le contexte, il lui faut donc un identifiant. */}
-        {isEdit && campaign?.id && (
+        {isEdit && Boolean(campaign?.id) && (
           <div className="space-y-3 border-t border-line pt-5">
             <AiGeneratePanel
               taskType="CAMPAIGN_MESSAGE"
               entityType="CAMPAIGN"
-              entityId={String(campaign.id)}
+              entityId={String(campaign?.id)}
               onAccept={(text) => setMessage(text.trim())}
             />
             <AiGeneratePanel
               taskType="CAMPAIGN_VARIANTS"
               entityType="CAMPAIGN"
-              entityId={String(campaign.id)}
+              entityId={String(campaign?.id)}
               onAccept={(text) => setMessage(text.trim())}
             />
           </div>

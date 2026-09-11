@@ -17,7 +17,7 @@ import { http } from "@/services/api";
 import { QK } from "@/config/constants";
 import { formatMoney } from "@/lib/format";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -140,7 +140,7 @@ export function PurchaseOrderEditorModal({ open, onClose, purchaseOrder }: Props
       queryClient.invalidateQueries({ queryKey: QK.quotes });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function updateLine(key: string, patch: Partial<Line>) {
@@ -447,15 +447,15 @@ export function PurchaseOrderEditorModal({ open, onClose, purchaseOrder }: Props
         </Field>
 
         {/* Un bon de commande se signe et se commente une fois émis. */}
-        {isEdit && purchaseOrder?.id && (
+        {isEdit && Boolean(purchaseOrder?.id) && (
           <div className="space-y-4 border-t border-line pt-5">
             <SignaturePanel
               entityType="PURCHASE_ORDER"
-              entityId={String(purchaseOrder.id)}
+              entityId={String(purchaseOrder!.id)}
             />
             <CommentThread
               entityType="PURCHASE_ORDER"
-              entityId={String(purchaseOrder.id)}
+              entityId={String(purchaseOrder!.id)}
               emptyDetail="Notez ici un point d'attention sur cette commande."
             />
           </div>

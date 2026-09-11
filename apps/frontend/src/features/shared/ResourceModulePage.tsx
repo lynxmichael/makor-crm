@@ -39,6 +39,7 @@ import { formatDate, formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/store/auth.store";
 import type { ApiError } from "@/types/api";
 import type { ModuleConfig, ModuleField, Row } from "./module-config";
+import { normalizeError } from "@/services/api";
 
 /**
  * Page de liste générique, branchée sur l'API.
@@ -96,7 +97,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
       toast.success(config.sendAction!.successMessage);
       queryClient.invalidateQueries({ queryKey: config.queryKey });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const runRowAction = useMutation({
@@ -113,7 +114,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
         queryClient.invalidateQueries({ queryKey: key });
       }
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = query.data?.data ?? [];
@@ -222,7 +223,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
       {query.isPending ? (
         <TableSkeleton rows={8} columns={config.columns.length + 1} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={config.icon as LucideIcon}
@@ -310,7 +311,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                                 onClick={() =>
                                   void openGeneratedPdf(
                                     config.pdfAction!.path.replace(":id", String(row.id)),
-                                  ).catch((error) => toast.error((error as ApiError).message))
+                                  ).catch((error) => toast.error((normalizeError(error)).message))
                                 }
                                 aria-label="Prévisualiser le PDF"
                               >
@@ -324,7 +325,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                                   void openGeneratedPdf(
                                     config.pdfAction!.path.replace(":id", String(row.id)),
                                     `${String(row[config.pdfAction!.filenameKey ?? "number"] ?? "document")}.pdf`,
-                                  ).catch((error) => toast.error((error as ApiError).message))
+                                  ).catch((error) => toast.error((normalizeError(error)).message))
                                 }
                                 aria-label="Télécharger le PDF"
                               >
@@ -342,7 +343,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                                   void openFile(
                                     String(row[config.fileActions!.pathKey]),
                                   ).catch((error) =>
-                                    toast.error((error as ApiError).message),
+                                    toast.error((normalizeError(error)).message),
                                   )
                                 }
                                 aria-label="Prévisualiser"
@@ -360,7 +361,7 @@ export function ResourceModulePage({ config }: { config: ModuleConfig }) {
                                       row[config.fileActions!.nameKey ?? "name"] ?? "document",
                                     ),
                                   ).catch((error) =>
-                                    toast.error((error as ApiError).message),
+                                    toast.error((normalizeError(error)).message),
                                   )
                                 }
                                 aria-label="Télécharger"

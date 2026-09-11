@@ -12,9 +12,8 @@ import { EntitySelect } from "@/components/shared/EntitySelect";
 import { dealsService, customersService, leadsService } from "@/services/resources";
 import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
-type Row = Record<string, unknown> & { id?: unknown };
 
 /**
  * Création d'une opportunité.
@@ -71,7 +70,7 @@ export function DealFormModal({ open, onClose }: { open: boolean; onClose: () =>
       queryClient.invalidateQueries({ queryKey: QK.deals });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const canSubmit = title.trim().length > 1 && Number(amount) > 0;

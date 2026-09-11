@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { authService } from "@/services/auth";
 import { useAuthStore } from "@/store/auth.store";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Step = "scan" | "verify" | "recovery";
 
@@ -53,18 +53,6 @@ export function TwoFactorSetupPage() {
     refetchOnWindowFocus: false,
   });
 
-  /** Repart d'un secret neuf — utile si le QR a été scanné puis perdu. */
-  const regenerate = useMutation({
-    mutationFn: () => authService.setupTwoFactor(true),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["auth", "2fa", "setup"], data);
-      setStep("scan");
-      setCode("");
-      toast.success("Nouveau QR code généré — rescannez-le");
-    },
-    onError: (error) => toast.error((error as ApiError).message),
-  });
-
   const enable = useMutation({
     mutationFn: () => authService.enableTwoFactor(code.trim()),
     onSuccess: (result) => {
@@ -72,7 +60,7 @@ export function TwoFactorSetupPage() {
       setStep("recovery");
     },
     onError: (error) => {
-      toast.error((error as ApiError).message);
+      toast.error((normalizeError(error)).message);
       // L'envoi partant seul au sixième chiffre, un code refusé laissé en
       // place empêcherait toute nouvelle tentative : la longueur ne
       // changerait plus.
@@ -166,7 +154,7 @@ export function TwoFactorSetupPage() {
               {setup.isPending ? (
                 <Skeleton className="h-44 w-44" />
               ) : setup.isError ? (
-                <p className="text-sm text-alert">{(setup.error as ApiError).message}</p>
+                <p className="text-sm text-alert">{(normalizeError(setup.error)).message}</p>
               ) : (
                 <img
                   src={setup.data.qrCodeDataUrl}

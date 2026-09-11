@@ -25,7 +25,7 @@ import { ErrorState } from "@/components/shared/DataState";
 import { api, http } from "@/services/api";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Format = "xlsx" | "csv" | "pdf";
 
@@ -146,7 +146,7 @@ export function ReportsPage() {
 
       toast.success("Export téléchargé");
     } catch (error) {
-      toast.error((error as ApiError).message ?? "L'export a échoué.");
+      toast.error((normalizeError(error)).message ?? "L'export a échoué.");
     } finally {
       setDownloading(null);
     }
@@ -327,7 +327,7 @@ function ReportPreviewModal({
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : (query.data?.total ?? 0) === 0 ? (
         <p className="rounded-xl bg-paper px-4 py-10 text-center text-sm text-slate">
           Aucune donnée sur ce périmètre. Élargissez la période ou les filtres avant d'exporter.

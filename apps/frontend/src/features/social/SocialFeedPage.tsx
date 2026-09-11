@@ -14,7 +14,7 @@ import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 interface Update {
   id: string;
@@ -101,7 +101,7 @@ export function SocialFeedPage() {
       toast.success(`${(result as { updated: number }).updated} actualité(s) marquée(s) lue(s)`);
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = query.data?.data ?? [];
@@ -199,7 +199,7 @@ export function SocialFeedPage() {
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Radio}

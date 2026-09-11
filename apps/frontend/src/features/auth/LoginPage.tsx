@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/Field";
 import { authService } from "@/services/auth";
 import { useAuthStore } from "@/store/auth.store";
-import { isTwoFactorChallenge, type ApiError } from "@/types/api";
+import { isTwoFactorChallenge } from "@/types/api";
 import { EASE_OUT } from "@/lib/motion";
+import { normalizeError } from "@/services/api";
 
 /**
  * Connexion en deux temps.
@@ -60,7 +61,7 @@ export function LoginPage() {
   });
 
   const active = challengeToken ? twoFactorMutation : loginMutation;
-  const error = active.error as ApiError | null;
+  const error = active.error ? normalizeError(active.error) : null;
 
   return (
     <div>

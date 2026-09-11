@@ -14,7 +14,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
 import { formatDate, formatMoney } from "@/lib/format";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -99,7 +99,7 @@ export function InvoicePaymentsPanel({ invoice }: { invoice: Row }) {
       queryClient.invalidateQueries({ queryKey: QK.payments });
       queryClient.invalidateQueries({ queryKey: QK.dashboard });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const entered = Number(amount) || 0;

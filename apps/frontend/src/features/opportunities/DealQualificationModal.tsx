@@ -14,7 +14,7 @@ import { qualificationSections, goLiveChecklistItems } from "@/config/qualificat
 import { QK } from "@/config/constants";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 import { CommentThread } from "@/features/collaboration/CommentThread";
 import { useAiContextStore } from "@/store/ai-context.store";
 
@@ -99,7 +99,7 @@ export function DealQualificationModal({ deal, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: QK.deals });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error(normalizeError(error).message),
   });
 
   if (!deal) return null;

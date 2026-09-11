@@ -6,7 +6,7 @@ import { ErrorState } from "@/components/shared/DataState";
 
 import { http } from "@/services/api";
 import { formatDateTime } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -47,7 +47,7 @@ export function DocumentStatsPanel({ documentId }: { documentId: string }) {
   }
 
   if (query.isError) {
-    return <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />;
+    return <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />;
   }
 
   const { counts, recent } = query.data;

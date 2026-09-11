@@ -32,7 +32,7 @@ import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { QK, DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatDate, formatMoney } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -96,7 +96,7 @@ export function PurchaseOrdersPage() {
       // n'est plus à jour.
       queryClient.invalidateQueries({ queryKey: QK.contracts });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   // Un bon de commande signé donne lieu au contrat (CDC §4.9). Le backend
@@ -108,7 +108,7 @@ export function PurchaseOrdersPage() {
       queryClient.invalidateQueries({ queryKey: QK.contracts });
       queryClient.invalidateQueries({ queryKey: QK.purchaseOrders });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -117,7 +117,7 @@ export function PurchaseOrdersPage() {
       toast.success("Bon de commande supprimé");
       queryClient.invalidateQueries({ queryKey: QK.purchaseOrders });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   async function downloadPdf(order: Row) {
@@ -133,7 +133,7 @@ export function PurchaseOrdersPage() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
-      toast.error((error as ApiError).message);
+      toast.error((normalizeError(error)).message);
     }
   }
 
@@ -216,7 +216,7 @@ export function PurchaseOrdersPage() {
       {query.isPending ? (
         <TableSkeleton rows={8} columns={7} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={ShoppingCart}

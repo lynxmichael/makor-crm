@@ -235,13 +235,13 @@ export function ModuleFormModal({
         {/* Panneaux transverses — uniquement en modification : signature,
             commentaires et rédaction assistée portent sur une fiche déjà
             enregistrée, dont le serveur peut reconstruire le contexte. */}
-        {isEdit && config.panels && row?.id && (
+        {isEdit && config.panels && Boolean(row?.id) && (
           <div className="space-y-4 border-t border-line pt-5">
             {config.panels.aiTask && config.panels.aiTarget && (
               <AiGeneratePanel
                 taskType={config.panels.aiTask as AiTaskType}
                 entityType={config.panels.entityType as CommentEntityType}
-                entityId={String(row.id)}
+                entityId={String(row!.id)}
                 onAccept={(text) =>
                   set(
                     config.panels!.aiTarget!,
@@ -258,14 +258,14 @@ export function ModuleFormModal({
                 entityType={
                   config.panels.entityType as "QUOTE" | "PURCHASE_ORDER" | "CONTRACT"
                 }
-                entityId={String(row.id)}
+                entityId={String(row!.id)}
               />
             )}
 
             {config.panels.comments && (
               <CommentThread
                 entityType={config.panels.entityType as CommentEntityType}
-                entityId={String(row.id)}
+                entityId={String(row!.id)}
                 title="Commentaires"
                 emptyDetail="Notez ici le contexte, une consigne ou un point d'attention — vos collègues le verront."
               />

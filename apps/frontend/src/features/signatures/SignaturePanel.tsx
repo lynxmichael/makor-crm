@@ -15,7 +15,7 @@ import { usersService } from "@/services/resources";
 import { QK } from "@/config/constants";
 import { EASE_OUT } from "@/lib/motion";
 import { formatDateTime } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -86,7 +86,7 @@ export function SignaturePanel({
       setOpen(false);
       queryClient.invalidateQueries({ queryKey });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const cancel = useMutation({
@@ -95,7 +95,7 @@ export function SignaturePanel({
       toast.success("Demande annulée");
       queryClient.invalidateQueries({ queryKey });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const requests = query.data ?? [];
@@ -275,7 +275,7 @@ export function SignaturePanel({
                           ? ` · consulté le ${formatDateTime(request.viewedAt as string)}`
                           : ""}
                     </p>
-                    {request.refusalReason && (
+                    {Boolean(request.refusalReason) && (
                       <p className="mt-0.5 text-xs text-alert">
                         Motif : {String(request.refusalReason)}
                       </p>
@@ -298,7 +298,7 @@ export function SignaturePanel({
                           void navigator.clipboard.writeText(JSON.stringify(proof, null, 2));
                           toast.success("Certificat de preuve copié");
                         } catch (error) {
-                          toast.error((error as ApiError).message);
+                          toast.error((normalizeError(error)).message);
                         }
                       }}
                     >

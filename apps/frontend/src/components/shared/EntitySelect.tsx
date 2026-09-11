@@ -11,7 +11,7 @@ type Row = Record<string, unknown> & { id?: unknown };
 
 interface Props {
   /** Service produit par `createResource` : on n'utilise que `list`. */
-  service: { list: (params?: Record<string, unknown>) => Promise<Paginated<Row>> };
+  service: { list: (params?: Record<string, unknown>) => Promise<Paginated<unknown>> };
   queryKey: readonly string[];
   value?: string;
   onChange: (id: string, row: Row | null) => void;
@@ -64,7 +64,7 @@ export function EntitySelect({
 
   useEffect(() => {
     const resolved = detailQuery.data?.data?.[0];
-    if (resolved && !selected) setSelected(resolved);
+    if (resolved && !selected) setSelected(resolved as Row);
   }, [detailQuery.data, selected]);
 
   // Fermer au clic extérieur : une liste ouverte qui reste ouverte pendant
@@ -143,7 +143,8 @@ export function EntitySelect({
               <p className="py-6 text-center text-sm text-slate">Aucun résultat.</p>
             ) : (
               <ul>
-                {rows.map((row) => {
+                {rows.map((rawRow) => {
+                  const row = rawRow as Row;
                   const item = render(row);
                   const isSelected = String(row.id) === value;
 

@@ -16,7 +16,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
 import { formatDateTime, formatMoney, initials } from "@/lib/format";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -101,7 +101,7 @@ export function WithdrawalsPanel() {
       setRequestOpen(false);
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const decide = useMutation({
@@ -119,7 +119,7 @@ export function WithdrawalsPanel() {
       );
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = history.data?.data ?? [];

@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { http } from "@/services/api";
 import { QK } from "@/config/constants";
 import { EASE_OUT } from "@/lib/motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -66,7 +66,7 @@ export function PipelineStagesModal({ open, onClose }: { open: boolean; onClose:
       setRequiresSignedOrder(false);
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -75,7 +75,7 @@ export function PipelineStagesModal({ open, onClose }: { open: boolean; onClose:
       toast.success("Étape supprimée");
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = (stages.data ?? []).slice().sort((a, b) => Number(a.order) - Number(b.order));

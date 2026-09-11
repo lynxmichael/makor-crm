@@ -33,7 +33,7 @@ import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { QK, DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatDate, formatMoney } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -86,7 +86,7 @@ export function InvoicesPage() {
       toast.success("Facture envoyée au client");
       queryClient.invalidateQueries({ queryKey: QK.invoices });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const transition = useMutation({
@@ -99,7 +99,7 @@ export function InvoicesPage() {
       queryClient.invalidateQueries({ queryKey: QK.invoices });
       queryClient.invalidateQueries({ queryKey: QK.payments });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -108,14 +108,14 @@ export function InvoicesPage() {
       toast.success("Facture supprimée");
       queryClient.invalidateQueries({ queryKey: QK.invoices });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   async function previewPdf(invoice: Row) {
     try {
       await openGeneratedPdf(`/invoices/${String(invoice.id)}/pdf`);
     } catch (error) {
-      toast.error((error as ApiError).message);
+      toast.error((normalizeError(error)).message);
     }
   }
 
@@ -126,7 +126,7 @@ export function InvoicesPage() {
         `${String(invoice.number ?? "facture")}.pdf`,
       );
     } catch (error) {
-      toast.error((error as ApiError).message);
+      toast.error((normalizeError(error)).message);
     }
   }
 
@@ -207,7 +207,7 @@ export function InvoicesPage() {
       {query.isPending ? (
         <TableSkeleton rows={8} columns={7} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Receipt}

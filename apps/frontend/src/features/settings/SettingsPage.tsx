@@ -30,7 +30,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { QK } from "@/config/constants";
 import { EASE_OUT } from "@/lib/motion";
 import { formatMoney } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 type Tab = "organization" | "notifications" | "products" | "sectors" | "countries" | "currencies";
@@ -137,7 +137,7 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
       // écrans doivent repartir sur la nouvelle valeur.
       queryClient.invalidateQueries({ queryKey: QK.settings });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   if (query.isPending) {
@@ -151,7 +151,7 @@ function OrganizationPanel({ canEdit }: { canEdit: boolean }) {
   }
 
   if (query.isError) {
-    return <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />;
+    return <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />;
   }
 
   const set = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -376,7 +376,7 @@ function LogoField({
       toast.success("Logo mis à jour");
       onUploaded();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   return (
@@ -512,7 +512,7 @@ function ReferencePanel({
       setDraft({});
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const update = useMutation({
@@ -529,7 +529,7 @@ function ReferencePanel({
       setEditingId(null);
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -538,7 +538,7 @@ function ReferencePanel({
       toast.success(`${config.label.charAt(0).toUpperCase()}${config.label.slice(1)} supprimé`);
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const items = (query.data as Row[] | undefined) ?? [];
@@ -594,7 +594,7 @@ function ReferencePanel({
         </div>
       ) : query.isError ? (
         <div className="p-5">
-          <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+          <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
         </div>
       ) : items.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-slate">
@@ -748,7 +748,7 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
       setDescription("");
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const toggleActive = useMutation({
@@ -757,7 +757,7 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
         isActive: product.isActive === false,
       } as never),
     onSuccess: () => invalidate(),
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -766,7 +766,7 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
       toast.success("Produit retiré");
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const products = query.data?.data ?? [];
@@ -836,7 +836,7 @@ function ProductsPanel({ canEdit }: { canEdit: boolean }) {
         </div>
       ) : query.isError ? (
         <div className="p-5">
-          <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+          <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
         </div>
       ) : products.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-slate">
@@ -947,7 +947,7 @@ function NotificationPreferencesPanel() {
       );
       queryClient.invalidateQueries({ queryKey: ["users", "me"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const enabled = me.data?.emailNotifications !== false;

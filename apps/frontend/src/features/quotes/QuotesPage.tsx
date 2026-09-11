@@ -28,12 +28,13 @@ import { QuoteEditorModal } from "./QuoteEditorModal";
 import { quotesService } from "@/services/resources";
 import { http, openGeneratedPdf } from "@/services/api";
 import { useResourceList } from "@/hooks/use-resource";
+import type { Resource } from "@/services/resources";
 import { useDebounced } from "@/hooks/use-debounced";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { QK, DEFAULT_PAGE_SIZE } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatDate, formatMoney } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id: string };
 
@@ -77,7 +78,7 @@ export function QuotesPage() {
     [page, debouncedSearch, status],
   );
 
-  const query = useResourceList<Row>(QK.quotes, quotesService, params);
+  const query = useResourceList<Row>(QK.quotes, quotesService as unknown as Resource<Row>, params);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: QK.quotes });
 
   /**
@@ -94,7 +95,7 @@ export function QuotesPage() {
       queryClient.invalidateQueries({ queryKey: QK.contracts });
       queryClient.invalidateQueries({ queryKey: QK.quotes });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   /** Les transitions de statut passent par leurs propres routes métier. */
@@ -114,7 +115,7 @@ export function QuotesPage() {
       invalidate();
       setConfirmSend(null);
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -124,7 +125,7 @@ export function QuotesPage() {
       invalidate();
       setToDelete(null);
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = query.data?.data ?? [];
@@ -145,7 +146,7 @@ export function QuotesPage() {
     try {
       await openGeneratedPdf(`/quotes/${String(quote.id)}/pdf`);
     } catch (error) {
-      toast.error((error as ApiError).message ?? "Aperçu impossible.");
+      toast.error((normalizeError(error)).message ?? "Aperçu impossible.");
     }
   }
 
@@ -156,7 +157,7 @@ export function QuotesPage() {
         `${String(quote.number ?? "proforma")}.pdf`,
       );
     } catch (error) {
-      toast.error((error as ApiError).message ?? "Téléchargement impossible.");
+      toast.error((normalizeError(error)).message ?? "Téléchargement impossible.");
     }
   }
 
@@ -227,7 +228,7 @@ export function QuotesPage() {
       {query.isPending ? (
         <TableSkeleton rows={8} columns={7} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={FileText}

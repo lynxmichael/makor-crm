@@ -15,7 +15,7 @@ import {
   TRIGGER_LABELS,
   WIRED_TRIGGERS,
 } from "./workflow-labels";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 interface Condition {
   key: string;
@@ -68,7 +68,7 @@ export function WorkflowFormModal({ open, onClose }: { open: boolean; onClose: (
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function updateAction(key: string, patch: Partial<Action>) {

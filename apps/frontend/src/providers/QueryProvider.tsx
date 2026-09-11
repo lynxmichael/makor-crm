@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider, MutationCache, QueryCache } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 /**
  * Politique de cache et de reprise.
@@ -19,7 +19,7 @@ function createQueryClient() {
         gcTime: 5 * 60_000,
         refetchOnWindowFocus: false,
         retry: (failureCount, error) => {
-          const status = (error as ApiError)?.status;
+          const status = (normalizeError(error))?.status;
           // Inutile de réessayer si le serveur nous dit non.
           if (status && status >= 400 && status < 500) return false;
           return failureCount < 2;
@@ -32,7 +32,7 @@ function createQueryClient() {
       onError: (error, query) => {
         // Silence si l'écran gère lui-même l'erreur (meta.silent).
         if (query.meta?.silent) return;
-        const { status, message } = error as ApiError;
+        const { status, message } = normalizeError(error);
         if (status === 401) return; // déjà traité par l'intercepteur
         toast.error(message);
       },
@@ -40,7 +40,7 @@ function createQueryClient() {
 
     mutationCache: new MutationCache({
       onError: (error) => {
-        const { status, message } = error as ApiError;
+        const { status, message } = normalizeError(error);
         if (status === 401) return;
         toast.error(message);
       },

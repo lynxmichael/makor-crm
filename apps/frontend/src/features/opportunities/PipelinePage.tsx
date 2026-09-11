@@ -18,7 +18,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { formatMoney, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown>;
 
@@ -64,7 +64,7 @@ export function PipelinePage() {
       // bougent dès qu'une affaire change d'étape.
       queryClient.invalidateQueries({ queryKey: QK.dashboard });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function handleDrop(stageId: string) {
@@ -130,7 +130,7 @@ export function PipelinePage() {
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : columns.length === 0 ? (
         <EmptyState
           icon={Target}

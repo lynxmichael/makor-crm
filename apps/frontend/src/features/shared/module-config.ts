@@ -69,11 +69,13 @@ export interface ModuleField {
 
 /** Contrat minimal attendu d'un service produit par `createResource`. */
 export interface ResourceService {
+  path: string;
   list: (params?: Record<string, unknown>) => Promise<Paginated<Row>>;
+  all: (params?: Record<string, unknown>) => Promise<Row[]>;
   get: (id: string) => Promise<Row>;
   create: (body: Record<string, unknown>) => Promise<Row>;
   update: (id: string, body: Record<string, unknown>) => Promise<Row>;
-  remove: (id: string) => Promise<unknown>;
+  remove: (id: string) => Promise<{ id: string }>;
 }
 
 export type Tone = "neutral" | "signal" | "amber" | "alert" | "wire";

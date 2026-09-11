@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { normalizeError } from "@/services/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Field, Select, Textarea } from "@/components/ui/Field";
 
 import { resourcesLibraryService } from "@/services/resources-library";
-import type { ApiError } from "@/types/api";
 import {
   RESOURCE_CATEGORY_LABELS,
   RESOURCE_TYPE_LABELS,
@@ -76,7 +76,7 @@ export function ResourceFormModal({ open, onClose, resource, readOnly }: Props) 
       queryClient.invalidateQueries({ queryKey: ["resources"] });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   // Lecture seule : on affiche l'article, rien d'autre.

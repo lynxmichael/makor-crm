@@ -14,7 +14,7 @@ import { http } from "@/services/api";
 import { rolesService } from "@/services/resources";
 import { QK, roleLabel } from "@/config/constants";
 import { formatMoney } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -70,7 +70,7 @@ export function CommissionPlanModal({ open, onClose }: { open: boolean; onClose:
       setName("");
       queryClient.invalidateQueries({ queryKey: ["commissions", "plans"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -79,7 +79,7 @@ export function CommissionPlanModal({ open, onClose }: { open: boolean; onClose:
       toast.success("Barème retiré");
       queryClient.invalidateQueries({ queryKey: ["commissions", "plans"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const canSubmit = name.trim().length > 1 && Number(ratePercent) > 0;

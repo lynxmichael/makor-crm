@@ -31,7 +31,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { QK, DEFAULT_PAGE_SIZE, roleLabel } from "@/config/constants";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatDate, initials } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -86,7 +86,7 @@ export function UsersPage() {
       toast.success("Compte désactivé");
       queryClient.invalidateQueries({ queryKey: QK.users });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const reactivate = useMutation({
@@ -95,7 +95,7 @@ export function UsersPage() {
       toast.success("Compte réactivé");
       queryClient.invalidateQueries({ queryKey: QK.users });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const resetTwoFactor = useMutation({
@@ -104,7 +104,7 @@ export function UsersPage() {
       toast.success("Double authentification réinitialisée");
       queryClient.invalidateQueries({ queryKey: QK.users });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = query.data?.data ?? [];
@@ -184,7 +184,7 @@ export function UsersPage() {
       {query.isPending ? (
         <TableSkeleton rows={8} columns={6} />
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Users}

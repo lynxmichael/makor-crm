@@ -128,7 +128,7 @@ function GlobalSearch({
   open,
   onQueryChange,
   onOpen,
-  onClose,
+  onClose: _onClose,
   onNavigate,
 }: SearchProps) {
   const enabled = debouncedQuery.trim().length >= 2;

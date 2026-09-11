@@ -30,7 +30,8 @@ import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { ApiError, Paginated } from "@/types/api";
+import type { Paginated } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 interface Entry {
   id: string;
@@ -104,7 +105,7 @@ export function DirectoryPage() {
       toast.success("Entrée supprimée");
       queryClient.invalidateQueries({ queryKey: ["directory"] });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = query.data?.data ?? [];
@@ -246,7 +247,7 @@ export function DirectoryPage() {
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={BookUser}

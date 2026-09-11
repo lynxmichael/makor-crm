@@ -1,4 +1,4 @@
-import type { Campaign, Client, KpiSummary, Opportunity } from "@/types";
+import type { Campaign, Client, KpiSummary, Opportunity, PipelineStage } from "@/types";
 
 export const sectors = [
   "Banque & Finance",

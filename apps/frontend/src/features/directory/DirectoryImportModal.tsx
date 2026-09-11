@@ -11,7 +11,7 @@ import { EntitySelect } from "@/components/shared/EntitySelect";
 import { api } from "@/services/api";
 import { customersService } from "@/services/resources";
 import { QK } from "@/config/constants";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 interface Report {
   total: number;
@@ -50,7 +50,7 @@ export function DirectoryImportModal({
       queryClient.invalidateQueries({ queryKey: QK.leads });
       queryClient.invalidateQueries({ queryKey: QK.contacts });
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function reset() {

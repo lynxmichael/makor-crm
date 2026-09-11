@@ -56,7 +56,7 @@ export function useRealtimeConnection() {
       onRealtime("notification:new", () => invalidate(QK.notifications)),
 
       onRealtime("comment:created", (payload) =>
-        invalidate(["comments", payload.entityType, payload.entityId]),
+        invalidate(["comments", payload.entityType, payload.entityId ?? ""]),
       ),
 
       onRealtime("comment:mentioned", () => {

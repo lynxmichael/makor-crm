@@ -13,7 +13,7 @@ import { customersService } from "@/services/resources";
 import { http } from "@/services/api";
 import { QK } from "@/config/constants";
 import { SCOPE_LABELS } from "./ApiKeysPage";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 interface Props {
   open: boolean;
@@ -60,7 +60,7 @@ export function ApiKeyFormModal({ open, onClose, onIssued }: Props) {
       onClose();
       onIssued(result.key, result.name);
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   function toggleScope(scope: string) {

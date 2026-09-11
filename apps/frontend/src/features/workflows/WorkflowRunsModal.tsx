@@ -77,11 +77,11 @@ export function WorkflowRunsModal({
                   </span>
                 </div>
 
-                {run.skipReason && (
+                {Boolean(run.skipReason) && (
                   <p className="mt-1 text-xs text-slate">{String(run.skipReason)}</p>
                 )}
 
-                {run.result && Object.keys(run.result as Row).length > 0 && (
+                {Boolean(run.result) && Object.keys(run.result as Row).length > 0 && (
                   <ul className="mt-1 space-y-0.5">
                     {Object.entries(run.result as Record<string, string>).map(([key, value]) => (
                       <li

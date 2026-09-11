@@ -7,7 +7,7 @@ import { ErrorState } from "@/components/shared/DataState";
 
 import { http } from "@/services/api";
 import { formatDateTime } from "@/lib/format";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -46,7 +46,7 @@ export function ApiKeyStatsModal({
           <Skeleton className="h-40 w-full" />
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : (
         <div className="space-y-5">
           <dl className="grid gap-4 sm:grid-cols-3">

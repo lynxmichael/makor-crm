@@ -32,7 +32,7 @@ import { staggerContainer, staggerItem } from "@/lib/motion";
 import { QK } from "@/config/constants";
 import { formatDate, formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -128,7 +128,7 @@ export function ExpensesPage() {
       );
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const remove = useMutation({
@@ -137,7 +137,7 @@ export function ExpensesPage() {
       toast.success("Note supprimée");
       invalidate();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const rows = query.data?.data ?? [];
@@ -260,7 +260,7 @@ export function ExpensesPage() {
           ))}
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Receipt}
@@ -544,7 +544,7 @@ function ExpenseFormModal({ open, onClose }: { open: boolean; onClose: () => voi
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       onClose();
     },
-    onError: (error) => toast.error((error as ApiError).message),
+    onError: (error) => toast.error((normalizeError(error)).message),
   });
 
   const canSubmit = label.trim().length >= 3 && Number(amount) > 0;

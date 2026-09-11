@@ -14,7 +14,7 @@ import { formatDate, initials } from "@/lib/format";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
-import type { ApiError } from "@/types/api";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -104,7 +104,7 @@ export function EvaluationPage() {
           ))}
         </div>
       ) : team.isError ? (
-        <ErrorState error={team.error as ApiError} onRetry={() => void team.refetch()} />
+        <ErrorState error={normalizeError(team.error)} onRetry={() => void team.refetch()} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Users}
@@ -222,7 +222,7 @@ export function EvaluationPage() {
                                   {CANCELLATION_LABELS[String(entry.cancellationReason)] ??
                                     String(entry.cancellationReason)}
                                 </span>
-                                {entry.cancellationNote && ` — ${String(entry.cancellationNote)}`}
+                                {Boolean(entry.cancellationNote) && ` — ${String(entry.cancellationNote)}`}
                               </p>
                             ) : (
                               <p className="mt-1 text-xs text-amber">

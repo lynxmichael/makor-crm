@@ -6,8 +6,8 @@ import { ErrorState } from "@/components/shared/DataState";
 
 import { http } from "@/services/api";
 import { QK } from "@/config/constants";
-import type { ApiError } from "@/types/api";
 import { CommentThread } from "@/features/collaboration/CommentThread";
+import { normalizeError } from "@/services/api";
 
 type Row = Record<string, unknown> & { id?: unknown };
 
@@ -72,7 +72,7 @@ export function CampaignStatsModal({
           <Skeleton className="h-24 w-full" />
         </div>
       ) : query.isError ? (
-        <ErrorState error={query.error as ApiError} onRetry={() => void query.refetch()} />
+        <ErrorState error={normalizeError(query.error)} onRetry={() => void query.refetch()} />
       ) : stats ? (
         <div className="space-y-5">
           <div className="grid grid-cols-3 gap-3">
@@ -142,16 +142,16 @@ export function CampaignStatsModal({
             </ul>
           </div>
 
-          {live && (
+          {Boolean(live) && (
             <p className="text-xs text-slate">
               Envoi en cours — les compteurs se mettent à jour automatiquement.
             </p>
           )}
 
-          {campaign?.id && (
+          {Boolean(campaign?.id) && (
             <CommentThread
               entityType="CAMPAIGN"
-              entityId={String(campaign.id)}
+              entityId={String(campaign?.id)}
               emptyDetail="Notez ici le bilan de la campagne ou une anomalie constatée."
             />
           )}
