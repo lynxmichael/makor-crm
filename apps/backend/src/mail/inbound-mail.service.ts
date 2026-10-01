@@ -103,6 +103,10 @@ export class InboundMailService implements OnModuleDestroy {
       logger: false,
     });
 
+    client.on('error', (err) => {
+      this.logger.error(`Erreur socket IMAP (non bloquante) : ${err.message}`);
+    });
+
     await client.connect();
 
     try {
